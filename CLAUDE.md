@@ -279,3 +279,53 @@ def get_llm() -> BaseChatModel:
 - Any feature not explicitly described in the spec files
 
 If a feature is not in the MVP scope list above, do not build it. When in doubt, check `spec/07-build-plan.md` before starting any new work. Phase 2 items in Section 4 of that file are informational only.
+
+---
+
+## SECTION 8: LOGGING AND TESTING REQUIREMENTS
+
+### Logging (apply to every task)
+
+Every task that adds backend Python code must include structured logging using the existing `logging_config.py` setup:
+
+```python
+import logging
+logger = logging.getLogger(__name__)
+
+Where to log:
+- logger.info(...) — successful operations (record created, cache hit, agent completed)
+- logger.warning(...) — recoverable conditions (cache miss, fallback triggered, optional field missing)
+- logger.error(...) — caught exceptions and failure paths (DB error, LLM failure, invalid input at boundary)
+
+Rules:
+- Never log secrets, passwords, tokens, or PII (email, name, role)
+- Log the operation and its key identifiers, not raw request bodies
+- Every except block that swallows an exception must call logger.error(...) before continuing
+
+Testing (apply to every task)
+
+Every task must include tests before the PR is opened. Tests live in backend/tests/ or frontend/src/__tests__/ depending on what was built.
+
+Rules:
+- Write tests on the same task branch — do not open the PR without them
+- Tests must pass before merging (run pytest locally to confirm)
+- Prefer tests that run without a live database or network (mock/stub at the boundary)
+- If a test requires a real DB or running service, mark it clearly with a comment and ensure it is skipped in unit test runs
+
+What to test per task type:
+
+┌───────────────────────────┬──────────────────────────────────────────────────────────────────────────────────┐
+│         Task type         │                                  What to cover                                   │
+├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
+│ Models / migrations       │ Column types, nullability, constraints, FK targets, relationships                │
+├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
+│ Services / business logic │ Happy path, validation errors, edge cases (empty list, zero score, cache miss)   │
+├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
+│ API routes                │ Status codes, response shape, auth enforcement (401/403), input validation (422) │
+├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
+│ Agents                    │ Prompt construction, output parsing, fallback on failure                         │
+├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
+│ Scoring                   │ All Level 1 → 1.0, all Level 4 → 4.0, mixed inputs, weight application           │
+├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
+│ Frontend components       │ Not required for MVP — focus backend test coverage                               │
+└───────────────────────────┴──────────────────────────────────────────────────────────────────────────────────┘
