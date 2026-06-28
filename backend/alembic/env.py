@@ -4,7 +4,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import async_engine_from_config, create_async_engine
 
 from alembic import context
 
@@ -14,6 +14,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from app.core.database import Base
+import app.models  # noqa: F401 — registers all ORM models with Base.metadata
 
 target_metadata = Base.metadata
 
@@ -39,9 +40,8 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_async_engine(
+        os.getenv("DATABASE_URL", ""),
         poolclass=pool.NullPool,
     )
     async with connectable.connect() as connection:
