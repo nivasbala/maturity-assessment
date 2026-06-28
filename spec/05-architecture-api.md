@@ -1,7 +1,7 @@
 ---
 title: Architecture & API Design
-version: 1.0
-last_updated: 2026-06-27
+version: 1.1
+last_updated: 2026-06-28
 ---
 
 # Architecture & API Design
@@ -83,6 +83,7 @@ JSON profile. Focus on:
 - Technology signals (cloud providers, programming languages, open source)
 - Whether they appear to be building AI-powered products
 - Key technology challenges their industry typically faces
+- Business outcomes that define success for this company — based on what they build and who they serve (e.g., an e-commerce company's success outcomes are increased sales conversion, customer retention, and satisfaction; a SaaS company's outcomes are churn reduction, expansion revenue, and uptime; a fintech's outcomes are transaction reliability, fraud reduction, and compliance). Infer the most meaningful business outcomes from the company's domain, products, and customer base.
 
 Return ONLY valid JSON with this exact structure, no preamble, no markdown:
 {
@@ -93,7 +94,8 @@ Return ONLY valid JSON with this exact structure, no preamble, no markdown:
   "technology_signals": string[],
   "builds_ai_products": boolean,
   "cloud_providers": string[],
-  "key_challenges": string[]
+  "key_challenges": string[],
+  "business_outcomes": string[]   -- 3-5 outcomes specific to this company's domain and business model
 }
 ```
 
