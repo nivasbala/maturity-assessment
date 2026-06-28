@@ -1,12 +1,7 @@
-import os
-import time
-
 import pytest
+from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 from jose import jwt
-
-os.environ.setdefault("DATABASE_URL", "postgresql+asyncpg://user:pass@localhost/test")
-os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key-that-is-long-enough-32chars")
 
 from app.core.security import (
     create_access_token,
@@ -18,39 +13,58 @@ from app.core.security import (
 from app.core.config import settings
 
 
-def test_hash_password_returns_bcrypt_hash():
-    hashed = hash_password("mysecret")
+@pytest.mark.asyncio
+async def test_hash_password_returns_bcrypt_hash():
+    hashed = await hash_password("mysecret")
     assert hashed != "mysecret"
     assert hashed.startswith("$2b$")
 
 
-def test_verify_password_correct():
-    hashed = hash_password("mysecret")
-    assert verify_password("mysecret", hashed) is True
+@pytest.mark.asyncio
+async def test_verify_password_correct():
+    hashed = await hash_password("mysecret")
+    assert await verify_password("mysecret", hashed) is True
 
 
-def test_verify_password_wrong():
-    hashed = hash_password("mysecret")
-    assert verify_password("wrongpassword", hashed) is False
+@pytest.mark.asyncio
+async def test_verify_password_wrong():
+    hashed = await hash_password("mysecret")
+    assert await verify_password("wrongpassword", hashed) is False
 
 
-def test_create_access_token_contains_sub():
+def test_create_access_token_contains_sub_and_type():
     token = create_access_token({"sub": "user-123"})
     payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
     assert payload["sub"] == "user-123"
     assert "exp" in payload
+    assert payload["type"] == "access"
 
 
-def test_create_refresh_token_contains_sub():
+def test_create_refresh_token_contains_sub_and_type():
     token = create_refresh_token({"sub": "user-456"})
     payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
     assert payload["sub"] == "user-456"
+    assert payload["type"] == "refresh"
 
 
 def test_decode_token_valid():
     token = create_access_token({"sub": "user-789"})
     payload = decode_token(token)
     assert payload["sub"] == "user-789"
+
+
+def test_decode_refresh_token_rejected_as_access():
+    token = create_refresh_token({"sub": "user-789"})
+    with pytest.raises(HTTPException) as exc_info:
+        decode_token(token)
+    assert exc_info.value.status_code == 401
+
+
+def test_decode_access_token_rejected_as_refresh():
+    token = create_access_token({"sub": "user-789"})
+    with pytest.raises(HTTPException) as exc_info:
+        decode_token(token, expected_type="refresh")
+    assert exc_info.value.status_code == 401
 
 
 def test_decode_token_invalid_raises_401():
@@ -67,7 +81,6 @@ def test_decode_token_wrong_secret_raises_401():
 
 
 def test_decode_token_expired_raises_401():
-    from datetime import datetime, timedelta, timezone
     expired_payload = {
         "sub": "user-000",
         "exp": datetime.now(timezone.utc) - timedelta(seconds=1),

@@ -37,5 +37,19 @@ class Settings(BaseSettings):
             raise ValueError("JWT_SECRET_KEY must be set")
         return v
 
+    @field_validator("admin_email")
+    @classmethod
+    def admin_email_must_be_set(cls, v: str) -> str:
+        if not v:
+            raise ValueError("ADMIN_EMAIL must be set")
+        return v
+
+    @field_validator("admin_password")
+    @classmethod
+    def admin_password_must_be_set(cls, v: str) -> str:
+        if not v:
+            raise ValueError("ADMIN_PASSWORD must be set")
+        return v
+
 
 settings = Settings()
