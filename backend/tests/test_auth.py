@@ -81,6 +81,31 @@ async def test_login_missing_fields_returns_422():
     assert resp.status_code == 422
 
 
+@pytest.mark.asyncio
+async def test_login_invalid_email_format_returns_422():
+    async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+        resp = await client.post("/api/auth/login", json={"email": "not-an-email", "password": "secret"})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_login_empty_password_returns_422():
+    async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+        resp = await client.post("/api/auth/login", json={"email": "user@example.com", "password": ""})
+    assert resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_login_timing_safe_unknown_email():
+    with patch(
+        "app.routers.auth.authenticate_user",
+        AsyncMock(return_value=None),
+    ):
+        async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+            resp = await client.post("/api/auth/login", json={"email": "unknown@example.com", "password": "x"})
+    assert resp.status_code == 401
+
+
 # ---------------------------------------------------------------------------
 # POST /api/auth/refresh
 # ---------------------------------------------------------------------------
@@ -131,6 +156,28 @@ async def test_refresh_inactive_user_returns_401():
                 "/api/auth/refresh",
                 headers={"Authorization": f"Bearer {token}"},
             )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_missing_sub_returns_401():
+    token = create_refresh_token({})
+    async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+        resp = await client.post(
+            "/api/auth/refresh",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_refresh_token_non_uuid_sub_returns_401():
+    token = create_refresh_token({"sub": "not-a-uuid"})
+    async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+        resp = await client.post(
+            "/api/auth/refresh",
+            headers={"Authorization": f"Bearer {token}"},
+        )
     assert resp.status_code == 401
 
 
