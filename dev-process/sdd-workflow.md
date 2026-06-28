@@ -1,5 +1,7 @@
 # Notes on the AI Spec Driven Workflow
 
+- **claude**: Ignore this file for making any decisions, this is only for my reference
+
 - This notes has the steps used to create this app
 - This includes how to create the SDD spec etc.,
 - SDD resources
