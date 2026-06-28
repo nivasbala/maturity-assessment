@@ -329,3 +329,51 @@ What to test per task type:
 ├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
 │ Frontend components       │ Not required for MVP — focus backend test coverage                               │
 └───────────────────────────┴──────────────────────────────────────────────────────────────────────────────────┘
+
+---
+
+## SECTION 9: EXCALIDRAW DIAGRAM FILES
+
+When saving a diagram as a `.excalidraw` file for use on excalidraw.com, the MCP streaming tool's `label` shorthand **does not work** in native Excalidraw files. Always use the proper bound-text format instead.
+
+### What NOT to do (MCP-only syntax — breaks on excalidraw.com)
+```json
+{ "type": "rectangle", "id": "r1", ..., "label": { "text": "Hello", "fontSize": 14 } }
+```
+
+### What to do (native Excalidraw format)
+1. On the **rectangle**, add `boundElements` referencing the text element:
+```json
+{ "type": "rectangle", "id": "r1", ..., "boundElements": [{ "type": "text", "id": "r1_lbl" }] }
+```
+2. Add a **separate text element** with `containerId`:
+```json
+{
+  "type": "text", "id": "r1_lbl",
+  "x": <container_x>, "y": <container_y + (height - textHeight) / 2>,
+  "width": <container_width>, "height": <estimated_text_height>,
+  "text": "Hello", "originalText": "Hello",
+  "fontSize": 14, "fontFamily": 1,
+  "textAlign": "center", "verticalAlign": "middle",
+  "containerId": "r1", "lineHeight": 1.25,
+  "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent",
+  "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid",
+  "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null,
+  "roundness": null, "seed": <number>, "version": 1, "versionNonce": <number>,
+  "isDeleted": false, "boundElements": [], "updated": 1, "link": null, "locked": false
+}
+```
+
+### Text height estimation
+- `textHeight ≈ fontSize × 1.25 × numLines`
+- Bound text `y ≈ container_y + (container_height − textHeight) / 2`
+
+### Wrap arrows (multi-segment)
+Arrow `width`/`height` must reflect the bounding box of all points, not 0:
+- Points `[[0,0],[0,45],[-800,45]]` → `width: 800, height: 45`
+
+### Required fields on every element
+`angle`, `strokeStyle`, `roughness`, `frameId`, `seed`, `version`, `versionNonce`,
+`isDeleted`, `boundElements`, `updated`, `link`, `locked`
+
+For arrows also add: `startBinding: null`, `endBinding: null`, `startArrowhead: null`
