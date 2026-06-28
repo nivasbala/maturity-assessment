@@ -1,4 +1,5 @@
-from pydantic_settings import BaseSettings
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -20,8 +21,21 @@ class Settings(BaseSettings):
     base_url: str = "http://localhost"
     cors_origins: list[str] = ["http://localhost", "http://localhost:3000"]
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(env_file=".env")
+
+    @field_validator("database_url")
+    @classmethod
+    def database_url_must_be_set(cls, v: str) -> str:
+        if not v:
+            raise ValueError("DATABASE_URL must be set")
+        return v
+
+    @field_validator("jwt_secret_key")
+    @classmethod
+    def jwt_secret_key_must_be_set(cls, v: str) -> str:
+        if not v:
+            raise ValueError("JWT_SECRET_KEY must be set")
+        return v
 
 
 settings = Settings()
