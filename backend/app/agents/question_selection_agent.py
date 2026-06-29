@@ -1,28 +1,25 @@
 """
-Question Selection Agent
+Question Selection Agent (Agent 2)
 
-Uses the research cache produced by Agent 1 (research_agent.py) to rank and
-select the 12 questions shown to a prospect:
-  - Step 1: always include all general questions (is_general=TRUE) → 4 questions
-  - Step 2: build persona-eligible pool (question_personas join for this persona)
-  - Step 3a (cache ready): score each question by matching context_tags against
-    tech_signals + cloud_providers from research_cache
-    (score = 1.0 + 0.5 per matching tag), select top 8
-  - Step 3b (cache absent): select first 8 by display_order (persona-only fallback)
+LLM-based agent that selects the 12 most diagnostic questions for a prospect.
+Runs synchronously at /select-pillar time (~3–8 seconds). Implemented in Task 9.
 
-Returns exactly 12 questions regardless of whether the research cache is populated.
-No LLM is called here — this is a deterministic ranking algorithm.
+Architecture (05-architecture-api.md §1.3):
+  - Input: prospect persona, pillar context, research_cache from Agent 1,
+    candidate question list (general + persona-eligible) with id/text/context_tags
+  - LLM selects 12 question IDs ordered for maximum diagnostic value
+  - When research_cache is populated: prefers questions whose context_tags match
+    company tech stack, cloud providers, industry, and business outcomes
+  - When research_cache is empty: selects based on persona expertise only
+  - Fallback (if LLM fails/times out): 4 general + 8 persona-eligible by display_order
 
-The scoring helper lives in services/question_service.py (per 04-data-model.md §8).
-Import it from there; do not duplicate it here.
+The rule-based fallback scoring helper lives in services/question_service.py.
 """
 from __future__ import annotations
 
 import logging
 from typing import Any
 from uuid import UUID
-
-from app.services.question_service import score_question  # noqa: F401 — re-exported for callers
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,9 @@
 """
-Question selection and scoring service.
+Question selection helper used by the Agent 2 rule-based fallback.
 
-Implements the research-informed question selection algorithm described in
-04-data-model.md §8. Called by the /select-pillar endpoint (Task 7) and
-the LangGraph orchestrator (Task 9).
+score_question() ranks candidate questions by context_tag overlap with the
+research cache. Used when Agent 2 (question_selection_agent.py) fails or
+times out — the main selection path is the LLM agent (Task 9).
 """
 from __future__ import annotations
 
