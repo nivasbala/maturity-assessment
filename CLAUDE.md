@@ -98,7 +98,7 @@ All services start together: postgres, backend, frontend, nginx, ollama.
 
 Before writing any code each session, confirm the stack is up:
 ```bash
-curl http://localhost/api/health
+curl http://localhost:8080/api/health
 # Expected: {"status": "ok"}
 ```
 
