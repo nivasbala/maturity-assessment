@@ -35,70 +35,24 @@ Load **only** the files listed for your current task. Do not load files not list
 
 ## SECTION 2: GIT WORKFLOW
 
-### One-Time Setup (Done Manually by Human — Not the Agent)
-
-```bash
-mkdir maturity-platform
-cd maturity-platform
-git init
-git remote add origin https://github.com/<org>/<repo>.git
-git checkout -b main
-# Copy spec/ directory here
-git add spec/
-git commit -m "Initial commit: add spec files"
-git push -u origin main
-```
-
 ### Per-Task Workflow (Agent Follows This for Every Task)
 
+1. Ensure you are on `main` and it is up to date (`git pull origin main`)
+2. Create task branch: `git checkout -b task/NN-task-name`
+3. Do all work on this branch — multiple commits are fine
+4. Run verification criteria before opening a PR — do not open if any fail
+5. Open and squash-merge the PR:
+
 ```bash
-# 1. Ensure you are on main and it is up to date
-git checkout main
-git pull origin main
-
-# 2. Create task branch from main
-git checkout -b task/NN-task-name
-
-# 3. Do all work for this task on this branch (multiple commits are fine)
-
-# 4. Before opening a PR:
-#    - Run verification criteria from spec/01-mission-outcomes-verification.md
-#      that apply to this task
-#    - Fix any failures on this branch before proceeding
-#    - Do not open a PR if verification fails
-
-# 5. Open a PR on GitHub
 gh pr create \
   --title "Task NN: <task name>" \
   --body "Completes task NN as defined in spec/07-build-plan.md. Verification criteria checked." \
   --base main
 
-# 6. Squash merge the PR
 gh pr merge --squash --auto
-
-# 7. Return to main and pull the merged commit
-git checkout main
-git pull origin main
-
-# 8. Begin next task branch from updated main
 ```
 
-### Branch Naming Convention
-
-| Task | Branch Name |
-|------|------------|
-| Task 1 | `task/01-project-scaffolding` |
-| Task 2 | `task/02-database-migrations` |
-| Task 3 | `task/03-auth-system` |
-| Task 4 | `task/04-seed-data` |
-| Task 5 | `task/05-admin-api-ui` |
-| Task 6 | `task/06-short-url-flow` |
-| Task 7 | `task/07-prospect-landing-flow` |
-| Task 8 | `task/08-scoring-engine` |
-| Task 9 | `task/09-llm-agents` |
-| Task 10 | `task/10-report-display-pdf` |
-| Task 11 | `task/11-internal-dashboard` |
-| Task 12 | `task/12-end-to-end-verification` |
+6. Return to main and pull: `git checkout main && git pull origin main`
 
 ### Commit Message Format
 
@@ -115,12 +69,12 @@ If a task fails its verification criteria: fix on the **same task branch**. Neve
 
 ## SECTION 3: VERIFICATION GATE
 
-Before opening a PR for any task, run the verification criteria from `spec/01-mission-outcomes-verification.md` that apply to that task. Do not open a PR if any criterion fails. Fix failures on the same task branch before merging.
+Before opening a PR for any task, run the applicable criteria from `spec/01-mission-outcomes-verification.md`. Do not open a PR if any criterion fails — fix on the same branch first.
 
-Key verification areas:
-- **Auth & Authorization:** 401 on unauthenticated admin requests, 403 on wrong role, data isolation between internal users
+Key areas to verify:
+- **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
 - **Question Selection:** 4 general + 8 persona-specific = 12 per session; inactive questions never shown
-- **P3 Gate:** Hidden from pillar menu when gate answered No; visible when Yes
+- **P3 Gate:** Hidden when gate answered No; visible when Yes
 - **Scoring:** All Level 1 → 1.0, all Level 4 → 4.0, mixed produces value between 1.00–4.00
 - **Agent Behavior:** Research cached at account level, 7-day TTL, graceful failure if Agent 1 fails
 - **Report Completeness:** executive_summary, 2–4 strengths, 3–6 gaps, 4–6 next steps; no vendor names
@@ -148,41 +102,20 @@ curl http://localhost/api/health
 # Expected: {"status": "ok"}
 ```
 
-### Environment Variables (`.env.example`)
+### Environment Variables
 
-```bash
-# Database
-POSTGRES_USER=maturity_user
-POSTGRES_PASSWORD=changeme
-POSTGRES_DB=maturity_platform
-DATABASE_URL=postgresql+asyncpg://maturity_user:changeme@postgres:5432/maturity_platform
+See `.env.example` in the repo root for the full file. Required variables:
 
-# Auth
-JWT_SECRET_KEY=replace-with-secure-random-string-min-32-chars
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=15
-REFRESH_TOKEN_EXPIRE_DAYS=7
-
-# Admin seed user
-ADMIN_EMAIL=admin@company.com
-ADMIN_PASSWORD=changeme-on-first-login
-ADMIN_NAME=System Admin
-
-# LLM Provider: ollama | anthropic | openai
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://ollama:11434
-OLLAMA_MODEL=llama3.2
-
-# (Uncomment when switching providers)
-# ANTHROPIC_API_KEY=sk-ant-...
-# ANTHROPIC_MODEL=claude-sonnet-4-6
-# OPENAI_API_KEY=sk-...
-# OPENAI_MODEL=gpt-4o
-
-# App
-BASE_URL=http://localhost
-CORS_ORIGINS=["http://localhost", "http://localhost:3000"]
-```
+| Variable | Purpose |
+|----------|---------|
+| `DATABASE_URL` | asyncpg connection string (postgres) |
+| `JWT_SECRET_KEY` | Min 32-char random string — change before deploy |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | Seed admin user |
+| `LLM_PROVIDER` | `ollama` \| `anthropic` \| `openai` |
+| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | Ollama config (default provider) |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Used when `LLM_PROVIDER=anthropic` |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | Used when `LLM_PROVIDER=openai` |
+| `BASE_URL` / `CORS_ORIGINS` | App URL and allowed origins |
 
 Note: `gh` CLI must be configured and authenticated before Task 1 begins.
 
@@ -211,37 +144,7 @@ Note: `gh` CLI must be configured and authenticated before Task 1 begins.
 
 ## SECTION 6: LLM SWITCHING RULE
 
-Never change the LLM provider in code. Switch providers only by changing the `LLM_PROVIDER` variable in `.env` and restarting. The `llm_factory.py` abstraction handles all provider logic. No other file should reference a specific LLM provider directly.
-
-```python
-# backend/app/core/llm_factory.py
-import os
-from langchain_core.language_models import BaseChatModel
-
-def get_llm() -> BaseChatModel:
-    provider = os.getenv("LLM_PROVIDER", "ollama")
-
-    if provider == "ollama":
-        from langchain_ollama import ChatOllama
-        return ChatOllama(
-            model=os.getenv("OLLAMA_MODEL", "llama3.2"),
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
-        )
-    elif provider == "anthropic":
-        from langchain_anthropic import ChatAnthropic
-        return ChatAnthropic(
-            model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
-            api_key=os.getenv("ANTHROPIC_API_KEY")
-        )
-    elif provider == "openai":
-        from langchain_openai import ChatOpenAI
-        return ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o"),
-            api_key=os.getenv("OPENAI_API_KEY")
-        )
-    else:
-        raise ValueError(f"Unsupported LLM_PROVIDER: {provider}")
-```
+Never change the LLM provider in code. Switch providers only by changing `LLM_PROVIDER` in `.env` and restarting. All provider logic lives in `backend/app/core/llm_factory.py` — no other file should reference a specific LLM provider directly.
 
 ---
 
@@ -286,94 +189,62 @@ If a feature is not in the MVP scope list above, do not build it. When in doubt,
 
 ### Logging (apply to every task)
 
-Every task that adds backend Python code must include structured logging using the existing `logging_config.py` setup:
+Every task that adds backend Python code must include structured logging using `logging_config.py`:
 
 ```python
 import logging
 logger = logging.getLogger(__name__)
+```
 
-Where to log:
-- logger.info(...) — successful operations (record created, cache hit, agent completed)
-- logger.warning(...) — recoverable conditions (cache miss, fallback triggered, optional field missing)
-- logger.error(...) — caught exceptions and failure paths (DB error, LLM failure, invalid input at boundary)
-
-Rules:
+- `logger.info(...)` — successful operations (record created, cache hit, agent completed)
+- `logger.warning(...)` — recoverable conditions (cache miss, fallback triggered, optional field missing)
+- `logger.error(...)` — caught exceptions and failure paths (DB error, LLM failure, invalid input at boundary)
 - Never log secrets, passwords, tokens, or PII (email, name, role)
-- Log the operation and its key identifiers, not raw request bodies
-- Every except block that swallows an exception must call logger.error(...) before continuing
+- Every `except` block that swallows an exception must call `logger.error(...)` before continuing
 
-Testing (apply to every task)
+### Testing (apply to every task)
 
-Every task must include tests before the PR is opened. Tests live in backend/tests/ or frontend/src/__tests__/ depending on what was built.
+Every task must include tests before the PR is opened. Tests live in `backend/tests/` or `frontend/src/__tests__/`.
 
-Rules:
 - Write tests on the same task branch — do not open the PR without them
-- Tests must pass before merging (run pytest locally to confirm)
+- Tests must pass before merging (`pytest` locally to confirm)
 - Prefer tests that run without a live database or network (mock/stub at the boundary)
-- If a test requires a real DB or running service, mark it clearly with a comment and ensure it is skipped in unit test runs
+- If a test requires a real DB or running service, mark it with a comment and skip it in unit test runs
 
-What to test per task type:
-
-┌───────────────────────────┬──────────────────────────────────────────────────────────────────────────────────┐
-│         Task type         │                                  What to cover                                   │
-├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
-│ Models / migrations       │ Column types, nullability, constraints, FK targets, relationships                │
-├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
-│ Services / business logic │ Happy path, validation errors, edge cases (empty list, zero score, cache miss)   │
-├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
-│ API routes                │ Status codes, response shape, auth enforcement (401/403), input validation (422) │
-├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
-│ Agents                    │ Prompt construction, output parsing, fallback on failure                         │
-├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
-│ Scoring                   │ All Level 1 → 1.0, all Level 4 → 4.0, mixed inputs, weight application           │
-├───────────────────────────┼──────────────────────────────────────────────────────────────────────────────────┤
-│ Frontend components       │ Not required for MVP — focus backend test coverage                               │
-└───────────────────────────┴──────────────────────────────────────────────────────────────────────────────────┘
+| Task type | What to cover |
+|-----------|--------------|
+| Models / migrations | Column types, nullability, constraints, FK targets, relationships |
+| Services / business logic | Happy path, validation errors, edge cases (empty list, zero score, cache miss) |
+| API routes | Status codes, response shape, auth enforcement (401/403), input validation (422) |
+| Agents | Prompt construction, output parsing, fallback on failure |
+| Scoring | All Level 1 → 1.0, all Level 4 → 4.0, mixed inputs, weight application |
+| Frontend components | Not required for MVP — focus backend test coverage |
 
 ---
 
 ## SECTION 9: EXCALIDRAW DIAGRAM FILES
 
-When saving a diagram as a `.excalidraw` file for use on excalidraw.com, the MCP streaming tool's `label` shorthand **does not work** in native Excalidraw files. Always use the proper bound-text format instead.
+When saving a diagram as a `.excalidraw` file for use on excalidraw.com, the MCP streaming tool's `label` shorthand **does not work** in native Excalidraw files. Always use the proper bound-text format.
 
-### What NOT to do (MCP-only syntax — breaks on excalidraw.com)
-```json
-{ "type": "rectangle", "id": "r1", ..., "label": { "text": "Hello", "fontSize": 14 } }
-```
+### Rule: no `label` on shapes — use bound text elements
 
-### What to do (native Excalidraw format)
-1. On the **rectangle**, add `boundElements` referencing the text element:
+The `label` shorthand only works in the MCP `create_view` streaming tool. For `.excalidraw` files, text inside shapes requires two elements:
+
 ```json
 { "type": "rectangle", "id": "r1", ..., "boundElements": [{ "type": "text", "id": "r1_lbl" }] }
-```
-2. Add a **separate text element** with `containerId`:
-```json
-{
-  "type": "text", "id": "r1_lbl",
+{ "type": "text", "id": "r1_lbl", "containerId": "r1",
+  "textAlign": "center", "verticalAlign": "middle", "fontFamily": 1, "lineHeight": 1.25,
+  "text": "Hello", "originalText": "Hello", "fontSize": 14,
   "x": <container_x>, "y": <container_y + (height - textHeight) / 2>,
-  "width": <container_width>, "height": <estimated_text_height>,
-  "text": "Hello", "originalText": "Hello",
-  "fontSize": 14, "fontFamily": 1,
-  "textAlign": "center", "verticalAlign": "middle",
-  "containerId": "r1", "lineHeight": 1.25,
-  "angle": 0, "strokeColor": "#1e1e1e", "backgroundColor": "transparent",
-  "fillStyle": "solid", "strokeWidth": 2, "strokeStyle": "solid",
-  "roughness": 1, "opacity": 100, "groupIds": [], "frameId": null,
-  "roundness": null, "seed": <number>, "version": 1, "versionNonce": <number>,
-  "isDeleted": false, "boundElements": [], "updated": 1, "link": null, "locked": false
-}
+  "width": <container_width>, "height": <fontSize × 1.25 × numLines> }
 ```
-
-### Text height estimation
-- `textHeight ≈ fontSize × 1.25 × numLines`
-- Bound text `y ≈ container_y + (container_height − textHeight) / 2`
-
-### Wrap arrows (multi-segment)
-Arrow `width`/`height` must reflect the bounding box of all points, not 0:
-- Points `[[0,0],[0,45],[-800,45]]` → `width: 800, height: 45`
 
 ### Required fields on every element
-`angle`, `strokeStyle`, `roughness`, `frameId`, `seed`, `version`, `versionNonce`,
-`isDeleted`, `boundElements`, `updated`, `link`, `locked`
 
-For arrows also add: `startBinding: null`, `endBinding: null`, `startArrowhead: null`
+All elements need: `angle`, `strokeColor`, `backgroundColor`, `fillStyle`, `strokeWidth`, `strokeStyle`, `roughness`, `opacity`, `groupIds`, `frameId`, `roundness`, `seed`, `version`, `versionNonce`, `isDeleted`, `boundElements`, `updated`, `link`, `locked`
+
+Arrows also need: `startBinding: null`, `endBinding: null`, `startArrowhead: null`
+
+### Wrap arrow bounding box
+
+`width`/`height` must span all points, not be 0. Example: points `[[0,0],[0,45],[-800,45]]` → `width: 800, height: 45`
