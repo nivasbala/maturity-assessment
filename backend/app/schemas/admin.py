@@ -21,7 +21,7 @@ class Paginated(BaseModel, Generic[T]):
 class UserCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str = Field(min_length=8, max_length=72)
     # Only internal_user can be created through the UI — admin is not selectable
 
 
