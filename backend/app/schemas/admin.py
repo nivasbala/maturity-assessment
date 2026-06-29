@@ -74,7 +74,7 @@ class PillarOut(BaseModel):
     is_active: bool
     is_gated: bool
     gate_question: str | None
-    question_count: int
+    question_count: int = 0
     created_at: datetime
 
 
