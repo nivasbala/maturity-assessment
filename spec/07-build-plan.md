@@ -34,7 +34,6 @@ last_updated: 2026-06-27
 - LLM-adaptive question selection based on company research output
 - Email notifications of any kind
 - CRM integration (Salesforce, HubSpot, Marketo)
-- Pillar 4: ML & Foundation Model Operations
 - Benchmarking or peer comparison features
 - OAuth2 / SSO authentication
 - Multi-tenancy or white-labeling
