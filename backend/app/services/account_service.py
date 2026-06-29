@@ -1,20 +1,38 @@
 import logging
+import secrets
+from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.models.account import Account
+from app.models.assessment import Assessment, AssessmentAnswer
+from app.models.pillar import Pillar
+from app.models.report import Report
 from app.models.user import User
+from app.schemas.admin import Paginated
+from app.schemas.internal import (
+    AccountCreate,
+    AccountDetailOut,
+    AccountListOut,
+    AggregateOut,
+    AggregateScoreItem,
+    AnswerRow,
+    AssessmentAnswersOut,
+    AssessmentCreatedOut,
+    AssessmentDetailOut,
+    AssessmentListItemOut,
+    PillarStatusRow,
+    ReportOut,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def assert_owns_account(current_user: User, account: Account) -> None:
-    """Raise 403 if an internal user tries to access another user's account.
-
-    Admins bypass this check and can see all accounts.
-    Must be called at the service layer before returning any account,
-    assessment, answer, or report to an internal user.
-    """
     if current_user.role == "admin":
         return
     if account.internal_user_id != current_user.id:
@@ -24,3 +42,385 @@ def assert_owns_account(current_user: User, account: Account) -> None:
             account.internal_user_id,
         )
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+
+def _generate_short_token() -> str:
+    return secrets.token_urlsafe(6)  # produces 8-char URL-safe string
+
+
+async def list_accounts(
+    db: AsyncSession,
+    current_user: User,
+    page: int = 1,
+    size: int = 25,
+) -> Paginated[AccountListOut]:
+    offset = (page - 1) * size
+    q = select(Account)
+    if current_user.role != "admin":
+        q = q.where(Account.internal_user_id == current_user.id)
+    total_q = select(func.count()).select_from(q.subquery())
+    total = (await db.execute(total_q)).scalar_one()
+    rows = (
+        await db.execute(q.order_by(Account.created_at.desc()).offset(offset).limit(size))
+    ).scalars().all()
+    logger.info("list_accounts: user_id=%s count=%d", current_user.id, total)
+    return Paginated(
+        items=[AccountListOut.model_validate(a) for a in rows],
+        total=total,
+        page=page,
+        size=size,
+    )
+
+
+async def create_account(
+    db: AsyncSession,
+    current_user: User,
+    data: AccountCreate,
+) -> AccountListOut:
+    account = Account(
+        company_name=data.company_name,
+        company_website=data.company_website,
+        internal_user_id=current_user.id,
+        suggested_pillars=data.suggested_pillars,
+    )
+    db.add(account)
+    await db.commit()
+    await db.refresh(account)
+    logger.info("create_account: account_id=%s user_id=%s", account.id, current_user.id)
+    return AccountListOut.model_validate(account)
+
+
+async def get_account_detail(
+    db: AsyncSession,
+    account_id: UUID,
+    current_user: User,
+) -> AccountDetailOut:
+    account = (
+        await db.execute(
+            select(Account)
+            .options(selectinload(Account.internal_user))
+            .where(Account.id == account_id)
+        )
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    pillars = (
+        await db.execute(
+            select(Pillar).where(Pillar.is_active == True).order_by(Pillar.display_order)  # noqa: E712
+        )
+    ).scalars().all()
+
+    assessments = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.report))
+            .where(Assessment.account_id == account_id)
+        )
+    ).scalars().all()
+    assessment_map = {a.pillar_id: a for a in assessments}
+
+    pillar_statuses: list[PillarStatusRow] = []
+    for pillar in pillars:
+        assessment = assessment_map.get(pillar.id)
+        report = assessment.report if assessment else None
+        pillar_statuses.append(
+            PillarStatusRow(
+                pillar_id=pillar.id,
+                pillar_name=pillar.name,
+                display_order=pillar.display_order,
+                is_gated=pillar.is_gated,
+                is_active=pillar.is_active,
+                assessment_id=assessment.id if assessment else None,
+                status=assessment.status if assessment else None,
+                prospect_name=assessment.prospect_name if assessment else None,
+                prospect_email=assessment.prospect_email if assessment else None,
+                prospect_role=assessment.prospect_role if assessment else None,
+                pillar_score=float(report.pillar_score) if report else None,
+                maturity_label=report.maturity_label if report else None,
+                short_url_token=assessment.short_url_token if assessment else None,
+            )
+        )
+
+    return AccountDetailOut(
+        id=account.id,
+        company_name=account.company_name,
+        company_website=account.company_website,
+        internal_user_id=account.internal_user_id,
+        internal_user_name=account.internal_user.name,
+        suggested_pillars=account.suggested_pillars or [],
+        created_at=account.created_at,
+        pillar_statuses=pillar_statuses,
+    )
+
+
+async def create_assessment(
+    db: AsyncSession,
+    account_id: UUID,
+    current_user: User,
+    pillar_id: UUID,
+) -> AssessmentCreatedOut:
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    pillar = (
+        await db.execute(select(Pillar).where(Pillar.id == pillar_id, Pillar.is_active == True))  # noqa: E712
+    ).scalar_one_or_none()
+    if not pillar:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pillar not found or inactive")
+
+    existing = (
+        await db.execute(
+            select(Assessment).where(
+                Assessment.account_id == account_id,
+                Assessment.pillar_id == pillar_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Assessment already exists for this account and pillar",
+        )
+
+    token = _generate_short_token()
+    # Ensure uniqueness (collision is extremely unlikely but handle it)
+    while (
+        await db.execute(select(Assessment).where(Assessment.short_url_token == token))
+    ).scalar_one_or_none():
+        logger.warning("Short URL token collision — regenerating")
+        token = _generate_short_token()
+
+    assessment = Assessment(
+        account_id=account_id,
+        pillar_id=pillar_id,
+        short_url_token=token,
+        status="pending",
+    )
+    db.add(assessment)
+    await db.commit()
+    await db.refresh(assessment)
+    logger.info(
+        "create_assessment: assessment_id=%s account_id=%s pillar_id=%s token=%s",
+        assessment.id,
+        account_id,
+        pillar_id,
+        token,
+    )
+    full_url = f"{settings.base_url}/assess/{token}"
+    return AssessmentCreatedOut(
+        assessment_id=assessment.id,
+        short_url_token=token,
+        full_url=full_url,
+    )
+
+
+async def list_account_assessments(
+    db: AsyncSession,
+    account_id: UUID,
+    current_user: User,
+) -> list[AssessmentListItemOut]:
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    rows = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.pillar), selectinload(Assessment.report))
+            .where(Assessment.account_id == account_id)
+            .order_by(Assessment.created_at.desc())
+        )
+    ).scalars().all()
+
+    result = []
+    for a in rows:
+        report = a.report
+        result.append(
+            AssessmentListItemOut(
+                id=a.id,
+                account_id=a.account_id,
+                pillar_id=a.pillar_id,
+                pillar_name=a.pillar.name,
+                short_url_token=a.short_url_token,
+                prospect_name=a.prospect_name,
+                prospect_email=a.prospect_email,
+                prospect_role=a.prospect_role,
+                status=a.status,
+                pillar_score=float(report.pillar_score) if report else None,
+                maturity_label=report.maturity_label if report else None,
+                created_at=a.created_at,
+                completed_at=a.completed_at,
+            )
+        )
+    logger.info("list_account_assessments: account_id=%s count=%d", account_id, len(result))
+    return result
+
+
+async def get_assessment_detail(
+    db: AsyncSession,
+    assessment_id: UUID,
+    current_user: User,
+) -> AssessmentDetailOut:
+    assessment = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.pillar), selectinload(Assessment.account))
+            .where(Assessment.id == assessment_id)
+        )
+    ).scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+    assert_owns_account(current_user, assessment.account)
+
+    return AssessmentDetailOut(
+        id=assessment.id,
+        account_id=assessment.account_id,
+        pillar_id=assessment.pillar_id,
+        pillar_name=assessment.pillar.name,
+        company_name=assessment.account.company_name,
+        short_url_token=assessment.short_url_token,
+        prospect_name=assessment.prospect_name,
+        prospect_email=assessment.prospect_email,
+        prospect_role=assessment.prospect_role,
+        status=assessment.status,
+        created_at=assessment.created_at,
+        completed_at=assessment.completed_at,
+    )
+
+
+async def get_assessment_answers(
+    db: AsyncSession,
+    assessment_id: UUID,
+    current_user: User,
+) -> AssessmentAnswersOut:
+    assessment = (
+        await db.execute(
+            select(Assessment)
+            .options(
+                selectinload(Assessment.account),
+                selectinload(Assessment.report),
+                selectinload(Assessment.answers).selectinload(AssessmentAnswer.question),
+                selectinload(Assessment.answers).selectinload(AssessmentAnswer.answer_option),
+            )
+            .where(Assessment.id == assessment_id)
+        )
+    ).scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+    assert_owns_account(current_user, assessment.account)
+
+    report = assessment.report
+    answers = [
+        AnswerRow(
+            question_text=ans.question.text,
+            selected_option_text=ans.answer_option.text,
+            maturity_level=ans.answer_option.maturity_level,
+        )
+        for ans in sorted(assessment.answers, key=lambda a: a.question.display_order)
+    ]
+
+    return AssessmentAnswersOut(
+        assessment_id=assessment.id,
+        prospect_name=assessment.prospect_name,
+        prospect_email=assessment.prospect_email,
+        prospect_role=assessment.prospect_role,
+        completed_at=assessment.completed_at,
+        pillar_score=float(report.pillar_score) if report else None,
+        maturity_label=report.maturity_label if report else None,
+        answers=answers,
+    )
+
+
+async def get_assessment_report(
+    db: AsyncSession,
+    assessment_id: UUID,
+    current_user: User,
+) -> ReportOut:
+    assessment = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.account), selectinload(Assessment.report))
+            .where(Assessment.id == assessment_id)
+        )
+    ).scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+    assert_owns_account(current_user, assessment.account)
+
+    report = assessment.report
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not yet available")
+
+    return ReportOut(
+        id=report.id,
+        assessment_id=report.assessment_id,
+        pillar_score=float(report.pillar_score),
+        maturity_level=report.maturity_level,
+        maturity_label=report.maturity_label,
+        executive_summary=report.executive_summary,
+        strengths=report.strengths or [],
+        gap_analysis=report.gap_analysis or [],
+        next_steps=report.next_steps or [],
+        pillar_breakdown=report.pillar_breakdown or {},
+        created_at=report.created_at,
+    )
+
+
+async def get_account_aggregate(
+    db: AsyncSession,
+    account_id: UUID,
+    current_user: User,
+) -> AggregateOut:
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    completed = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.pillar), selectinload(Assessment.report))
+            .where(
+                Assessment.account_id == account_id,
+                Assessment.status == "completed",
+            )
+        )
+    ).scalars().all()
+
+    if len(completed) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aggregate view requires at least 2 completed assessments",
+        )
+
+    scores = [
+        AggregateScoreItem(
+            pillar_id=a.pillar_id,
+            pillar_name=a.pillar.name,
+            pillar_score=float(a.report.pillar_score),
+            maturity_label=a.report.maturity_label,
+            prospect_name=a.prospect_name,
+            prospect_role=a.prospect_role,
+        )
+        for a in completed
+        if a.report
+    ]
+
+    logger.info("get_account_aggregate: account_id=%s completed=%d", account_id, len(scores))
+    return AggregateOut(
+        account_id=account_id,
+        company_name=account.company_name,
+        completed_count=len(scores),
+        scores=scores,
+    )

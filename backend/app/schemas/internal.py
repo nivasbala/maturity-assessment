@@ -1,0 +1,156 @@
+from __future__ import annotations
+
+from datetime import datetime
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
+
+# ── Account ───────────────────────────────────────────────────────────────────
+
+class AccountCreate(BaseModel):
+    company_name: str = Field(min_length=1, max_length=255)
+    company_website: str | None = Field(default=None, max_length=500)
+    suggested_pillars: list[UUID] = []
+
+
+class AccountListOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    company_name: str
+    company_website: str | None
+    internal_user_id: UUID
+    suggested_pillars: list[UUID]
+    created_at: datetime
+
+
+class PillarStatusRow(BaseModel):
+    pillar_id: UUID
+    pillar_name: str
+    display_order: int
+    is_gated: bool
+    is_active: bool
+    assessment_id: UUID | None
+    status: str | None  # pending | in_progress | completed | None (not sent)
+    prospect_name: str | None
+    prospect_email: str | None
+    prospect_role: str | None
+    pillar_score: float | None
+    maturity_label: str | None
+    short_url_token: str | None
+
+
+class AccountDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    company_name: str
+    company_website: str | None
+    internal_user_id: UUID
+    internal_user_name: str
+    suggested_pillars: list[UUID]
+    created_at: datetime
+    pillar_statuses: list[PillarStatusRow]
+
+
+# ── Assessment creation ────────────────────────────────────────────────────────
+
+class AssessmentCreateRequest(BaseModel):
+    pillar_id: UUID
+
+
+class AssessmentCreatedOut(BaseModel):
+    assessment_id: UUID
+    short_url_token: str
+    full_url: str
+
+
+class AssessmentListItemOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    account_id: UUID
+    pillar_id: UUID
+    pillar_name: str
+    short_url_token: str
+    prospect_name: str | None
+    prospect_email: str | None
+    prospect_role: str | None
+    status: str
+    pillar_score: float | None
+    maturity_label: str | None
+    created_at: datetime
+    completed_at: datetime | None
+
+
+# ── Assessment detail ─────────────────────────────────────────────────────────
+
+class AssessmentDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    account_id: UUID
+    pillar_id: UUID
+    pillar_name: str
+    company_name: str
+    short_url_token: str
+    prospect_name: str | None
+    prospect_email: str | None
+    prospect_role: str | None
+    status: str
+    created_at: datetime
+    completed_at: datetime | None
+
+
+# ── Assessment answers ─────────────────────────────────────────────────────────
+
+class AnswerRow(BaseModel):
+    question_text: str
+    selected_option_text: str
+    maturity_level: int
+
+
+class AssessmentAnswersOut(BaseModel):
+    assessment_id: UUID
+    prospect_name: str | None
+    prospect_email: str | None
+    prospect_role: str | None
+    completed_at: datetime | None
+    pillar_score: float | None
+    maturity_label: str | None
+    answers: list[AnswerRow]
+
+
+# ── Report ────────────────────────────────────────────────────────────────────
+
+class ReportOut(BaseModel):
+    id: UUID
+    assessment_id: UUID
+    pillar_score: float
+    maturity_level: int
+    maturity_label: str
+    executive_summary: str
+    strengths: list[dict]
+    gap_analysis: list[dict]
+    next_steps: list[dict]
+    pillar_breakdown: dict
+    created_at: datetime
+
+
+# ── Aggregate view ────────────────────────────────────────────────────────────
+
+class AggregateScoreItem(BaseModel):
+    pillar_id: UUID
+    pillar_name: str
+    pillar_score: float
+    maturity_label: str
+    prospect_name: str | None
+    prospect_role: str | None
+
+
+class AggregateOut(BaseModel):
+    account_id: UUID
+    company_name: str
+    completed_count: int
+    scores: list[AggregateScoreItem]
