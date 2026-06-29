@@ -1,29 +1,41 @@
 ---
 title: Question Bank — Seed Data
-version: 1.1
+version: 1.2
 last_updated: 2026-06-28
 ---
 
 # Question Bank — Seed Data
 
-> **When to load this file:** Task 4 (seed data) and Task 7 (prospect landing flow — question selection logic). Do not load for any other task. P4 questions are included here but P4 is seeded with `is_active = FALSE` — seed them regardless, the pillar will not appear to prospects until activated via the admin panel.
+> **When to load this file:** Task 4 (seed data) and Task 7 (prospect landing flow). Do not load for any other task. P4 questions are included here but P4 is seeded with `is_active = FALSE` — seed them regardless, the pillar will not appear to prospects until activated via the admin panel.
 
 ---
 
-## 1. QUESTION SELECTION RULES
+## 1. QUESTION SELECTION — HOW IT WORKS
 
-For each assessment session, select 12 questions using this logic:
+Question selection is performed by **Agent 2 (Question Selection Agent)** — an LLM that selects the 12 most diagnostic questions for this prospect and company. See `05-architecture-api.md` Section 1.3 for the full agent specification.
 
-1. Select ALL questions where `is_general = TRUE` for this pillar (target: 4 questions)
-2. Build persona-eligible pool: all active questions with the prospect's persona in `question_personas`
-3. If `accounts.research_cache` is available (Agent 1 has completed):
-   - Score each question in the persona pool using `context_tags` vs research signals (see `04-data-model.md` Section 8)
-   - Select top 8 by score; ties broken by `display_order`
-4. If research cache NOT available: select first 8 persona-eligible questions by `display_order`
-5. If persona-eligible questions < 8: backfill with additional general questions
-6. Final count: exactly 12 questions per session
-7. Order: general questions first (by `display_order`), then persona-specific (by `display_order`)
-8. Only select questions where `is_active = TRUE`
+### What Agent 2 receives from the DB
+
+For a given pillar + persona, the service fetches:
+- All **general questions** (`is_general = TRUE`, `is_active = TRUE`) — Agent 2 MUST include all of these
+- All **persona-eligible questions** for this role (via `question_personas`, `is_active = TRUE`)
+- Each question carries: `id`, `text`, `is_general`, `question_weight`, `context_tags`
+
+### What Agent 2 decides
+
+Agent 2 uses the research cache (from Agent 1) + the prospect's persona to select which 12 questions are most diagnostic:
+- When research is available: Agent 2 prioritizes questions whose `context_tags` match the company's technology stack, cloud providers, industry, and business outcomes
+- When research is empty: Agent 2 selects based on what matters most to this persona in this pillar
+- Result: exactly 12 question IDs in presentation order
+
+### Fallback (if Agent 2 fails)
+
+If Agent 2 raises an exception, times out, or returns invalid output, the service falls back to:
+1. All general questions (target: 4)
+2. First 8 persona-eligible questions by `display_order`
+3. Backfill from general pool if persona pool < 8
+
+The assessment always proceeds — Agent 2 is an enhancement, not a dependency. All questions must be `is_active = TRUE`.
 
 ---
 

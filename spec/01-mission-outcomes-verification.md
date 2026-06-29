@@ -1,6 +1,6 @@
 ---
 title: Mission, Outcomes & Verification Contract
-version: 1.1
+version: 1.2
 last_updated: 2026-06-28
 ---
 
@@ -53,8 +53,10 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] For P1, CTO persona: 12 questions returned = 4 general + 8 CTO/VP Eng-specific
 - [ ] For P1, CISO persona: 12 questions returned = 4 general + CISO/Security-specific questions
 - [ ] Inactive questions (`is_active = FALSE`) never appear in assessment sessions
-- [ ] When research cache is populated: questions with matching `context_tags` are ranked higher in selection order than questions without matching tags
-- [ ] When research cache is absent or empty: question selection falls back to persona-only by `display_order` with no error
+- [ ] Agent 2 (Question Selection) returns exactly 12 valid question IDs for the pillar + persona
+- [ ] When research cache is available: Agent 2 question selection reflects company context (questions relevant to company's tech signals and business outcomes prioritized)
+- [ ] When research cache is absent: Agent 2 selects 12 questions appropriate for the prospect's persona
+- [ ] If Agent 2 fails: rule-based fallback returns 12 questions with no user-facing error
 
 ### 3.3 Gated Pillars (P3 & P4)
 - [ ] P3 card visible on pillar menu when P3 gate answered "Yes"
@@ -76,9 +78,14 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Agent 1 result stored in `accounts.research_cache` after first run
 - [ ] Second pillar assessment for same account uses cached research (no second Agent 1 call)
 - [ ] Cache older than 7 days triggers Agent 1 re-run
-- [ ] If Agent 1 fails or cache is empty at submit time, report still generates with empty company profile
-- [ ] LangGraph orchestrator research_node reads from cache; only re-runs Agent 1 if cache is NULL (does not re-run when cache is fresh)
-- [ ] Changing `LLM_PROVIDER=anthropic` in `.env` and restarting works without code changes
+- [ ] Agent 2 (Question Selection) runs synchronously at `/select-pillar` time
+- [ ] Agent 2 receives: persona, pillar context, research_cache, and all candidate questions for the pillar
+- [ ] Agent 2 output is validated: exactly 12 IDs, all from the provided candidate pool
+- [ ] Agent 2 failure triggers rule-based fallback — assessment proceeds without user-facing error
+- [ ] LangGraph orchestrator (submit pipeline) covers Agent 3 only — does NOT call Agent 1 or Agent 2
+- [ ] LangGraph research_node reads from cache; only re-runs Agent 1 if cache is NULL
+- [ ] If Agent 1 fails or cache empty at submit time, Agent 3 still generates report with empty company profile
+- [ ] Changing `LLM_PROVIDER=anthropic` in `.env` and restarting works without code changes for all three agents
 
 ### 3.6 Report Completeness
 - [ ] Report contains: executive_summary, strengths (2–4), gap_analysis (3–6), next_steps (4–6)

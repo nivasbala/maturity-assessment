@@ -73,10 +73,10 @@ Before opening a PR for any task, run the applicable criteria from `specs/01-mis
 
 Key areas to verify:
 - **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
-- **Question Selection:** 4 general + 8 persona-specific = 12 per session; inactive questions never shown; when research cache is populated, context_tags signal matching ranks persona pool; falls back to display_order when cache not ready
+- **Question Selection:** Agent 2 (LLM) runs synchronously at /select-pillar time; selects 12 questions using research context + persona; includes all general questions; falls back to rule-based if Agent 2 fails — assessment always proceeds
 - **Gated Pillars (P3 & P4):** P3 hidden when gate answered No; P4 hidden when gate answered No OR when is_active=FALSE
 - **Scoring:** All Level 1 → 1.0, all Level 4 → 4.0, mixed produces value between 1.00–4.00
-- **Agent Behavior:** Agent 1 fires at `/register` time (not `/select-pillar`); research cached at account level with 7-day TTL; LangGraph orchestrator reads from cache at submit time — does NOT re-fire Agent 1 when cache is fresh; graceful fallback if Agent 1 fails or cache is empty
+- **Agent Behavior:** Agent 1 fires at `/register` (non-blocking); Agent 2 (Question Selection) runs synchronously at `/select-pillar` (~3–8s); LangGraph orchestrator at submit covers Agent 3 (Report) only — does NOT re-fire Agent 1 or Agent 2; all three agents use the same LLM factory and switch via LLM_PROVIDER env var
 - **Report Completeness:** executive_summary, 2–4 strengths, 3–6 gaps, 4–6 next steps; no vendor names
 - **Infrastructure:** `docker compose up` runs without manual steps; migrations run automatically
 
@@ -154,15 +154,16 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 
 - Three user roles: Prospect (unauthenticated), Internal User, Admin
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive — activates via admin panel), P5 Security & DevSecOps
-- 50-question bank per pillar; 12 shown per session (persona-filtered + research-informed)
-- LLM-adaptive question selection: Agent 1 company research signals influence which questions are selected from the persona-filtered pool; falls back to persona-only if research cache not ready
+- 50-question bank per pillar; 12 shown per session (LLM-selected by Agent 2)
+- Three-agent architecture: Agent 1 (Research, fires at /register), Agent 2 (Question Selection, fires at /select-pillar), Agent 3 (Report Generation, fires at /submit)
+- Agent 2 uses research context + persona to select the 12 most diagnostic questions; falls back to rule-based if LLM fails
 - Short URL generation and prospect landing flow
 - Multi-agent report generation (Agent 1: Company Research, Agent 2: Report Generation)
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregate view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
 - Internal users can only see assessments and reports they created
-- Admin CRUD: pillars, questions (with persona tagging, weighting, and context_tags for research-informed selection), internal users
+- Admin CRUD: pillars, questions (with persona tagging, weighting, and context_tags as hints for Agent 2 question selection), internal users
 - Local JWT authentication (bcrypt passwords)
 - Docker Compose single-machine deployment
 - Nginx reverse proxy

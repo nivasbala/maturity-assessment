@@ -1,6 +1,6 @@
 ---
 title: Architecture & API Design
-version: 1.2
+version: 1.3
 last_updated: 2026-06-28
 ---
 
@@ -14,7 +14,7 @@ last_updated: 2026-06-28
 
 ### 1.1 Agent Overview
 
-Agent 1 output is used **twice**: first to select questions, then to generate the report. This requires Agent 1 to fire early — at `/register` time — so its cache is ready before the prospect selects a pillar.
+Three agents operate across three phases. Agent 1 output feeds both Agent 2 and Agent 3.
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -53,48 +53,55 @@ Prospect fills in name, email, role, gate answers
                                        reused across all pillars
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 2 — QUESTION SELECTION  (uses Agent 1 cache)
+PHASE 2 — QUESTION SELECTION  (Agent 2 — synchronous LLM)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Prospect selects a pillar
                     │
                     ▼
-        POST /select-pillar
+        POST /select-pillar  ← synchronous — prospect waits
+                    │           UI shows "Personalizing your
+                    │           questions…" (~3–8 seconds)
                     │
                     ▼
-   ┌────────────────────────────────────────┐
-   │       Question Selection Service       │
-   │                                        │
-   │  Step 1: always include               │
-   │    all general Qs (is_general=TRUE)    │
-   │    → 4 questions                       │
-   │                                        │
-   │  Step 2: build persona-eligible pool   │
-   │    questions tagged for this persona   │
-   │    via question_personas table         │
-   │                                        │
-   │  Step 3: research cache available?     │
-   │                                        │
-   │    YES ─── score each question:        │
-   │    │        match context_tags vs      │
-   │    │        tech_signals +             │
-   │    │        cloud_providers            │
-   │    │        (score = 1.0 + 0.5/match)  │
-   │    │        → select top 8 by score    │
-   │    │                                   │
-   │    NO ──── select first 8              │
-   │             by display_order           │
-   │             (persona-only fallback)    │
-   │                                        │
-   │  Result: 4 general + 8 persona = 12   │
-   └────────────────┬───────────────────────┘
+   DB fetch: general questions + persona-eligible questions
+   for this pillar (with id, text, context_tags per question)
                     │
                     ▼
-         12 questions returned
-         to prospect's browser
+   ┌────────────────────────────────────────────────────┐
+   │   Agent 2: Question Selection Agent (LLM)          │
+   │   (question_selection_agent.py)                    │
+   │                                                    │
+   │  Input:                                            │
+   │  - prospect persona + pillar context               │
+   │  - research_cache from Agent 1 (if ready)          │
+   │  - candidate questions list:                       │
+   │    • all general questions (must include all)      │
+   │    • all persona-eligible questions for this role  │
+   │    each with: id, text, context_tags               │
+   │                                                    │
+   │  LLM selects which questions are most             │
+   │  diagnostic given:                                 │
+   │    • company's tech stack, cloud providers,        │
+   │      industry, and business outcomes               │
+   │    • prospect's role and expertise level           │
+   │    • context_tags as structured relevance hints    │
+   │                                                    │
+   │  If research_cache is empty:                       │
+   │    → selects based on persona expertise only       │
+   │  If Agent 2 fails (timeout/error):                 │
+   │    → rule-based fallback:                          │
+   │      4 general + 8 persona by display_order        │
+   │                                                    │
+   │  Output: ordered list of exactly 12 question IDs  │
+   └─────────────────────┬──────────────────────────────┘
+                         │
+                         ▼
+            12 questions returned to prospect
+            (ordered for maximum diagnostic value)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 3 — REPORT GENERATION  (uses Agent 1 cache + answers)
+PHASE 3 — REPORT GENERATION  (Agent 3 — uses Agent 1 cache + answers)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Prospect answers 12 questions → submits
@@ -108,7 +115,7 @@ Prospect answers 12 questions → submits
                     │
                     ▼
    ┌──────────────────────┐
-   │   Agent 2:           │
+   │   Agent 3:           │
    │   Report Agent       │
    │                      │
    │  Input:              │
@@ -171,7 +178,76 @@ Return ONLY valid JSON with this exact structure, no preamble, no markdown:
 }
 ```
 
-### 1.3 Agent 2: Report Agent
+### 1.3 Agent 2: Question Selection Agent
+
+**File:** `backend/app/agents/question_selection_agent.py`
+
+**When it runs:** Synchronously at `/select-pillar` time. The prospect waits while this agent executes (~3–8 seconds). This is a standalone LangChain chain — not part of the LangGraph submit pipeline.
+
+**Input preparation (before calling the agent):**
+The calling service fetches from the DB:
+1. All active general questions for the pillar (`is_general=TRUE`)
+2. All active persona-eligible questions for the prospect's role (via `question_personas`)
+Both sets include: `id`, `text`, `context_tags`, `is_general`, `question_weight`
+
+**System prompt:**
+```
+You are a technical assessment expert helping to personalize a maturity
+assessment for a specific company and role.
+
+You will receive:
+1. Prospect role: {persona_label} — {persona_description}
+2. Assessment pillar: {pillar_name}
+   Description: {pillar_description}
+3. Company research context:
+{research_summary}
+
+4. Candidate questions (JSON):
+{candidate_questions_json}
+
+Each question has: "id", "text", "is_general", "context_tags"
+
+Your task: Select exactly 12 questions that best assess this prospect's
+maturity in {pillar_name}.
+
+MANDATORY RULES:
+- Include ALL questions where "is_general" is true — no exceptions
+- Select remaining questions ONLY from the provided list — never invent questions
+- Return exactly 12 question IDs total
+
+When research is available, prefer questions whose context_tags match the
+company's technology stack, cloud providers, and industry. Prioritize questions
+that address the specific challenges and business outcomes in the research.
+
+When research is empty, select the most broadly diagnostic questions for a
+{persona_label} in this pillar.
+
+Return ONLY a valid JSON array of exactly 12 question IDs in presentation order.
+No explanation, no markdown, no preamble — just the array:
+["uuid-1", "uuid-2", ..., "uuid-12"]
+```
+
+**Fallback (if Agent 2 fails or times out):**
+The calling service catches all exceptions and falls back to rule-based selection:
+4 general questions + first 8 persona-eligible questions by `display_order`.
+The assessment always proceeds — Agent 2 is an enhancement, not a dependency.
+
+**Output parsing:**
+```python
+import json
+raw = llm_response.strip()
+question_ids = json.loads(raw)  # expects list of 12 UUID strings
+assert len(question_ids) == 12
+# validate all IDs exist in candidate pool (prevent hallucination)
+valid_ids = {q.id for q in all_candidates}
+question_ids = [qid for qid in question_ids if qid in valid_ids]
+if len(question_ids) != 12:
+    raise ValueError("Agent 2 returned invalid IDs — triggering fallback")
+```
+
+---
+
+### 1.4 Agent 3: Report Agent
 
 **File:** `backend/app/agents/report_agent.py`
 
@@ -224,19 +300,21 @@ Constraints:
 - Keep language accessible to the persona level ({persona})
 ```
 
-### 1.4 LangGraph Orchestration
+### 1.5 LangGraph Orchestration
 
 **File:** `backend/app/agents/orchestrator.py`
+
+**Scope:** This orchestrator runs at `/submit` time only. It does NOT include Agent 2 (Question Selection), which runs independently at `/select-pillar` time.
 
 ```
 State: AssessmentReportState
 Nodes:
-  - research_node       → reads from accounts.research_cache
-                          (Agent 1 already fired at /register time — do NOT re-trigger it here)
-                          Only re-runs Agent 1 if cache is NULL or empty (edge case: prospect
-                          submitted before Agent 1 background task completed)
-  - compute_score_node  → runs scoring formula synchronously
-  - generate_report_node → runs Agent 2
+  - research_node        → reads from accounts.research_cache
+                           (Agent 1 already fired at /register — do NOT re-trigger)
+                           Only re-runs Agent 1 if cache is NULL (edge case: prospect
+                           submitted before Agent 1 background task completed)
+  - compute_score_node   → runs scoring formula synchronously
+  - generate_report_node → runs Agent 3 (Report Agent)
 
 Edges:
   research_node → compute_score_node → generate_report_node → END
@@ -246,7 +324,7 @@ Error handling:
   - If research_node finds empty cache and Agent 1 re-run also fails: set company_profile = {} and continue
   - If generate_report_node fails: return score only, no narrative
 
-Timeout: 120 seconds total for both agents combined
+Timeout: 120 seconds total for Agent 3
 ```
 
 ---
@@ -367,11 +445,16 @@ POST   /api/public/assess/{token}/select-pillar
       answer_options: [{id, text, display_order}]
     }]
   }
+  Execution: SYNCHRONOUS — endpoint waits for Agent 2 to complete before returning
   Side effect: sets assessment.status = 'in_progress'
-  Question selection: uses research-informed algorithm (see `04-data-model.md` Section 8)
-    - If accounts.research_cache is ready: persona + context_tag signal matching selects 12 questions
-    - If research cache not yet available: falls back to persona-only selection by display_order
-    - Either path returns exactly 12 questions — research-informed selection is an enhancement, not a dependency
+  Question selection sequence:
+    1. Fetch general questions + persona-eligible questions for this pillar from DB
+    2. Call Agent 2 (Question Selection) with: persona, pillar context,
+       research_cache, and candidate question list
+    3. Agent 2 returns 12 ordered question IDs
+    4. If Agent 2 fails: fallback to 4 general + 8 persona by display_order
+    5. Fetch full question objects (text + answer_options) for the 12 IDs
+    6. Return questions in Agent 2's selected order
 
 POST   /api/public/assess/{token}/submit
   Headers: X-Session-Token: <session_token>
@@ -442,7 +525,9 @@ GET    /api/public/assess/{token}/report/{assessment_id}
 - P4 card: hidden if P4 gate answered No OR if P4 `is_active = FALSE`
 - Already-completed pillars: disabled card, shows score badge and "Completed" label
 - Each card CTA: "Start Assessment"
-- On click: POST `/select-pillar`, navigate to assessment page
+- On click: POST `/select-pillar` (synchronous) — show inline loading state on the card
+  ("Personalizing your questions…") while Agent 2 runs (~3–8 seconds)
+- On response: navigate to Assessment Page with questions
 
 **Assessment Page (`/assess/:token/assessment/:assessmentId`)**
 - Progress bar at top: "Question 4 of 12"
@@ -549,7 +634,7 @@ Split-panel layout:
   - Question Weight (select: 1.0 / 1.5 / 2.0)
   - Personas (multi-select from enum — disabled if Is General is on)
   - Persona Weight per selected persona (number input, shown per selected persona)
-  - Context Tags (tag/chip input — comma-separated lowercase strings e.g. "kubernetes, aws, microservices". Stored as JSONB array. Helper text: "Technology signal keywords used for research-informed question selection. Leave empty for universally applicable questions.")
+  - Context Tags (tag/chip input — comma-separated lowercase strings e.g. "kubernetes, aws, microservices". Stored as JSONB array. Helper text: "Technology signal keywords passed to the Question Selection Agent (Agent 2) to help it understand when this question is most relevant. Leave empty for universally applicable questions.")
   - Answer Options: 4 text fields labeled "Level 1 — Reactive", "Level 2 — Developing", "Level 3 — Defined", "Level 4 — Optimized"
   - Active toggle
   - Save / Cancel buttons

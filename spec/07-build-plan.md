@@ -1,6 +1,6 @@
 ---
 title: Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
-version: 1.1
+version: 1.2
 last_updated: 2026-06-28
 ---
 
@@ -16,22 +16,22 @@ last_updated: 2026-06-28
 
 - Three user roles: End Customer (Prospect), Internal User, Admin
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive), P5 Security & DevSecOps
-- 50-question bank per pillar; 12 shown per session (persona-filtered + research-informed)
-- LLM-adaptive question selection: Agent 1 company research signals influence which questions are selected from the persona-filtered pool; falls back to persona-only if research cache not ready
+- 50-question bank per pillar; 12 shown per session (LLM-selected by Agent 2)
+- Three-agent architecture: Agent 1 (Research), Agent 2 (Question Selection), Agent 3 (Report Generation)
+- Agent 2 (Question Selection): LLM selects the 12 most diagnostic questions using company research + persona; falls back to rule-based if Agent 2 fails
 - Short URL generation and prospect landing flow
-- Multi-agent report generation (Agent 1: Company Research, Agent 2: Report Generation)
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregated view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
 - Internal users can only see assessments and reports they created
-- Admin CRUD: pillars, questions (with persona tagging and weighting), internal users
+- Admin CRUD: pillars, questions (with persona tagging, weighting, and context_tags for Agent 2 selection hints), internal users
 - Local JWT authentication (bcrypt passwords)
 - Docker Compose single-machine deployment
 - Nginx reverse proxy
 
 ### 1.2 Explicitly Out of Scope — MVP (Do Not Build)
 
-- Agent 3: Admin chatbot for question management
+- Admin AI Chatbot for question management (no agent number assigned — see Phase 2)
 - Email notifications of any kind
 - CRM integration (Salesforce, HubSpot, Marketo)
 - Benchmarking or peer comparison features
@@ -265,10 +265,9 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 
 - Implement all `/api/public/assess/` endpoints from `05-architecture-api.md` Section 2.4
 - Session token: short-lived JWT (2hr), stored in sessionStorage on client
-- Agent 1 triggered in background (non-blocking) at `/register` time — not at select-pillar time
-- Implement question selection logic (Section 1 of `06-question-bank.md`): general + persona-filtered + research-informed, max 12
-  - If `accounts.research_cache` available: use `context_tags` signal matching to rank persona pool
-  - If cache not ready: fall back to persona-only selection by `display_order`
+- Agent 1 triggered in background (non-blocking) at `/register` time
+- `/select-pillar` endpoint: synchronous — implement with rule-based fallback selection for now (Agent 2 is wired in Task 9); return 12 questions using fallback logic from `04-data-model.md` Section 8
+- Show "Personalizing your questions…" loading state on pillar card while /select-pillar runs
 - P3 gate logic: if p3_gate_answered_yes=false, remove P3 from available_pillars
 - P4 gate logic: if p4_gate_answered_yes=false, remove P4 from available_pillars (P4 also hidden if is_active=FALSE)
 - Build Landing Page, Pillar Selection Page, Assessment Page (Section 3.2 of `05-architecture-api.md`)
@@ -279,8 +278,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - [ ] P3 hidden from pillar menu when gate answered No
 - [ ] P4 hidden from pillar menu when gate answered No OR when is_active=FALSE
 - [ ] Agent 1 fires at /register time (not at select-pillar time)
-- [ ] When research cache is populated: question order/selection reflects signal matching
-- [ ] When research cache is absent: question selection falls back to display_order with no error
+- [ ] Pillar card shows loading state while /select-pillar runs
 - [ ] Progress bar shows correct count on assessment page
 - [ ] Submit disabled until all 12 questions answered
 
@@ -309,22 +307,30 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Spec files:** `05-architecture-api.md` + `04-data-model.md` + `02-domain-model.md` + `03-tech-stack-constraints.md`
 
 - Implement `core/llm_factory.py` exactly as specified in `03-tech-stack-constraints.md` Section 2
-- Implement Agent 1 research agent (`05-architecture-api.md` Section 1.2)
-- Implement Agent 2 report agent (`05-architecture-api.md` Section 1.3)
-- Implement LangGraph StateGraph orchestrator (`05-architecture-api.md` Section 1.4)
+- Implement Agent 1: research agent (`05-architecture-api.md` Section 1.2)
+- Implement Agent 2: question selection agent (`05-architecture-api.md` Section 1.3):
+  - File: `backend/app/agents/question_selection_agent.py`
+  - Wire into `/select-pillar` endpoint (replacing the Task 7 stub)
+  - Implement fallback to rule-based selection if Agent 2 fails
+  - Implement output validation (12 IDs, all in candidate pool)
+- Implement Agent 3: report agent (`05-architecture-api.md` Section 1.4)
+- Implement LangGraph StateGraph orchestrator (`05-architecture-api.md` Section 1.5)
+  - Orchestrator covers submit pipeline only (Agent 3 + scoring)
+  - Agent 2 runs independently at /select-pillar time, not inside the orchestrator
 - Implement cache check logic from `04-data-model.md` Section 7
-- Verify Agent 1 is triggered at `/register` time (already wired in Task 7 — confirm it uses the full Agent 1 implementation, not a stub)
-- Verify research-informed question selection uses Agent 1 cache correctly (`04-data-model.md` Section 8)
+- Verify Agent 1 is triggered at `/register` time
 - Wire orchestrator into submit endpoint: runs after score is stored
-- Update report record with LLM narrative after agent completion
 
 **Verification:**
-- [ ] Submit triggers agents; report record updated with executive_summary, strengths, gap_analysis, next_steps
-- [ ] Agent 1 fires at /register and result stored in accounts.research_cache before select-pillar is called
+- [ ] Submit triggers orchestrator; report record updated with executive_summary, strengths, gap_analysis, next_steps
+- [ ] Agent 1 fires at /register and result stored in accounts.research_cache
+- [ ] Agent 2 runs at /select-pillar time and returns exactly 12 question IDs
+- [ ] Agent 2 with research cache: questions reflect company context (e.g., Kubernetes company gets k8s-tagged questions)
+- [ ] Agent 2 with empty research cache: returns 12 valid questions based on persona
+- [ ] Agent 2 failure triggers rule-based fallback with no user-facing error
 - [ ] Second pillar assessment for same account uses cache (no second Agent 1 call)
-- [ ] Prospect with Kubernetes/AWS company gets Kubernetes/AWS-tagged questions surfaced vs a non-cloud company
+- [ ] Orchestrator research_node reads from cache only — does not re-fire Agent 1 when cache is fresh
 - [ ] Switching LLM_PROVIDER env var and restarting works without code changes
-- [ ] If Agent 1 fails, question selection falls back to persona-only and report still generates
 - [ ] No vendor product names appear in generated report text
 
 ---
@@ -400,8 +406,8 @@ The following features are documented here to ensure MVP architecture does not p
 
 | Feature | Description | Depends On |
 |---------|-------------|------------|
-| **Agent 3: Admin Question Chatbot** | Third LangGraph agent in admin panel. Takes natural language prompts, generates staged question objects for review before committing to DB. Uses same LLM factory. | Same LangChain abstraction layer |
-| **LLM-Adaptive Questions (session-level)** | LangGraph dynamically selects or modifies questions based on previous answers *within* a session — distinct from the company-research-based selection which is already in MVP scope. | Agent 3 + question bank expansion |
+| **Admin AI Chatbot for Question Management** | Admin panel chatbot (no agent number — assessment pipeline agents 1–3 are reserved). Takes natural language prompts, generates staged question objects for human review before committing to DB. Uses same LLM factory. | Same LangChain abstraction layer |
+| **LLM-Adaptive Questions (session-level)** | Dynamically modifies questions based on previous answers *within* a session — distinct from the company-research-based Agent 2 selection already in MVP. | Admin Chatbot + question bank expansion |
 | **Benchmarking** | Anonymized score comparisons across completed assessments in the partner network | Aggregated reporting layer |
 | **CRM Integration** | Salesforce / HubSpot webhook on assessment completion | Webhook service |
 | **Email Notifications** | Prospect receives report link via email; internal user notified on completion | Email service (SendGrid, SES) |

@@ -1,7 +1,7 @@
 ---
 title: Tech Stack, Constraints & Decisions
-version: 1.0
-last_updated: 2026-06-27
+version: 1.1
+last_updated: 2026-06-28
 ---
 
 # Tech Stack, Constraints & Decisions
@@ -141,9 +141,10 @@ maturity-platform/
 │       │   ├── question_service.py
 │       │   └── scoring_service.py
 │       ├── agents/               # LangGraph agents
-│       │   ├── research_agent.py    # Agent 1
-│       │   ├── report_agent.py      # Agent 2
-│       │   └── orchestrator.py      # LangGraph StateGraph
+│       │   ├── research_agent.py           # Agent 1: Company Research
+│       │   ├── question_selection_agent.py # Agent 2: LLM Question Selection
+│       │   ├── report_agent.py             # Agent 3: Report Generation
+│       │   └── orchestrator.py             # LangGraph StateGraph (submit pipeline only)
 │       └── seed/
 │           └── seed_data.py      # Pillar + question seed data
 └── frontend/
