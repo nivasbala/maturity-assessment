@@ -95,6 +95,7 @@ class QuestionCreate(BaseModel):
     question_weight: float = Field(default=1.0, gt=0)
     is_general: bool = False
     is_active: bool = True
+    context_tags: list[str] = []
     answer_options: list[AnswerOptionCreate] = Field(min_length=4, max_length=4)
     personas: list[QuestionPersonaCreate] = []
 
@@ -111,6 +112,7 @@ class QuestionUpdate(BaseModel):
     question_weight: float | None = Field(default=None, gt=0)
     is_general: bool | None = None
     is_active: bool | None = None
+    context_tags: list[str] | None = None
     answer_options: list[AnswerOptionCreate] | None = Field(default=None, min_length=4, max_length=4)
     personas: list[QuestionPersonaCreate] | None = None
 
@@ -142,6 +144,7 @@ class QuestionOut(BaseModel):
     is_general: bool
     display_order: int
     is_active: bool
+    context_tags: list[str]
     answer_options: list[AnswerOptionOut]
     personas: list[QuestionPersonaOut]
 

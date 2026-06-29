@@ -76,7 +76,7 @@ def _make_pillar_out() -> PillarOut:
     )
 
 
-def _make_question_out(pillar_id=None) -> QuestionOut:
+def _make_question_out(pillar_id=None, context_tags=None) -> QuestionOut:
     return QuestionOut(
         id=uuid4(),
         pillar_id=pillar_id or uuid4(),
@@ -85,6 +85,7 @@ def _make_question_out(pillar_id=None) -> QuestionOut:
         is_general=True,
         display_order=1,
         is_active=True,
+        context_tags=context_tags if context_tags is not None else [],
         answer_options=[],
         personas=[],
     )
@@ -416,3 +417,146 @@ async def test_admin_service_deactivate_question_sets_is_active_false():
             await deactivate_question(db, target_id)
 
     assert mock_q.is_active is False
+
+
+# ── context_tags on questions ─────────────────────────────────────────────────
+
+
+def test_create_question_with_context_tags_returns_201():
+    """Questions created via admin API can carry context_tags."""
+    admin = _admin_user()
+    pillar = _make_pillar_out()
+    question_out = _make_question_out(pillar_id=pillar.id, context_tags=["kubernetes", "aws"])
+
+    client = _client_with_admin(admin)
+    with patch("app.routers.admin.admin_service.get_pillar", AsyncMock(return_value=pillar)):
+        with patch("app.routers.admin.admin_service.create_question", AsyncMock(return_value=question_out)):
+            resp = client.post(
+                f"/api/admin/pillars/{pillar.id}/questions",
+                json={
+                    "text": "How do you manage Kubernetes observability?",
+                    "question_weight": 1.5,
+                    "is_general": False,
+                    "is_active": True,
+                    "context_tags": ["kubernetes", "aws"],
+                    "answer_options": [
+                        {"text": "Level 1", "maturity_level": 1},
+                        {"text": "Level 2", "maturity_level": 2},
+                        {"text": "Level 3", "maturity_level": 3},
+                        {"text": "Level 4", "maturity_level": 4},
+                    ],
+                    "personas": [{"persona": "sre_platform_engineer", "persona_weight": 1.2}],
+                },
+            )
+    _clear_overrides()
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["context_tags"] == ["kubernetes", "aws"]
+
+
+def test_create_question_without_context_tags_defaults_to_empty_list():
+    """context_tags defaults to [] when omitted from the request body."""
+    admin = _admin_user()
+    pillar = _make_pillar_out()
+    question_out = _make_question_out(pillar_id=pillar.id, context_tags=[])
+
+    client = _client_with_admin(admin)
+    with patch("app.routers.admin.admin_service.get_pillar", AsyncMock(return_value=pillar)):
+        with patch("app.routers.admin.admin_service.create_question", AsyncMock(return_value=question_out)):
+            resp = client.post(
+                f"/api/admin/pillars/{pillar.id}/questions",
+                json={
+                    "text": "General observability question?",
+                    "question_weight": 1.0,
+                    "is_general": True,
+                    "is_active": True,
+                    "answer_options": [
+                        {"text": "Level 1", "maturity_level": 1},
+                        {"text": "Level 2", "maturity_level": 2},
+                        {"text": "Level 3", "maturity_level": 3},
+                        {"text": "Level 4", "maturity_level": 4},
+                    ],
+                    "personas": [],
+                },
+            )
+    _clear_overrides()
+
+    assert resp.status_code == 201
+    assert resp.json()["context_tags"] == []
+
+
+@pytest.mark.asyncio
+async def test_admin_service_create_question_passes_context_tags():
+    """create_question must store context_tags on the Question ORM object."""
+    from app.schemas.admin import QuestionCreate, AnswerOptionCreate
+    from app.services.admin_service import create_question
+
+    pillar_id = uuid4()
+    tags = ["gpu", "cuda", "nvidia"]
+    data = QuestionCreate(
+        text="GPU utilization question?",
+        question_weight=2.0,
+        is_general=False,
+        is_active=True,
+        context_tags=tags,
+        answer_options=[
+            AnswerOptionCreate(text="Level 1", maturity_level=1),
+            AnswerOptionCreate(text="Level 2", maturity_level=2),
+            AnswerOptionCreate(text="Level 3", maturity_level=3),
+            AnswerOptionCreate(text="Level 4", maturity_level=4),
+        ],
+        personas=[],
+    )
+
+    captured = {}
+    db = AsyncMock()
+
+    mock_count_result = MagicMock()
+    mock_count_result.scalar_one.return_value = 5
+    db.execute = AsyncMock(return_value=mock_count_result)
+    db.flush = AsyncMock()
+    db.commit = AsyncMock()
+
+    def capture_add(obj):
+        if hasattr(obj, "context_tags"):
+            captured["question"] = obj
+
+    db.add = MagicMock(side_effect=capture_add)
+
+    question_out = _make_question_out(pillar_id=pillar_id, context_tags=tags)
+    with patch("app.services.admin_service._load_question", AsyncMock(return_value=MagicMock())):
+        with patch("app.services.admin_service.QuestionOut.model_validate", return_value=question_out):
+            await create_question(db, pillar_id=pillar_id, data=data)
+
+    assert "question" in captured
+    assert captured["question"].context_tags == tags
+
+
+@pytest.mark.asyncio
+async def test_admin_service_update_question_updates_context_tags():
+    """update_question must apply context_tags when provided."""
+    from app.schemas.admin import QuestionUpdate
+    from app.services.admin_service import update_question
+
+    question_id = uuid4()
+    mock_q = MagicMock()
+    mock_q.id = question_id
+    mock_q.context_tags = []
+    mock_q.personas = []
+    mock_q.answer_options = []
+
+    db = AsyncMock()
+    db.commit = AsyncMock()
+    db.flush = AsyncMock()
+
+    new_tags = ["kubernetes", "microservices"]
+    data = QuestionUpdate(context_tags=new_tags)
+
+    question_out = _make_question_out(context_tags=new_tags)
+    with patch("app.services.admin_service._load_question", AsyncMock(return_value=mock_q)):
+        with patch("app.services.admin_service.QuestionOut.model_validate", return_value=question_out):
+            result = await update_question(db, question_id, data)
+
+    assert mock_q.context_tags == new_tags
+    assert result.context_tags == new_tags

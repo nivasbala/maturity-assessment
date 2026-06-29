@@ -211,6 +211,7 @@ async def create_question(db: AsyncSession, pillar_id: UUID, data: QuestionCreat
         question_weight=data.question_weight,
         is_general=data.is_general,
         is_active=data.is_active,
+        context_tags=data.context_tags,
         display_order=next_order,
     )
     db.add(question)
@@ -250,6 +251,8 @@ async def update_question(db: AsyncSession, question_id: UUID, data: QuestionUpd
         row.is_general = data.is_general
     if data.is_active is not None:
         row.is_active = data.is_active
+    if data.context_tags is not None:
+        row.context_tags = data.context_tags
 
     if data.answer_options is not None:
         existing_opts = {opt.maturity_level: opt for opt in row.answer_options}
