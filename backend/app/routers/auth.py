@@ -29,7 +29,11 @@ async def login(
     access_token = create_access_token({"sub": str(user.id)})
     refresh_token = create_refresh_token({"sub": str(user.id)})
     logger.info("Login successful: user_id=%s", user.id)
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        user=UserResponse.model_validate(user),
+    )
 
 
 @router.post("/refresh", response_model=TokenResponse)
