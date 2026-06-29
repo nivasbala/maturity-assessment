@@ -29,7 +29,7 @@ class Question(Base):
     is_general = Column(Boolean, nullable=False, default=False)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
-    context_tags = Column(JSONB, nullable=False, server_default="'[]'::jsonb")
+    context_tags = Column(JSONB, nullable=False, default=list, server_default="'[]'::jsonb")
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 

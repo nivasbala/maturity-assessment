@@ -12,12 +12,17 @@ select the 12 questions shown to a prospect:
 
 Returns exactly 12 questions regardless of whether the research cache is populated.
 No LLM is called here — this is a deterministic ranking algorithm.
+
+The scoring helper lives in services/question_service.py (per 04-data-model.md §8).
+Import it from there; do not duplicate it here.
 """
 from __future__ import annotations
 
 import logging
 from typing import Any
 from uuid import UUID
+
+from app.services.question_service import score_question  # noqa: F401 — re-exported for callers
 
 logger = logging.getLogger(__name__)
 
@@ -40,19 +45,3 @@ async def select_questions(
         List of 12 question dicts with answer_options, ordered for display.
     """
     raise NotImplementedError("Implemented in Task 9 — LLM Agents")
-
-
-def _score_question(
-    context_tags: list[str],
-    tech_signals: list[str],
-    cloud_providers: list[str],
-) -> float:
-    """Score a question based on how many context_tags match the research signals.
-
-    Base score 1.0, +0.5 per matching tag.
-    """
-    if not context_tags:
-        return 1.0
-    signal_set = {s.lower() for s in tech_signals + cloud_providers}
-    matches = sum(1 for tag in context_tags if tag.lower() in signal_set)
-    return 1.0 + 0.5 * matches
