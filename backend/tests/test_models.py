@@ -181,8 +181,22 @@ def test_questions_table_name():
 
 def test_questions_columns():
     cols = Question.__table__.columns
-    for name in ["id", "pillar_id", "text", "question_weight", "is_general", "display_order", "is_active"]:
+    for name in ["id", "pillar_id", "text", "question_weight", "is_general", "display_order", "is_active", "context_tags"]:
         assert name in cols
+
+
+def test_questions_context_tags_is_jsonb():
+    col = Question.__table__.columns["context_tags"]
+    assert isinstance(col.type, JSONB)
+
+
+def test_questions_context_tags_not_nullable():
+    assert not Question.__table__.columns["context_tags"].nullable
+
+
+def test_questions_context_tags_server_default():
+    col = Question.__table__.columns["context_tags"]
+    assert col.server_default is not None
 
 
 def test_questions_fk_to_pillars():

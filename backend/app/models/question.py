@@ -2,7 +2,7 @@ import enum
 import uuid
 
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -29,6 +29,7 @@ class Question(Base):
     is_general = Column(Boolean, nullable=False, default=False)
     display_order = Column(Integer, nullable=False)
     is_active = Column(Boolean, nullable=False, default=True)
+    context_tags = Column(JSONB, nullable=False, server_default="'[]'::jsonb")
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
