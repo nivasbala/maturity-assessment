@@ -1,6 +1,6 @@
 ---
 title: Architecture & API Design
-version: 1.1
+version: 1.2
 last_updated: 2026-06-28
 ---
 
@@ -14,50 +14,122 @@ last_updated: 2026-06-28
 
 ### 1.1 Agent Overview
 
+Agent 1 output is used **twice**: first to select questions, then to generate the report. This requires Agent 1 to fire early — at `/register` time — so its cache is ready before the prospect selects a pillar.
+
 ```
-Prospect submits answers
-         │
-         ▼
-┌────────────────────┐     cache hit?
-│   Agent 1:         │─────────────────────────────────┐
-│   Research Agent   │                                 │
-│                    │  No: runs web research          │
-│  Input:            │  Yes: returns cached result     │
-│  - company_name    │                                 │
-│  - company_website │                                 │
-│                    │                                 │
-│  Output:           │                                 │
-│  - company_profile │◄────────────────────────────────┘
-│    {industry,      │  accounts.research_cache
-│     products,      │  (JSONB, cached at account level)
-│     tech_signals,  │
-│     company_size,  │
-│     cloud_signals} │
-└────────┬───────────┘
-         │ company_profile
-         ▼
-┌────────────────────┐
-│   Agent 2:         │
-│   Report Agent     │
-│                    │
-│  Input:            │
-│  - company_profile │
-│  - assessment      │
-│    answers (12 Qs) │
-│  - pillar context  │
-│  - maturity scores │
-│    (pre-computed)  │
-│                    │
-│  Output:           │
-│  - executive_      │
-│    summary (text)  │
-│  - strengths[]     │
-│  - gap_analysis[]  │
-│  - next_steps[]    │
-└────────────────────┘
-         │
-         ▼
-    Report stored → displayed on screen → PDF available
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1 — REGISTRATION  (triggers Agent 1)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prospect fills in name, email, role, gate answers
+                    │
+                    ▼
+           POST /register
+                    │
+         ┌──────────┴──────────────────────────────┐
+         │ returns immediately                      │ background
+         ▼                                          ▼ (non-blocking)
+ {session_token}                     ┌──────────────────────┐
+ → prospect sees                     │   Agent 1:           │──── cache hit?
+   pillar menu                       │   Research Agent     │         │
+                                     │                      │ No:  web search
+                                     │  Input:              │ Yes: use cache
+                                     │  - company_name      │         │
+                                     │  - company_website   │         │
+                                     │                      │◄────────┘
+                                     │  Output stored in    │
+                                     │  accounts.           │
+                                     │  research_cache:     │
+                                     │  - industry          │
+                                     │  - tech_signals[]    │
+                                     │  - cloud_providers[] │
+                                     │  - builds_ai         │
+                                     │  - key_challenges[]  │
+                                     │  - business_         │
+                                     │    outcomes[]        │
+                                     └──────────────────────┘
+                                       stored at account level
+                                       (JSONB, 7-day TTL)
+                                       reused across all pillars
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 2 — QUESTION SELECTION  (uses Agent 1 cache)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prospect selects a pillar
+                    │
+                    ▼
+        POST /select-pillar
+                    │
+                    ▼
+   ┌────────────────────────────────────────┐
+   │       Question Selection Service       │
+   │                                        │
+   │  Step 1: always include               │
+   │    all general Qs (is_general=TRUE)    │
+   │    → 4 questions                       │
+   │                                        │
+   │  Step 2: build persona-eligible pool   │
+   │    questions tagged for this persona   │
+   │    via question_personas table         │
+   │                                        │
+   │  Step 3: research cache available?     │
+   │                                        │
+   │    YES ─── score each question:        │
+   │    │        match context_tags vs      │
+   │    │        tech_signals +             │
+   │    │        cloud_providers            │
+   │    │        (score = 1.0 + 0.5/match)  │
+   │    │        → select top 8 by score    │
+   │    │                                   │
+   │    NO ──── select first 8              │
+   │             by display_order           │
+   │             (persona-only fallback)    │
+   │                                        │
+   │  Result: 4 general + 8 persona = 12   │
+   └────────────────┬───────────────────────┘
+                    │
+                    ▼
+         12 questions returned
+         to prospect's browser
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 3 — REPORT GENERATION  (uses Agent 1 cache + answers)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Prospect answers 12 questions → submits
+                    │
+                    ▼
+           POST /submit
+                    │
+                    ├── score computed synchronously
+                    │   (scoring_service.py)
+                    │   stored in reports table
+                    │
+                    ▼
+   ┌──────────────────────┐
+   │   Agent 2:           │
+   │   Report Agent       │
+   │                      │
+   │  Input:              │
+   │  - research_cache    │◄── from Phase 1
+   │    (company profile  │    (always ready
+   │     + business       │     by now)
+   │     outcomes)        │
+   │  - answers (12 Qs)   │
+   │  - pillar context    │
+   │  - maturity score    │
+   │    (pre-computed)    │
+   │                      │
+   │  Output:             │
+   │  - executive_summary │
+   │  - strengths[]       │
+   │  - gap_analysis[]    │
+   │  - next_steps[]      │
+   └──────────────────────┘
+                    │
+                    ▼
+   report stored → displayed on screen → PDF available
 ```
 
 ### 1.2 Agent 1: Research Agent
@@ -159,7 +231,10 @@ Constraints:
 ```
 State: AssessmentReportState
 Nodes:
-  - research_node       → runs Agent 1 (or returns cache)
+  - research_node       → reads from accounts.research_cache
+                          (Agent 1 already fired at /register time — do NOT re-trigger it here)
+                          Only re-runs Agent 1 if cache is NULL or empty (edge case: prospect
+                          submitted before Agent 1 background task completed)
   - compute_score_node  → runs scoring formula synchronously
   - generate_report_node → runs Agent 2
 
@@ -168,7 +243,7 @@ Edges:
 
 Error handling:
   - Each node catches exceptions, logs the error, and returns partial state
-  - If research_node fails: set company_profile = {} and continue
+  - If research_node finds empty cache and Agent 1 re-run also fails: set company_profile = {} and continue
   - If generate_report_node fails: return score only, no narrative
 
 Timeout: 120 seconds total for both agents combined
@@ -270,11 +345,16 @@ POST   /api/public/assess/{token}/register
   Body:    {
     prospect_name: string,
     prospect_email: string,
-    prospect_role: string,          -- must match persona enum
-    gate_answered_yes?: boolean     -- only required if a gated pillar exists
+    prospect_role: string,              -- must match persona enum
+    p3_gate_answered_yes?: boolean,     -- required if P3 is active
+    p4_gate_answered_yes?: boolean      -- required if P4 is active
   }
   Returns: {session_token: string}  -- short-lived JWT (2hr), stored client-side in sessionStorage
-  Side effect: if gate_answered_yes = false, P3 excluded from subsequent pillar menu
+  Side effect: if p3_gate_answered_yes = false, P3 excluded from subsequent pillar menu
+  Side effect: if p4_gate_answered_yes = false, P4 excluded from subsequent pillar menu
+  Side effect: P4 always excluded if pillar is_active = FALSE (regardless of gate answer)
+  Side effect: triggers Agent 1 in background (non-blocking) if no fresh research cache —
+               fired here so results are likely ready by the time select-pillar is called
 
 POST   /api/public/assess/{token}/select-pillar
   Headers: X-Session-Token: <session_token>
@@ -288,7 +368,10 @@ POST   /api/public/assess/{token}/select-pillar
     }]
   }
   Side effect: sets assessment.status = 'in_progress'
-  Side effect: triggers Agent 1 in background (non-blocking) if no fresh cache
+  Question selection: uses research-informed algorithm (see `04-data-model.md` Section 8)
+    - If accounts.research_cache is ready: persona + context_tag signal matching selects 12 questions
+    - If research cache not yet available: falls back to persona-only selection by display_order
+    - Either path returns exactly 12 questions — research-informed selection is an enhancement, not a dependency
 
 POST   /api/public/assess/{token}/submit
   Headers: X-Session-Token: <session_token>
@@ -344,8 +427,10 @@ GET    /api/public/assess/{token}/report/{assessment_id}
 - Company name displayed prominently (pulled from account via token)
 - Heading: "Maturity Assessment" + brief one-paragraph explanation
 - Form fields: First Name, Last Name, Email, Role (dropdown from persona enum)
-- P3 gate question rendered below the role field if P3 is an available pillar
-- Gate question: yes/no radio buttons
+- Gate questions rendered below the role field, one per gated pillar that is `is_active=TRUE`:
+  - P3 gate: "Is your organization currently building, deploying, or operating AI-powered applications or services?"
+  - P4 gate: "Is your organization currently training, fine-tuning, or managing machine learning or foundation models in-house?"
+  - Each gate question: yes/no radio buttons, only shown if the corresponding gated pillar is active
 - Primary CTA: "Begin Assessment"
 - On submit: POST `/register`, store session_token in sessionStorage, navigate to pillar select
 
@@ -353,7 +438,8 @@ GET    /api/public/assess/{token}/report/{assessment_id}
 - 2-column card grid of available pillars
 - Each card: pillar name, 1-sentence description, "~8 minutes" time estimate
 - Suggested pillars (from `account.suggested_pillars`): highlighted with "Recommended" badge
-- P3 card: hidden if gate answered No
+- P3 card: hidden if P3 gate answered No
+- P4 card: hidden if P4 gate answered No OR if P4 `is_active = FALSE`
 - Already-completed pillars: disabled card, shows score badge and "Completed" label
 - Each card CTA: "Start Assessment"
 - On click: POST `/select-pillar`, navigate to assessment page
@@ -408,12 +494,15 @@ Account header section:
 
 Pillar status grid (one row per active pillar):
 ```
-Pillar Name    | Prospect Name  | Prospect Role | Score    | Status      | Action
-P1 Observability | Sarah Smith  | SRE           | 2.4 / 4  | ✅ Complete  | [View Report]
-P2 AIOps         | —            | —             | —        | ⏳ Sent      | [Copy URL]
-P3 AI Systems    | —            | —             | —        | 📋 Not Sent  | [Generate URL]
-P5 Security      | —            | —             | —        | 📋 Not Sent  | [Generate URL]
+Pillar Name      | Prospect Name  | Prospect Role | Score    | Status      | Action
+P1 Observability | Sarah Smith    | SRE           | 2.4 / 4  | ✅ Complete  | [View Report]
+P2 AIOps         | —              | —             | —        | ⏳ Sent      | [Copy URL]
+P3 AI Systems    | —              | —             | —        | 📋 Not Sent  | [Generate URL]
+P4 ML & Models   | —              | —             | —        | 🔒 Inactive  | [Admin Only]
+P5 Security      | —              | —             | —        | 📋 Not Sent  | [Generate URL]
 ```
+
+P4 row behavior: shown in the grid with "Inactive" status and no Generate URL button when `is_active = FALSE`. When activated by admin, behaves identically to other gated pillars.
 
 "Generate URL" button:
 - Calls POST `/api/accounts/{id}/assessments` with selected pillar_id
@@ -460,6 +549,7 @@ Split-panel layout:
   - Question Weight (select: 1.0 / 1.5 / 2.0)
   - Personas (multi-select from enum — disabled if Is General is on)
   - Persona Weight per selected persona (number input, shown per selected persona)
+  - Context Tags (tag/chip input — comma-separated lowercase strings e.g. "kubernetes, aws, microservices". Stored as JSONB array. Helper text: "Technology signal keywords used for research-informed question selection. Leave empty for universally applicable questions.")
   - Answer Options: 4 text fields labeled "Level 1 — Reactive", "Level 2 — Developing", "Level 3 — Defined", "Level 4 — Optimized"
   - Active toggle
   - Save / Cancel buttons

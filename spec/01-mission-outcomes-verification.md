@@ -1,7 +1,7 @@
 ---
 title: Mission, Outcomes & Verification Contract
-version: 1.0
-last_updated: 2026-06-27
+version: 1.1
+last_updated: 2026-06-28
 ---
 
 # Mission, Outcomes & Verification Contract
@@ -21,7 +21,7 @@ Build a **Partner Maturity Assessment Platform** that enables Datadog's internal
 The application is complete when ALL of the following are true:
 
 - [ ] An internal user can create a prospect account, generate a short URL, and send it to a prospect
-- [ ] A prospect can click the URL, enter their details, select a pillar, answer 12 persona-filtered questions, and immediately see their maturity report on screen
+- [ ] A prospect can click the URL, enter their details, select a pillar, answer 12 questions (persona-filtered + research-informed where available), and immediately see their maturity report on screen
 - [ ] A prospect can download their report as a PDF
 - [ ] A prospect can optionally take additional pillar assessments after completing one
 - [ ] The Pillar 3 (AI System Observability) gate question correctly routes prospects
@@ -53,11 +53,17 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] For P1, CTO persona: 12 questions returned = 4 general + 8 CTO/VP Eng-specific
 - [ ] For P1, CISO persona: 12 questions returned = 4 general + CISO/Security-specific questions
 - [ ] Inactive questions (`is_active = FALSE`) never appear in assessment sessions
+- [ ] When research cache is populated: questions with matching `context_tags` are ranked higher in selection order than questions without matching tags
+- [ ] When research cache is absent or empty: question selection falls back to persona-only by `display_order` with no error
 
-### 3.3 P3 Gate
-- [ ] P3 card visible on pillar menu when gate answered "Yes"
-- [ ] P3 card hidden on pillar menu when gate answered "No"
-- [ ] Pillar menu still shows P1, P2, P5 when gate answered "No"
+### 3.3 Gated Pillars (P3 & P4)
+- [ ] P3 card visible on pillar menu when P3 gate answered "Yes"
+- [ ] P3 card hidden on pillar menu when P3 gate answered "No"
+- [ ] P4 card visible on pillar menu when P4 gate answered "Yes" AND P4 is_active=TRUE
+- [ ] P4 card hidden on pillar menu when P4 gate answered "No"
+- [ ] P4 card hidden on pillar menu when P4 is_active=FALSE (regardless of gate answer)
+- [ ] Pillar menu still shows P1, P2, P5 when both gates answered "No"
+- [ ] Both gate questions rendered on the landing page before pillar menu is shown
 
 ### 3.4 Scoring
 - [ ] All Level 1 answers → score of 1.0
@@ -66,10 +72,12 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Score correctly applies question_weight and persona_weight in formula
 
 ### 3.5 Agent Behavior
+- [ ] Agent 1 fires at `/register` time (not at `/select-pillar` time) — verify by checking research_cache is populated before select-pillar is called
 - [ ] Agent 1 result stored in `accounts.research_cache` after first run
 - [ ] Second pillar assessment for same account uses cached research (no second Agent 1 call)
 - [ ] Cache older than 7 days triggers Agent 1 re-run
-- [ ] If Agent 1 fails, report still generates with empty company profile
+- [ ] If Agent 1 fails or cache is empty at submit time, report still generates with empty company profile
+- [ ] LangGraph orchestrator research_node reads from cache; only re-runs Agent 1 if cache is NULL (does not re-run when cache is fresh)
 - [ ] Changing `LLM_PROVIDER=anthropic` in `.env` and restarting works without code changes
 
 ### 3.6 Report Completeness

@@ -1,12 +1,12 @@
 ---
 title: Question Bank — Seed Data
-version: 1.0
-last_updated: 2026-06-27
+version: 1.1
+last_updated: 2026-06-28
 ---
 
 # Question Bank — Seed Data
 
-> **When to load this file:** Task 4 (seed data) and Task 7 (prospect landing flow — question selection logic). Do not load for any other task.
+> **When to load this file:** Task 4 (seed data) and Task 7 (prospect landing flow — question selection logic). Do not load for any other task. P4 questions are included here but P4 is seeded with `is_active = FALSE` — seed them regardless, the pillar will not appear to prospects until activated via the admin panel.
 
 ---
 
@@ -15,11 +15,15 @@ last_updated: 2026-06-27
 For each assessment session, select 12 questions using this logic:
 
 1. Select ALL questions where `is_general = TRUE` for this pillar (target: 4 questions)
-2. Select questions where the prospect's persona appears in `question_personas` for this pillar (target: 8 questions)
-3. If persona-specific questions available < 8, backfill with additional general questions
-4. Final count: exactly 12 questions per session
-5. Order: general questions first (by `display_order`), then persona-specific (by `display_order`)
-6. Only select questions where `is_active = TRUE`
+2. Build persona-eligible pool: all active questions with the prospect's persona in `question_personas`
+3. If `accounts.research_cache` is available (Agent 1 has completed):
+   - Score each question in the persona pool using `context_tags` vs research signals (see `04-data-model.md` Section 8)
+   - Select top 8 by score; ties broken by `display_order`
+4. If research cache NOT available: select first 8 persona-eligible questions by `display_order`
+5. If persona-eligible questions < 8: backfill with additional general questions
+6. Final count: exactly 12 questions per session
+7. Order: general questions first (by `display_order`), then persona-specific (by `display_order`)
+8. Only select questions where `is_active = TRUE`
 
 ---
 
@@ -30,6 +34,7 @@ Each question entry specifies:
 - `general` → `is_general` (true/false)
 - `personas` → list of persona enum values for `question_personas` rows
 - `persona_weight` → applied to all listed personas uniformly (unless noted per-persona)
+- `context_tags` → optional list of lowercase technology signal strings used for research-informed selection (e.g. `["kubernetes", "aws", "microservices"]`). Omit for questions with no technology specificity.
 - Answer options listed in maturity order (1=Reactive → 4=Optimized)
 
 ---
@@ -83,7 +88,7 @@ Options:
   3 → SLOs defined for major services with error budgets tracked
   4 → SLOs for all critical services with automated error budget burn alerting and reporting
 
-Q6 | weight: 1.5 | personas: [sre_platform_engineer, devops_engineer] | persona_weight: 1.2
+Q6 | weight: 1.5 | personas: [sre_platform_engineer, devops_engineer] | persona_weight: 1.2 | context_tags: ["microservices", "kubernetes", "cloud_native"]
 Text: What percentage of your services have distributed tracing implemented end-to-end?
 Options:
   1 → 0% — no distributed tracing
@@ -99,7 +104,7 @@ Options:
   3 → 30 minutes to 1 hour
   4 → Less than 30 minutes with AI-assisted investigation
 
-Q8 | weight: 1.0 | personas: [sre_platform_engineer, devops_engineer] | persona_weight: 1.1
+Q8 | weight: 1.0 | personas: [sre_platform_engineer, devops_engineer] | persona_weight: 1.1 | context_tags: ["aws", "gcp", "azure", "terraform", "infrastructure"]
 Text: How is your infrastructure currently managed?
 Options:
   1 → Manual provisioning with no version control
@@ -107,7 +112,7 @@ Options:
   3 → Infrastructure as Code (Terraform, CloudFormation) for most resources
   4 → Full GitOps with automated drift detection and policy enforcement
 
-Q9 | weight: 1.5 | personas: [devops_engineer] | persona_weight: 1.2
+Q9 | weight: 1.5 | personas: [devops_engineer] | persona_weight: 1.2 | context_tags: ["ci_cd", "devops", "github", "gitlab"]
 Text: How mature is your CI/CD pipeline?
 Options:
   1 → Manual deployments with no pipeline
@@ -207,9 +212,8 @@ Options:
 ### Persona-Specific Questions
 
 ```
-Q5 | weight: 2.0 | personas: [sre_platform_engineer] | persona_weight: 1.2
+Q5 | weight: 2.0 | personas: [sre_platform_engineer] | persona_weight: 1.2 | context_tags: ["aiops", "machine_learning", "ai"]
 Text: Does your team use AI or ML-powered features to automatically detect, triage, or resolve incidents?
-Options:
   1 → No AI/ML in our incident workflows
   2 → We are evaluating or piloting AI tools
   3 → AI tools are used by some teams for specific tasks
@@ -317,9 +321,8 @@ Options:
 ### Persona-Specific Questions
 
 ```
-Q5 | weight: 2.0 | personas: [ml_ai_engineer] | persona_weight: 1.2
+Q5 | weight: 2.0 | personas: [ml_ai_engineer] | persona_weight: 1.2 | context_tags: ["llm", "ai_agents", "langchain", "openai", "anthropic"]
 Text: How do you trace and debug requests through your AI agent or LLM pipeline?
-Options:
   1 → No tracing — we log inputs and outputs only
   2 → Basic logging at entry and exit points of the pipeline
   3 → Step-level tracing of agent actions and LLM calls
@@ -384,7 +387,125 @@ Options:
 
 ---
 
-## 6. P5: SECURITY & DEVSECOPS
+## 6. P4: ML & FOUNDATION MODEL OPERATIONS
+
+> **Note:** This pillar is gated. Only shown to prospects who answer "Yes" to the gate question: "Is your organization currently training, fine-tuning, or managing machine learning or foundation models in-house?"
+>
+> **Seed with `is_active = FALSE`.** The pillar is fully defined and its questions must be seeded, but the pillar will not appear to prospects until activated via the admin panel.
+
+### General Questions (is_general = TRUE)
+
+```
+Q1 | weight: 2.0 | general: true
+Text: How mature is your organization's approach to operationalizing machine learning — moving models from development to production reliably?
+Options:
+  1 → We have no formal process — models are deployed manually with no standardization
+  2 → We have ad-hoc deployment processes for some models, but no consistent MLOps practices
+  3 → Standardized MLOps pipelines exist for major models with version control and basic monitoring
+  4 → Full MLOps maturity: automated training, evaluation, deployment, monitoring, and retraining pipelines
+
+Q2 | weight: 1.5 | general: true
+Text: How does your organization manage and track the cost of ML compute (GPU/TPU/CPU clusters)?
+Options:
+  1 → We don't track ML compute costs separately — it's part of the general cloud bill
+  2 → High-level cost tracking by team or project, reviewed monthly
+  3 → Per-job and per-model cost tracking with budget alerts
+  4 → Real-time compute cost optimization: per-experiment cost attribution, idle GPU detection, spot instance orchestration, and cost-per-trained-model tracking
+
+Q3 | weight: 1.5 | general: true
+Text: How do you track, compare, and select ML experiments before promoting a model to production?
+Options:
+  1 → We don't track experiments formally — results are in notebooks or spreadsheets
+  2 → Some logging of metrics per experiment, but no centralized tracking
+  3 → Experiment tracking platform in use with metric comparison and artifact storage
+  4 → Full experiment lifecycle management: automated metric logging, model registry integration, reproducibility guarantees, and governance-based promotion policies
+
+Q4 | weight: 1.0 | general: true
+Text: How does your organization monitor ML model performance after deployment to production?
+Options:
+  1 → We don't monitor models post-deployment — issues are found by end users
+  2 → Basic uptime and API error rate monitoring only
+  3 → Model performance metrics tracked (latency, throughput, accuracy on known test sets)
+  4 → Full production model observability: concept drift detection, data quality monitoring, performance degradation alerting, and automated retraining triggers
+```
+
+### Persona-Specific Questions
+
+```
+Q5 | weight: 2.0 | personas: [ml_ai_engineer] | persona_weight: 1.2 | context_tags: ["gpu", "cuda", "model_training", "nvidia"]
+Text: How do you monitor GPU utilization and efficiency during model training?
+  1 → We don't monitor GPU utilization during training
+  2 → Basic GPU utilization metrics available but not actively monitored
+  3 → GPU utilization, memory usage, and job throughput tracked per training run
+  4 → Full GPU observability: real-time utilization, memory efficiency, bottleneck detection, and automated alerts for idle or underutilized compute
+
+Q6 | weight: 1.5 | personas: [ml_ai_engineer] | persona_weight: 1.2
+Text: How do you manage model versioning, registration, and promotion through your ML lifecycle?
+Options:
+  1 → No formal versioning — models are saved as files with manual naming
+  2 → Basic version control for model artifacts, but no formal registry
+  3 → Centralized model registry with versioning and stage tracking (staging, production, archived)
+  4 → Full model lifecycle management: automated registration, metadata tracking, lineage tracing, governance policies, and audit trails for every production change
+
+Q7 | weight: 1.5 | personas: [ml_ai_engineer] | persona_weight: 1.2
+Text: How do you ensure reproducibility of ML training runs?
+Options:
+  1 → Reproducibility is not a priority — we can't reliably recreate past training results
+  2 → Code is version-controlled, but data and environment versions are not consistently tracked
+  3 → Code, data versions, and key hyperparameters are logged per run
+  4 → Full reproducibility: code, data, environment (Docker/conda), hyperparameters, and random seeds captured per run with one-click rerun capability
+
+Q8 | weight: 1.0 | personas: [ml_ai_engineer, devops_engineer] | persona_weight: 1.1
+Text: How integrated are your ML training pipelines with your standard CI/CD processes?
+Options:
+  1 → ML pipelines are completely separate from software CI/CD
+  2 → Some shared infrastructure, but ML pipelines are managed manually
+  3 → ML pipelines are triggered automatically on code or data changes
+  4 → Full ML CI/CD: automated training, evaluation, comparison against baseline, and deployment gating on model quality metrics
+
+Q9 | weight: 1.5 | personas: [cto_executive, vp_engineering] | persona_weight: 0.9
+Text: How does your organization measure and optimize the ROI of ML compute investments?
+Options:
+  1 → We don't measure ML compute ROI
+  2 → High-level budget tracking — we know the total spend but not the value delivered
+  3 → Cost-per-model or cost-per-experiment tracked alongside model business impact
+  4 → Full ML investment optimization: compute cost attributed to business outcomes, automated rightsizing recommendations, and executive dashboards linking ML spend to product metrics
+
+Q10 | weight: 1.5 | personas: [cto_executive, vp_engineering] | persona_weight: 0.9
+Text: How does your organization govern which ML models are deployed to production and who can access or modify them?
+Options:
+  1 → No formal governance — any engineer can deploy a model
+  2 → Informal review process before deployment
+  3 → Defined approval workflow with documented owners and review criteria
+  4 → Automated governance: model cards required, approval workflows enforced, access controls by model, and full audit trail from training to production
+
+Q11 | weight: 1.5 | personas: [sre_platform_engineer] | persona_weight: 1.1 | context_tags: ["gpu", "kubernetes", "cloud_compute", "aws", "gcp", "azure"]
+Text: How is your GPU and ML compute infrastructure managed and scaled?
+  1 → Manual provisioning — engineers request compute ad-hoc
+  2 → Fixed compute clusters with manual scaling when capacity runs out
+  3 → Auto-scaling GPU clusters with queue-based job scheduling
+  4 → Intelligent compute orchestration: multi-cloud GPU scheduling, spot/preemptible instance management, priority queuing, and cost-optimized autoscaling
+
+Q12 | weight: 1.0 | personas: [sre_platform_engineer, devops_engineer] | persona_weight: 1.1
+Text: How do you monitor model serving infrastructure for reliability and performance?
+Options:
+  1 → No dedicated monitoring for model serving — same as generic application monitoring
+  2 → Basic uptime and latency monitoring for model endpoints
+  3 → Model-specific SLOs for latency and throughput with alerting
+  4 → Full model serving observability: per-model SLOs, traffic-based autoscaling, A/B traffic splitting, shadow mode deployment, and automated rollback on performance degradation
+
+Q13 | weight: 1.0 | personas: [software_developer] | persona_weight: 1.0
+Text: How do developers in your organization consume ML models in production applications?
+Options:
+  1 → Models are accessed through ad-hoc scripts or direct file loading
+  2 → REST APIs exist for some models, but discovery and documentation are poor
+  3 → Centralized model serving platform with versioned APIs and SDK
+  4 → Self-service ML platform: model catalog with documentation, versioned APIs, usage tracking, and automated deprecation notices
+```
+
+---
+
+## 7. P5: SECURITY & DEVSECOPS
 
 ### General Questions (is_general = TRUE)
 
@@ -465,9 +586,8 @@ Options:
   3 → Findings ticketed with assigned owners and SLA-based remediation
   4 → Automated vulnerability management: findings triaged by severity and context, routed to owning teams, tracked to closure with SLA enforcement
 
-Q10 | weight: 1.0 | personas: [devops_engineer, sre_platform_engineer] | persona_weight: 1.1
+Q10 | weight: 1.0 | personas: [devops_engineer, sre_platform_engineer] | persona_weight: 1.1 | context_tags: ["kubernetes", "containers", "docker"]
 Text: How is container and Kubernetes security currently managed?
-Options:
   1 → No container-specific security controls
   2 → Basic image scanning before deployment
   3 → Image scanning, admission control policies, and network policies in place

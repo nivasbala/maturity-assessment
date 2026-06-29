@@ -1,7 +1,7 @@
 ---
 title: Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
-version: 1.0
-last_updated: 2026-06-27
+version: 1.1
+last_updated: 2026-06-28
 ---
 
 # Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
@@ -15,8 +15,9 @@ last_updated: 2026-06-27
 ### 1.1 In Scope — MVP (Build These)
 
 - Three user roles: End Customer (Prospect), Internal User, Admin
-- Four assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P5 Security & DevSecOps
-- 50-question bank per pillar (seed data provides initial set); 12 shown per session (persona-filtered)
+- Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive), P5 Security & DevSecOps
+- 50-question bank per pillar; 12 shown per session (persona-filtered + research-informed)
+- LLM-adaptive question selection: Agent 1 company research signals influence which questions are selected from the persona-filtered pool; falls back to persona-only if research cache not ready
 - Short URL generation and prospect landing flow
 - Multi-agent report generation (Agent 1: Company Research, Agent 2: Report Generation)
 - On-screen report display with PDF download (client-side)
@@ -31,7 +32,6 @@ last_updated: 2026-06-27
 ### 1.2 Explicitly Out of Scope — MVP (Do Not Build)
 
 - Agent 3: Admin chatbot for question management
-- LLM-adaptive question selection based on company research output
 - Email notifications of any kind
 - CRM integration (Salesforce, HubSpot, Marketo)
 - Benchmarking or peer comparison features
@@ -204,20 +204,23 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 
 ### Task 4: Seed Data
 **Branch:** `task/04-seed-data`
-**Spec files:** `04-data-model.md` + `06-question-bank.md`
+**Spec files:** `04-data-model.md` + `02-domain-model.md` + `06-question-bank.md`
 
-- Implement `seed/seed_data.py` inserting all 4 pillars from `02-domain-model.md`
-- Insert all questions from `06-question-bank.md` with correct weights, is_general flags, and persona tags
+- Implement `seed/seed_data.py` inserting all 5 pillars from `02-domain-model.md` (P4 seeded with `is_active=FALSE`)
+- Insert all questions from `06-question-bank.md` with correct weights, is_general flags, persona tags, and `context_tags` arrays
 - Insert all answer options with correct maturity_level values
 - Seed is idempotent: check pillar count before running, skip if already seeded
 - Seed runs automatically on backend container start after migrations
 
 **Verification:**
-- [ ] After startup: 4 pillars exist with correct is_gated flags
+- [ ] After startup: 5 pillars exist with correct is_gated flags
 - [ ] P3 has is_gated=TRUE and gate_question set
+- [ ] P4 has is_gated=TRUE, gate_question set, and is_active=FALSE
+- [ ] P1, P2, P5 have is_active=TRUE; P4 has is_active=FALSE
 - [ ] Each pillar has at least 4 general questions (is_general=TRUE)
 - [ ] question_personas rows exist for all persona-tagged questions
 - [ ] Each question has exactly 4 answer_options with maturity_levels 1–4
+- [ ] Questions with context_tags in `06-question-bank.md` have correct non-empty context_tags JSONB arrays seeded
 
 ---
 
@@ -231,7 +234,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Users page, Pillars page, Questions split-panel page
 
 **Verification:**
-- [ ] Admin can create a question with 4 answer options, persona tags, and weight
+- [ ] Admin can create a question with 4 answer options, persona tags, weight, and context_tags
 - [ ] Question appears in question list
 - [ ] Deactivating a pillar sets is_active=FALSE, pillar no longer returned by public endpoints
 - [ ] Creating internal user succeeds; user can log in
@@ -251,7 +254,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Verification:**
 - [ ] Creating account + generating P1 URL produces unique 8-char token
 - [ ] Second P1 URL request for same account returns 409
-- [ ] Account Detail shows correct pillar status grid for all 4 active pillars
+- [ ] Account Detail shows correct pillar status grid for all active pillars (P1, P2, P3, P5 — P4 not shown while inactive)
 - [ ] Internal user A cannot see accounts created by Internal User B
 
 ---
@@ -262,15 +265,22 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 
 - Implement all `/api/public/assess/` endpoints from `05-architecture-api.md` Section 2.4
 - Session token: short-lived JWT (2hr), stored in sessionStorage on client
-- Implement question selection logic (Section 1 of `06-question-bank.md`): general + persona-filtered, max 12
-- P3 gate logic: if gate_answered_yes=false, remove P3 from available_pillars
+- Agent 1 triggered in background (non-blocking) at `/register` time — not at select-pillar time
+- Implement question selection logic (Section 1 of `06-question-bank.md`): general + persona-filtered + research-informed, max 12
+  - If `accounts.research_cache` available: use `context_tags` signal matching to rank persona pool
+  - If cache not ready: fall back to persona-only selection by `display_order`
+- P3 gate logic: if p3_gate_answered_yes=false, remove P3 from available_pillars
+- P4 gate logic: if p4_gate_answered_yes=false, remove P4 from available_pillars (P4 also hidden if is_active=FALSE)
 - Build Landing Page, Pillar Selection Page, Assessment Page (Section 3.2 of `05-architecture-api.md`)
-- Agent 1 triggered in background (non-blocking) on pillar select if no fresh cache
 
 **Verification:**
 - [ ] SRE persona for P1 returns exactly 12 questions (4 general + 8 SRE-specific)
 - [ ] CTO persona for P1 returns exactly 12 questions (4 general + 8 CTO-specific)
 - [ ] P3 hidden from pillar menu when gate answered No
+- [ ] P4 hidden from pillar menu when gate answered No OR when is_active=FALSE
+- [ ] Agent 1 fires at /register time (not at select-pillar time)
+- [ ] When research cache is populated: question order/selection reflects signal matching
+- [ ] When research cache is absent: question selection falls back to display_order with no error
 - [ ] Progress bar shows correct count on assessment page
 - [ ] Submit disabled until all 12 questions answered
 
@@ -303,15 +313,18 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement Agent 2 report agent (`05-architecture-api.md` Section 1.3)
 - Implement LangGraph StateGraph orchestrator (`05-architecture-api.md` Section 1.4)
 - Implement cache check logic from `04-data-model.md` Section 7
+- Verify Agent 1 is triggered at `/register` time (already wired in Task 7 — confirm it uses the full Agent 1 implementation, not a stub)
+- Verify research-informed question selection uses Agent 1 cache correctly (`04-data-model.md` Section 8)
 - Wire orchestrator into submit endpoint: runs after score is stored
 - Update report record with LLM narrative after agent completion
 
 **Verification:**
 - [ ] Submit triggers agents; report record updated with executive_summary, strengths, gap_analysis, next_steps
-- [ ] Agent 1 result stored in accounts.research_cache
+- [ ] Agent 1 fires at /register and result stored in accounts.research_cache before select-pillar is called
 - [ ] Second pillar assessment for same account uses cache (no second Agent 1 call)
+- [ ] Prospect with Kubernetes/AWS company gets Kubernetes/AWS-tagged questions surfaced vs a non-cloud company
 - [ ] Switching LLM_PROVIDER env var and restarting works without code changes
-- [ ] If Agent 1 fails, report still generates with empty company profile
+- [ ] If Agent 1 fails, question selection falls back to persona-only and report still generates
 - [ ] No vendor product names appear in generated report text
 
 ---
@@ -383,12 +396,12 @@ Run the complete user journey and verify every item in `01-mission-outcomes-veri
 
 The following features are documented here to ensure MVP architecture does not preclude them. Do not build any of these items during MVP development.
 
+> **Note on P4:** Pillar 4 (ML & Foundation Model Operations) is defined in `02-domain-model.md` and seeded in `06-question-bank.md` but activated via the admin panel, not code. It is NOT listed here as Phase 2 — it is in MVP scope and activates when an admin sets `is_active = TRUE` on the P4 pillar row.
+
 | Feature | Description | Depends On |
 |---------|-------------|------------|
 | **Agent 3: Admin Question Chatbot** | Third LangGraph agent in admin panel. Takes natural language prompts, generates staged question objects for review before committing to DB. Uses same LLM factory. | Same LangChain abstraction layer |
-| **Agent 1 → Question Selection** | Use Agent 1's `technology_signals` and `builds_ai_products` output to influence which 12 of 50 questions are shown, beyond persona filtering | Agent 1 cache + question tagging |
-| **LLM-Adaptive Questions** | LangGraph dynamically selects or modifies questions based on previous answers within a session | Agent 3 + question bank expansion |
-| **Pillar 4: ML & Foundation Model Ops** | GPU monitoring, model training visibility, MLOps pipelines, model lifecycle management | Data-driven pillar architecture (already built) |
+| **LLM-Adaptive Questions (session-level)** | LangGraph dynamically selects or modifies questions based on previous answers *within* a session — distinct from the company-research-based selection which is already in MVP scope. | Agent 3 + question bank expansion |
 | **Benchmarking** | Anonymized score comparisons across completed assessments in the partner network | Aggregated reporting layer |
 | **CRM Integration** | Salesforce / HubSpot webhook on assessment completion | Webhook service |
 | **Email Notifications** | Prospect receives report link via email; internal user notified on completion | Email service (SendGrid, SES) |

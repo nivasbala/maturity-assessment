@@ -1,7 +1,7 @@
 ---
 title: Domain Model — Personas, User Roles & Pillar Definitions
-version: 1.0
-last_updated: 2026-06-27
+version: 1.1
+last_updated: 2026-06-28
 ---
 
 # Domain Model — Personas, User Roles & Pillar Definitions
@@ -54,22 +54,22 @@ software_developer     → Software Developer, Software Engineer, Full Stack Dev
 
 Not all personas carry equal weight across all pillars. This is reflected in `question_personas.persona_weight` in the data model. The table below is a guide for content and scoring interpretation — it is not enforced as a hard filter in the UI. All personas may take any non-gated pillar.
 
-| Persona | P1: Observability | P2: AIOps | P3: AI Systems | P5: Security |
-|---|---|---|---|---|
-| CTO / C-Suite | Strategic | Strategic | Strategic | Strategic |
-| VP Engineering | Deep | Deep | Moderate | Moderate |
-| CISO / VP Security | Light | — | — | Deep |
-| SRE / Platform Eng | Deep | Deep | Light | Moderate |
-| DevOps Engineer | Deep | Moderate | Light | Moderate |
-| ML / AI Engineer | Light | Moderate | Deep | — |
-| Security Engineer | Light | — | — | Deep |
-| Software Developer | Moderate | Light | Moderate | Light |
+| Persona | P1: Observability | P2: AIOps | P3: AI Systems | P4: ML & Foundation Models | P5: Security |
+|---|---|---|---|---|---|
+| CTO / C-Suite | Strategic | Strategic | Strategic | Strategic | Strategic |
+| VP Engineering | Deep | Deep | Moderate | Deep | Moderate |
+| CISO / VP Security | Light | — | — | — | Deep |
+| SRE / Platform Eng | Deep | Deep | Light | Moderate | Moderate |
+| DevOps Engineer | Deep | Moderate | Light | Light | Moderate |
+| ML / AI Engineer | Light | Moderate | Deep | Deep | — |
+| Security Engineer | Light | — | — | — | Deep |
+| Software Developer | Moderate | Light | Moderate | Light | Light |
 
 ---
 
 ## 2. PILLAR DEFINITIONS
 
-All four pillars below are in scope for MVP. Pillar 4 (ML & Foundation Model Operations) is Phase 2 and must not be built in MVP.
+All pillars below are in scope for MVP. P4 is seeded with `is_active = FALSE` — it is fully defined and gated but will not appear to prospects until activated via the admin panel once its question bank is populated in `06-question-bank.md`.
 
 Adding a new pillar requires only a new row in the `pillars` database table and questions in the `questions` table. No code changes are required. This is a hard architectural constraint.
 
@@ -87,6 +87,8 @@ Adding a new pillar requires only a new row in the `pillars` database table and 
 
 **Display Order:** 1
 
+**Is Active:** TRUE
+
 ---
 
 ### P2: AIOps & Intelligent Observability
@@ -100,6 +102,8 @@ Adding a new pillar requires only a new row in the `pillars` database table and 
 **Overall Weight:** 0.9
 
 **Display Order:** 2
+
+**Is Active:** TRUE
 
 ---
 
@@ -119,6 +123,28 @@ Adding a new pillar requires only a new row in the `pillars` database table and 
 
 **Display Order:** 3
 
+**Is Active:** TRUE
+
+---
+
+### P4: ML & Foundation Model Operations
+
+**Narrative:** "Can you build, train, and operate models at scale?"
+
+**Covers:** GPU infrastructure monitoring (utilization, cost, throughput, latency), model training visibility, MLOps pipeline health, model lifecycle management (versioning, registration, deployment, retirement), training job observability, compute cost optimization, foundation model fine-tuning workflows, experiment tracking, model performance benchmarking
+
+**Is Gated:** Yes
+
+**Gate Question:** "Is your organization currently training, fine-tuning, or managing machine learning or foundation models in-house?"
+
+**Gate Logic:** If the prospect answers "No" to the gate question, do not show P4 in the pillar menu. Suggest P1, P2, or P3 instead. Both the P3 and P4 gate questions are asked on the landing page before the pillar menu is shown.
+
+**Overall Weight:** 0.85
+
+**Display Order:** 4
+
+**Is Active:** FALSE — seeded as inactive. Activate by setting `is_active = TRUE` in the pillars table via the admin panel once questions are added to `06-question-bank.md`. No code changes required.
+
 ---
 
 ### P5: Security & DevSecOps
@@ -131,7 +157,9 @@ Adding a new pillar requires only a new row in the `pillars` database table and 
 
 **Overall Weight:** 1.0
 
-**Display Order:** 4
+**Display Order:** 5
+
+**Is Active:** TRUE
 
 ---
 

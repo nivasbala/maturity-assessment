@@ -1,7 +1,7 @@
 ---
 title: Spec Directory Index
-version: 1.1
-last_updated: 2026-06-27
+version: 1.2
+last_updated: 2026-06-28
 ---
 
 # Maturity Assessment Platform — Spec Directory Index
@@ -26,7 +26,7 @@ This directory contains the complete specification for the Maturity Assessment P
 | `03-tech-stack-constraints.md` | Tech stack, hard constraints, LLM abstraction, directory structure, environment variables | Agent (scaffolding, any architectural decision) |
 | `04-data-model.md` | Database schema, scoring formula, maturity level reference | Agent (any task touching data) |
 | `05-architecture-api.md` | Multi-agent LLM architecture, API endpoints, UI specifications | Agent (any task building API routes or UI pages) |
-| `06-question-bank.md` | All seed questions for all 4 pillars with answer options and persona tags | Agent (seed data task and prospect flow task only) |
+| `06-question-bank.md` | All seed questions for all pillars with answer options and persona tags. P4 questions seeded but pillar inactive until enabled via admin. | Agent (seed data task and prospect flow task only) |
 | `07-build-plan.md` | MVP scope boundaries, git workflow, ordered task breakdown, Phase 2 roadmap | Agent (task sequencing and git operations) |
 
 ---
@@ -40,7 +40,7 @@ Load **only** the files listed for your current task. Do not load files not list
 | Task 1: Project Scaffolding | `task/01-project-scaffolding` | `00-index` + `03-tech-stack-constraints` + `07-build-plan` |
 | Task 2: Database + Migrations | `task/02-database-migrations` | `03-tech-stack-constraints` + `04-data-model` |
 | Task 3: Auth System | `task/03-auth-system` | `04-data-model` + `02-domain-model` + `03-tech-stack-constraints` |
-| Task 4: Seed Data | `task/04-seed-data` | `04-data-model` + `06-question-bank` |
+| Task 4: Seed Data | `task/04-seed-data` | `04-data-model` + `02-domain-model` + `06-question-bank` |
 | Task 5: Admin API + UI | `task/05-admin-api-ui` | `04-data-model` + `05-architecture-api` + `02-domain-model` |
 | Task 6: Short URL Flow | `task/06-short-url-flow` | `04-data-model` + `05-architecture-api` |
 | Task 7: Prospect Landing Flow | `task/07-prospect-landing-flow` | `02-domain-model` + `04-data-model` + `05-architecture-api` + `06-question-bank` |
@@ -60,7 +60,7 @@ These rules apply to every agent session:
 2. **Spec wins over inference.** If the spec and your training disagree, follow the spec.
 3. **Load spec files at the start of each task**, before writing any code.
 4. **Verify against `01-mission-outcomes-verification.md`** before merging any task branch.
-5. **Section 0 of `07-build-plan.md` defines the git workflow.** Follow it exactly for every task.
+5. **Section 2 of `07-build-plan.md` defines the git workflow.** Follow it exactly for every task.
 
 ---
 

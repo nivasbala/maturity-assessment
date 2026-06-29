@@ -1,7 +1,7 @@
 ---
 title: Data Model
-version: 1.0
-last_updated: 2026-06-27
+version: 1.1
+last_updated: 2026-06-28
 ---
 
 # Data Model
@@ -52,7 +52,7 @@ CREATE TABLE pillars (
     overall_weight DECIMAL(3,2) NOT NULL DEFAULT 1.0,   -- used in aggregate scoring
     display_order  INTEGER NOT NULL,
     is_active      BOOLEAN NOT NULL DEFAULT TRUE,
-    is_gated       BOOLEAN NOT NULL DEFAULT FALSE,       -- TRUE for P3
+    is_gated       BOOLEAN NOT NULL DEFAULT FALSE,       -- TRUE for gated pillars (P3, P4)
     gate_question  TEXT,                                  -- shown if is_gated = TRUE
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -61,6 +61,7 @@ CREATE TABLE pillars (
 -- Questions: Belong to a pillar.
 -- is_general = TRUE means shown to all personas regardless of question_personas entries.
 -- Target: 50 questions per pillar in the bank; 12 selected per session.
+-- context_tags is used by the research-informed question selection algorithm (see Section 8).
 CREATE TABLE questions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pillar_id       UUID NOT NULL REFERENCES pillars(id),
@@ -69,6 +70,7 @@ CREATE TABLE questions (
     is_general      BOOLEAN NOT NULL DEFAULT FALSE,
     display_order   INTEGER NOT NULL,
     is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+    context_tags    JSONB NOT NULL DEFAULT '[]',          -- e.g. ["kubernetes","aws","microservices"]
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -264,3 +266,63 @@ def should_refresh_research(account: Account) -> bool:
 ```
 
 If `should_refresh_research` returns `False`, skip Agent 1 and use `account.research_cache` directly.
+
+---
+
+## 8. RESEARCH-INFORMED QUESTION SELECTION
+
+Implemented in `backend/app/services/question_service.py`. Called by the `/select-pillar` endpoint after Agent 1 has had time to populate the research cache (Agent 1 is triggered at `/register` time — see `05-architecture-api.md` Section 2.4).
+
+### How context_tags work
+
+Each question in the bank carries a `context_tags` JSONB array of lowercase technology signal strings. These are matched against `accounts.research_cache` fields:
+
+```python
+research_signals = (
+    [s.lower() for s in research_cache.get("technology_signals", [])] +
+    [c.lower() for c in research_cache.get("cloud_providers", [])]
+)
+```
+
+### Question scoring for selection
+
+```python
+def score_question(question: Question, research_signals: list[str]) -> float:
+    if not research_signals or not question.context_tags:
+        return 1.0  # base score — no signal matching
+    matches = sum(1 for tag in question.context_tags if tag in research_signals)
+    return 1.0 + (0.5 * matches)  # each matching tag adds 0.5 to score
+```
+
+### Full selection algorithm
+
+```python
+def select_questions(pillar_id, persona, research_cache) -> list[Question]:
+    # Step 1: Always include all active general questions (target: 4)
+    general_qs = get_active_general_questions(pillar_id)
+
+    # Step 2: Build persona-eligible pool
+    persona_pool = get_active_persona_questions(pillar_id, persona)
+
+    # Step 3: Score and rank persona pool
+    if research_cache:
+        signals = extract_signals(research_cache)
+        persona_pool.sort(key=lambda q: score_question(q, signals), reverse=True)
+    else:
+        persona_pool.sort(key=lambda q: q.display_order)  # fallback: display order
+
+    # Step 4: Select top 8 from persona pool
+    selected_persona = persona_pool[:8]
+
+    # Step 5: Backfill from general if persona pool < 8
+    if len(selected_persona) < 8:
+        backfill = [q for q in general_qs if q not in selected_persona]
+        selected_persona += backfill[:8 - len(selected_persona)]
+
+    # Step 6: Combine and order (general first, then persona-specific)
+    return general_qs + selected_persona  # total: 12
+```
+
+### Fallback rule
+
+If `accounts.research_cache` is `None` or `research_cached_at` is not set (Agent 1 has not completed yet), fall back to persona-only ordering by `display_order`. The assessment proceeds normally — research-informed selection is an enhancement, not a dependency.
