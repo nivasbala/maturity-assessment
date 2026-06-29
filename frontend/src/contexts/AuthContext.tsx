@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useState } from 'react'
 import type { User } from '../types'
 import { logout as apiLogout } from '../api/auth'
 
@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null
   token: string | null
   setAuth: (token: string, user: User) => void
-  clearAuth: () => void
+  clearAuth: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType>({

@@ -3,10 +3,13 @@ Tests for Task 5: Admin API.
 
 All tests run without a live database — DB is mocked at the boundary.
 """
+import logging
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 from fastapi.testclient import TestClient
 
@@ -179,6 +182,17 @@ def test_deactivate_user_returns_404_when_missing():
     assert resp.status_code == 404
 
 
+def test_deactivate_user_blocks_self_deactivation():
+    admin = _admin_user()
+
+    client = _client_with_admin(admin)
+    resp = client.delete(f"/api/admin/users/{admin.id}")
+    _clear_overrides()
+
+    assert resp.status_code == 400
+    assert "own account" in resp.json()["detail"]
+
+
 # ── Pillar CRUD ───────────────────────────────────────────────────────────────
 
 
@@ -259,6 +273,34 @@ def test_create_question_requires_exactly_4_options():
     assert resp.status_code == 422
 
 
+def test_create_question_rejects_duplicate_maturity_levels():
+    """Schema validation rejects duplicate maturity levels even with 4 options (422)."""
+    admin = _admin_user()
+    pillar = _make_pillar_out()
+
+    client = _client_with_admin(admin)
+    with patch("app.routers.admin.admin_service.get_pillar", AsyncMock(return_value=pillar)):
+        resp = client.post(
+            f"/api/admin/pillars/{pillar.id}/questions",
+            json={
+                "text": "Q?",
+                "question_weight": 1.0,
+                "is_general": True,
+                "is_active": True,
+                "answer_options": [
+                    {"text": "A", "maturity_level": 1},
+                    {"text": "B", "maturity_level": 1},
+                    {"text": "C", "maturity_level": 2},
+                    {"text": "D", "maturity_level": 3},
+                ],
+                "personas": [],
+            },
+        )
+    _clear_overrides()
+
+    assert resp.status_code == 422
+
+
 def test_get_question_returns_404_when_missing():
     admin = _admin_user()
 
@@ -314,7 +356,7 @@ async def test_admin_service_create_user_always_sets_internal_user_role():
             try:
                 await svc_create_user(db, data)
             except Exception:
-                pass  # refresh mock may fail; we only care about the add call
+                logger.error("Expected mock failure in test setup", exc_info=True)
 
     if "user" in captured:
         assert captured["user"].role == UserRole.INTERNAL_USER

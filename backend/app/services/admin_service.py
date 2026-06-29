@@ -96,7 +96,11 @@ async def deactivate_user(db: AsyncSession, user_id: UUID) -> UserOut | None:
 
 async def _pillar_with_count(db: AsyncSession, pillar: Pillar) -> PillarOut:
     count = (
-        await db.execute(select(func.count()).select_from(Question).where(Question.pillar_id == pillar.id))
+        await db.execute(
+            select(func.count()).select_from(Question).where(
+                Question.pillar_id == pillar.id, Question.is_active == True  # noqa: E712
+            )
+        )
     ).scalar_one()
     data = PillarOut.model_validate(pillar)
     data.question_count = count
@@ -139,7 +143,7 @@ async def update_pillar(db: AsyncSession, pillar_id: UUID, data: PillarUpdate) -
     row = (await db.execute(select(Pillar).where(Pillar.id == pillar_id))).scalar_one_or_none()
     if not row:
         return None
-    for field, value in data.model_dump(exclude_none=True).items():
+    for field, value in data.model_dump(exclude_unset=True).items():
         setattr(row, field, value)
     await db.commit()
     await db.refresh(row)
@@ -248,16 +252,17 @@ async def update_question(db: AsyncSession, question_id: UUID, data: QuestionUpd
         row.is_active = data.is_active
 
     if data.answer_options is not None:
-        for opt in list(row.answer_options):
-            await db.delete(opt)
-        await db.flush()
-        for opt in data.answer_options:
-            db.add(AnswerOption(
-                question_id=row.id,
-                text=opt.text,
-                maturity_level=opt.maturity_level,
-                display_order=opt.maturity_level,
-            ))
+        existing_opts = {opt.maturity_level: opt for opt in row.answer_options}
+        for opt_data in data.answer_options:
+            if opt_data.maturity_level in existing_opts:
+                existing_opts[opt_data.maturity_level].text = opt_data.text
+            else:
+                db.add(AnswerOption(
+                    question_id=row.id,
+                    text=opt_data.text,
+                    maturity_level=opt_data.maturity_level,
+                    display_order=opt_data.maturity_level,
+                ))
 
     if data.personas is not None:
         for p in list(row.personas):

@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Generic, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 T = TypeVar("T")
 
@@ -97,6 +97,13 @@ class QuestionCreate(BaseModel):
     is_active: bool = True
     answer_options: list[AnswerOptionCreate] = Field(min_length=4, max_length=4)
     personas: list[QuestionPersonaCreate] = []
+
+    @model_validator(mode="after")
+    def validate_maturity_levels(self) -> "QuestionCreate":
+        levels = sorted(opt.maturity_level for opt in self.answer_options)
+        if levels != [1, 2, 3, 4]:
+            raise ValueError("answer_options must have exactly one option for each maturity level 1–4")
+        return self
 
 
 class QuestionUpdate(BaseModel):

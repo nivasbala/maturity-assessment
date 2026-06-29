@@ -78,9 +78,11 @@ async def update_user(
 @router.delete("/users/{user_id}", response_model=UserOut)
 async def deactivate_user(
     user_id: UUID,
-    _: User = Depends(require_admin),
+    current_admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> UserOut:
+    if user_id == current_admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot deactivate your own account")
     user = await admin_service.deactivate_user(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
