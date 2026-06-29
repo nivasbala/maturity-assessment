@@ -8,14 +8,16 @@ import pytest
 from unittest.mock import AsyncMock, patch
 from uuid import uuid4
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from httpx import ASGITransport, AsyncClient
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_admin, require_internal_user
 from app.core.security import create_access_token, create_refresh_token
+from app.models.account import Account
 from app.models.user import User
 from app.routers.auth import router as auth_router
+from app.services.account_service import assert_owns_account
 
 
 # ---------------------------------------------------------------------------
@@ -290,3 +292,68 @@ async def test_require_internal_user_unauthenticated_returns_401():
     async with AsyncClient(transport=ASGITransport(app=DEP_APP), base_url="http://test") as client:
         resp = await client.get("/internal-only")
     assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# POST /api/auth/logout
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_logout_with_valid_token_returns_success():
+    user = make_user()
+    token = create_access_token({"sub": str(user.id)})
+    with patch("app.core.deps.get_user_by_id", AsyncMock(return_value=user)):
+        async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+            resp = await client.post("/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 200
+    assert resp.json() == {"success": True}
+
+
+@pytest.mark.asyncio
+async def test_logout_no_token_returns_401():
+    async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+        resp = await client.post("/api/auth/logout")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_with_refresh_token_returns_401():
+    user = make_user()
+    token = create_refresh_token({"sub": str(user.id)})
+    async with AsyncClient(transport=ASGITransport(app=APP), base_url="http://test") as client:
+        resp = await client.post("/api/auth/logout", headers={"Authorization": f"Bearer {token}"})
+    assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# assert_owns_account (service-layer data isolation)
+# ---------------------------------------------------------------------------
+
+
+def make_account(owner_id=None) -> Account:
+    account = Account()
+    account.id = uuid4()
+    account.company_name = "Acme Corp"
+    account.internal_user_id = owner_id or uuid4()
+    return account
+
+
+def test_assert_owns_account_admin_bypasses_check():
+    admin = make_user(role="admin")
+    account = make_account(owner_id=uuid4())  # owned by someone else
+    assert_owns_account(admin, account)  # must not raise
+
+
+def test_assert_owns_account_owner_passes():
+    user = make_user(role="internal_user")
+    account = make_account(owner_id=user.id)
+    assert_owns_account(user, account)  # must not raise
+
+
+def test_assert_owns_account_non_owner_raises_403():
+    user = make_user(role="internal_user")
+    account = make_account(owner_id=uuid4())  # different owner
+    with pytest.raises(HTTPException) as exc_info:
+        assert_owns_account(user, account)
+    assert exc_info.value.status_code == 403

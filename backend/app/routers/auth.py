@@ -60,6 +60,14 @@ async def refresh(
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
+@router.post("/logout")
+async def logout(current_user: User = Depends(get_current_user)) -> dict[str, bool]:
+    # Token is stateless — client is responsible for discarding it.
+    # This endpoint validates the token and confirms logout server-side.
+    logger.info("Logout: user_id=%s", current_user.id)
+    return {"success": True}
+
+
 @router.get("/me", response_model=UserResponse)
 async def me(current_user: User = Depends(get_current_user)) -> UserResponse:
     return UserResponse.model_validate(current_user)
