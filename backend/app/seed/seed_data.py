@@ -583,7 +583,7 @@ PILLARS = [
         "description": "Assess your organization's maturity in operationalizing machine learning — from training pipeline health and GPU infrastructure to model lifecycle management and compute cost optimization.",
         "overall_weight": 0.85,
         "display_order": 4,
-        "is_active": False,
+        "is_active": True,
         "is_gated": True,
         "gate_question": "Is your organization currently training, fine-tuning, or managing machine learning or foundation models in-house?",
         "questions": [
