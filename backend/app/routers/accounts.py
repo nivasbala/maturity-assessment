@@ -1,3 +1,80 @@
-from fastapi import APIRouter
+import logging
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.database import get_db
+from app.core.deps import require_internal_user
+from app.models.user import User
+from app.schemas.admin import Paginated
+from app.schemas.internal import (
+    AccountCreate,
+    AccountDetailOut,
+    AccountListOut,
+    AggregateOut,
+    AssessmentCreateRequest,
+    AssessmentCreatedOut,
+    AssessmentListItemOut,
+)
+from app.services import account_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
+
+
+@router.get("", response_model=Paginated[AccountListOut])
+async def list_accounts(
+    page: int = Query(1, ge=1),
+    size: int = Query(25, ge=1, le=100),
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> Paginated[AccountListOut]:
+    return await account_service.list_accounts(db, current_user, page=page, size=size)
+
+
+@router.post("", response_model=AccountListOut, status_code=201)
+async def create_account(
+    body: AccountCreate,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> AccountListOut:
+    return await account_service.create_account(db, current_user, body)
+
+
+@router.get("/{account_id}", response_model=AccountDetailOut)
+async def get_account_detail(
+    account_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> AccountDetailOut:
+    return await account_service.get_account_detail(db, account_id, current_user)
+
+
+@router.get("/{account_id}/aggregate", response_model=AggregateOut)
+async def get_account_aggregate(
+    account_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> AggregateOut:
+    return await account_service.get_account_aggregate(db, account_id, current_user)
+
+
+@router.post("/{account_id}/assessments", response_model=AssessmentCreatedOut, status_code=201)
+async def create_assessment(
+    account_id: UUID,
+    body: AssessmentCreateRequest,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> AssessmentCreatedOut:
+    return await account_service.create_assessment(db, account_id, current_user, body.pillar_id)
+
+
+@router.get("/{account_id}/assessments", response_model=list[AssessmentListItemOut])
+async def list_account_assessments(
+    account_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[AssessmentListItemOut]:
+    return await account_service.list_account_assessments(db, account_id, current_user)
