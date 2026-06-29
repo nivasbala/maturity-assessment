@@ -9,8 +9,8 @@
 1. **Never modify spec files.** They are read-only reference material. If you believe a spec is wrong, stop and flag it to the user — do not self-correct silently.
 2. **Spec wins over inference.** If the spec and your training disagree, follow the spec.
 3. **Load spec files at the start of each task**, before writing any code.
-4. **Verify against `spec/01-mission-outcomes-verification.md`** before merging any task branch.
-5. **Section 2 of `spec/07-build-plan.md` defines the git workflow.** Follow it exactly for every task.
+4. **Verify against `specs/01-mission-outcomes-verification.md`** before merging any task branch.
+5. **Section 2 of `specs/07-build-plan.md` defines the git workflow.** Follow it exactly for every task.
 
 ### Agent Context Map
 
@@ -21,7 +21,7 @@ Load **only** the files listed for your current task. Do not load files not list
 | Task 1: Project Scaffolding | `task/01-project-scaffolding` | `00-index` + `03-tech-stack-constraints` + `07-build-plan` |
 | Task 2: Database + Migrations | `task/02-database-migrations` | `03-tech-stack-constraints` + `04-data-model` |
 | Task 3: Auth System | `task/03-auth-system` | `04-data-model` + `02-domain-model` + `03-tech-stack-constraints` |
-| Task 4: Seed Data | `task/04-seed-data` | `04-data-model` + `06-question-bank` |
+| Task 4: Seed Data | `task/04-seed-data` | `04-data-model` + `02-domain-model` + `06-question-bank` |
 | Task 5: Admin API + UI | `task/05-admin-api-ui` | `04-data-model` + `05-architecture-api` + `02-domain-model` |
 | Task 6: Short URL Flow | `task/06-short-url-flow` | `04-data-model` + `05-architecture-api` |
 | Task 7: Prospect Landing Flow | `task/07-prospect-landing-flow` | `02-domain-model` + `04-data-model` + `05-architecture-api` + `06-question-bank` |
@@ -46,7 +46,7 @@ Load **only** the files listed for your current task. Do not load files not list
 ```bash
 gh pr create \
   --title "Task NN: <task name>" \
-  --body "Completes task NN as defined in spec/07-build-plan.md. Verification criteria checked." \
+  --body "Completes task NN as defined in specs/07-build-plan.md. Verification criteria checked." \
   --base main
 
 gh pr merge --squash --auto
@@ -69,14 +69,14 @@ If a task fails its verification criteria: fix on the **same task branch**. Neve
 
 ## SECTION 3: VERIFICATION GATE
 
-Before opening a PR for any task, run the applicable criteria from `spec/01-mission-outcomes-verification.md`. Do not open a PR if any criterion fails — fix on the same branch first.
+Before opening a PR for any task, run the applicable criteria from `specs/01-mission-outcomes-verification.md`. Do not open a PR if any criterion fails — fix on the same branch first.
 
 Key areas to verify:
 - **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
-- **Question Selection:** 4 general + 8 persona-specific = 12 per session; inactive questions never shown
-- **P3 Gate:** Hidden when gate answered No; visible when Yes
+- **Question Selection:** 4 general + 8 persona-specific = 12 per session; inactive questions never shown; when research cache is populated, context_tags signal matching ranks persona pool; falls back to display_order when cache not ready
+- **Gated Pillars (P3 & P4):** P3 hidden when gate answered No; P4 hidden when gate answered No OR when is_active=FALSE
 - **Scoring:** All Level 1 → 1.0, all Level 4 → 4.0, mixed produces value between 1.00–4.00
-- **Agent Behavior:** Research cached at account level, 7-day TTL, graceful failure if Agent 1 fails
+- **Agent Behavior:** Agent 1 fires at `/register` time (not `/select-pillar`); research cached at account level with 7-day TTL; LangGraph orchestrator reads from cache at submit time — does NOT re-fire Agent 1 when cache is fresh; graceful fallback if Agent 1 fails or cache is empty
 - **Report Completeness:** executive_summary, 2–4 strengths, 3–6 gaps, 4–6 next steps; no vendor names
 - **Infrastructure:** `docker compose up` runs without manual steps; migrations run automatically
 
@@ -153,15 +153,16 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 ### In Scope — MVP (Build These)
 
 - Three user roles: Prospect (unauthenticated), Internal User, Admin
-- Four assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P5 Security & DevSecOps
-- 50-question bank per pillar; 12 shown per session (persona-filtered)
+- Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive — activates via admin panel), P5 Security & DevSecOps
+- 50-question bank per pillar; 12 shown per session (persona-filtered + research-informed)
+- LLM-adaptive question selection: Agent 1 company research signals influence which questions are selected from the persona-filtered pool; falls back to persona-only if research cache not ready
 - Short URL generation and prospect landing flow
 - Multi-agent report generation (Agent 1: Company Research, Agent 2: Report Generation)
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregate view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
 - Internal users can only see assessments and reports they created
-- Admin CRUD: pillars, questions (with persona tagging and weighting), internal users
+- Admin CRUD: pillars, questions (with persona tagging, weighting, and context_tags for research-informed selection), internal users
 - Local JWT authentication (bcrypt passwords)
 - Docker Compose single-machine deployment
 - Nginx reverse proxy
@@ -169,10 +170,8 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 ### Explicitly Out of Scope — MVP (Do Not Build)
 
 - Agent 3: Admin chatbot for question management
-- LLM-adaptive question selection based on company research output
 - Email notifications of any kind
 - CRM integration (Salesforce, HubSpot, Marketo)
-- Pillar 4: ML & Foundation Model Operations
 - Benchmarking or peer comparison features
 - OAuth2 / SSO authentication
 - Multi-tenancy or white-labeling
@@ -181,7 +180,7 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 - Cloud deployment automation (AWS ECS/EKS, GCP, Azure)
 - Any feature not explicitly described in the spec files
 
-If a feature is not in the MVP scope list above, do not build it. When in doubt, check `spec/07-build-plan.md` before starting any new work. Phase 2 items in Section 4 of that file are informational only.
+If a feature is not in the MVP scope list above, do not build it. When in doubt, check `specs/07-build-plan.md` before starting any new work. Phase 2 items in Section 4 of that file are informational only.
 
 ---
 
