@@ -4,6 +4,7 @@ PILLARS = [
         "description": "Assess your organization's maturity in monitoring, observability, and incident management across the full stack.",
         "overall_weight": 1.0,
         "display_order": 1,
+        "is_active": True,
         "is_gated": False,
         "gate_question": None,
         "questions": [
@@ -12,6 +13,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 1,
+                "context_tags": [],
                 "options": [
                     (1, "We react to issues only when customers or operations report them"),
                     (2, "We have basic uptime monitoring and some manual dashboards"),
@@ -25,6 +27,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": True,
                 "display_order": 2,
+                "context_tags": [],
                 "options": [
                     (1, "Less than 25%"),
                     (2, "25–50%"),
@@ -38,6 +41,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 3,
+                "context_tags": [],
                 "options": [
                     (1, "Customers tell us, or we notice manually"),
                     (2, "Basic threshold alerts via email or Slack"),
@@ -51,6 +55,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": True,
                 "display_order": 4,
+                "context_tags": [],
                 "options": [
                     (1, "Each team uses different tools with no central view"),
                     (2, "Some consolidation but still multiple disconnected tools"),
@@ -64,6 +69,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": False,
                 "display_order": 5,
+                "context_tags": [],
                 "options": [
                     (1, "No SLOs defined internally"),
                     (2, "SLOs exist informally or only for a few services"),
@@ -77,6 +83,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 6,
+                "context_tags": ["microservices", "kubernetes", "cloud_native"],
                 "options": [
                     (1, "0% — no distributed tracing"),
                     (2, "Less than 25% (critical paths only)"),
@@ -90,6 +97,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 7,
+                "context_tags": [],
                 "options": [
                     (1, "More than 4 hours"),
                     (2, "1–4 hours"),
@@ -103,6 +111,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 8,
+                "context_tags": ["aws", "gcp", "azure", "terraform", "infrastructure"],
                 "options": [
                     (1, "Manual provisioning with no version control"),
                     (2, "Some scripting but infrastructure changes are not consistently tracked"),
@@ -116,6 +125,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 9,
+                "context_tags": ["ci_cd", "devops", "github", "gitlab"],
                 "options": [
                     (1, "Manual deployments with no pipeline"),
                     (2, "Basic pipeline for some services, manual steps still required"),
@@ -129,6 +139,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 10,
+                "context_tags": [],
                 "options": [
                     (1, "We don't monitor pipelines"),
                     (2, "Basic success/fail notifications"),
@@ -142,6 +153,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": False,
                 "display_order": 11,
+                "context_tags": [],
                 "options": [
                     (1, "No internal platform — each team provisions its own infrastructure"),
                     (2, "Shared scripts and runbooks but no self-service capability"),
@@ -155,6 +167,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 12,
+                "context_tags": [],
                 "options": [
                     (1, "We don't actively monitor end-user experience"),
                     (2, "Server-side error tracking only"),
@@ -168,6 +181,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 13,
+                "context_tags": [],
                 "options": [
                     (1, "No instrumentation — we rely on logs only"),
                     (2, "Basic logging with some manual metrics"),
@@ -181,6 +195,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 14,
+                "context_tags": [],
                 "options": [
                     (1, "We don't monitor models post-deployment"),
                     (2, "Basic uptime and error rate monitoring only"),
@@ -194,6 +209,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 15,
+                "context_tags": [],
                 "options": [
                     (1, "Security monitoring is completely separate from operational observability"),
                     (2, "Some log correlation between security and ops tools"),
@@ -207,8 +223,9 @@ PILLARS = [
     {
         "name": "AIOps & Intelligent Observability",
         "description": "Assess your organization's maturity in applying AI and machine learning to observability and incident management workflows.",
-        "overall_weight": 1.0,
+        "overall_weight": 0.9,
         "display_order": 2,
+        "is_active": True,
         "is_gated": False,
         "gate_question": None,
         "questions": [
@@ -217,6 +234,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": True,
                 "display_order": 1,
+                "context_tags": [],
                 "options": [
                     (1, "We receive a high volume of alerts and triage manually — alert fatigue is a serious problem"),
                     (2, "We've manually tuned some thresholds but alert noise is still significant"),
@@ -230,6 +248,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 2,
+                "context_tags": [],
                 "options": [
                     (1, "Manual investigation after an incident is reported"),
                     (2, "Static threshold-based alerts only"),
@@ -243,6 +262,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": True,
                 "display_order": 3,
+                "context_tags": [],
                 "options": [
                     (1, "Fully manual — engineers investigate everything from scratch"),
                     (2, "We have runbooks but execution is manual"),
@@ -256,6 +276,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 4,
+                "context_tags": [],
                 "options": [
                     (1, "We don't — teams investigate in silos using separate tools"),
                     (2, "Manual correlation across multiple dashboards during incidents"),
@@ -269,6 +290,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": False,
                 "display_order": 5,
+                "context_tags": ["aiops", "machine_learning", "ai"],
                 "options": [
                     (1, "No AI/ML in our incident workflows"),
                     (2, "We are evaluating or piloting AI tools"),
@@ -282,6 +304,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 6,
+                "context_tags": [],
                 "options": [
                     (1, "Ad-hoc — engineers write notes in chat or nowhere"),
                     (2, "Incident tickets created manually with basic information"),
@@ -295,6 +318,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 7,
+                "context_tags": [],
                 "options": [
                     (1, "We don't systematically use historical data"),
                     (2, "Manual postmortems, but insights rarely feed back into monitoring improvements"),
@@ -308,6 +332,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 8,
+                "context_tags": [],
                 "options": [
                     (1, "We don't measure ROI on observability"),
                     (2, "Anecdotal feedback from engineering teams only"),
@@ -321,6 +346,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 9,
+                "context_tags": [],
                 "options": [
                     (1, "We don't use AI for proactive monitoring"),
                     (2, "Basic capacity planning using historical metrics"),
@@ -334,6 +360,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 10,
+                "context_tags": [],
                 "options": [
                     (1, "No integration — deployments and monitoring are completely separate"),
                     (2, "Deployment events are manually correlated with monitoring during incidents"),
@@ -347,6 +374,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 11,
+                "context_tags": [],
                 "options": [
                     (1, "Never — we debug manually using logs and dashboards"),
                     (2, "Occasionally, but not as a standard practice"),
@@ -360,6 +388,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 12,
+                "context_tags": [],
                 "options": [
                     (1, "We don't use ML in our observability data pipeline"),
                     (2, "Basic automated log parsing only"),
@@ -373,8 +402,9 @@ PILLARS = [
     {
         "name": "AI System Observability",
         "description": "Assess your organization's maturity in monitoring, evaluating, and governing AI systems and LLM-powered applications in production.",
-        "overall_weight": 1.0,
+        "overall_weight": 0.85,
         "display_order": 3,
+        "is_active": True,
         "is_gated": True,
         "gate_question": "Is your organization currently building, deploying, or operating AI-powered applications or services?",
         "questions": [
@@ -383,6 +413,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": True,
                 "display_order": 1,
+                "context_tags": [],
                 "options": [
                     (1, "We don't monitor LLM applications beyond basic uptime"),
                     (2, "We track API error rates and latency only"),
@@ -396,6 +427,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 2,
+                "context_tags": [],
                 "options": [
                     (1, "We don't — issues are discovered by end users reporting problems"),
                     (2, "Manual review of a sample of LLM outputs periodically"),
@@ -409,6 +441,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 3,
+                "context_tags": [],
                 "options": [
                     (1, "We don't track LLM costs beyond the monthly invoice"),
                     (2, "High-level cost tracking by service or team"),
@@ -422,6 +455,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": True,
                 "display_order": 4,
+                "context_tags": [],
                 "options": [
                     (1, "Prompts are hardcoded with no version control"),
                     (2, "Prompts are stored in config files with basic version control"),
@@ -435,6 +469,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": False,
                 "display_order": 5,
+                "context_tags": ["llm", "ai_agents", "langchain", "openai", "anthropic"],
                 "options": [
                     (1, "No tracing — we log inputs and outputs only"),
                     (2, "Basic logging at entry and exit points of the pipeline"),
@@ -448,6 +483,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 6,
+                "context_tags": [],
                 "options": [
                     (1, "Manual testing of a few example inputs"),
                     (2, "Basic regression tests against expected outputs"),
@@ -461,6 +497,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 7,
+                "context_tags": [],
                 "options": [
                     (1, "No formal lifecycle management"),
                     (2, "Manual deployment with basic version tracking"),
@@ -474,6 +511,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 8,
+                "context_tags": [],
                 "options": [
                     (1, "No formal AI governance"),
                     (2, "Informal guidelines exist but are not enforced"),
@@ -487,6 +525,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 9,
+                "context_tags": [],
                 "options": [
                     (1, "We don't track AI-specific business metrics"),
                     (2, "Basic usage metrics only (requests, active users)"),
@@ -500,6 +539,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 10,
+                "context_tags": [],
                 "options": [
                     (1, "Manual testing only with a few example inputs"),
                     (2, "Unit tests for non-AI components, manual validation for AI behavior"),
@@ -513,6 +553,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 11,
+                "context_tags": [],
                 "options": [
                     (1, "No fallback — if the API is down, the feature is down"),
                     (2, "Basic error handling and user-facing error messages"),
@@ -526,6 +567,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 12,
+                "context_tags": [],
                 "options": [
                     (1, "Manual, ad-hoc provisioning"),
                     (2, "Fixed infrastructure with manual scaling"),
@@ -537,10 +579,204 @@ PILLARS = [
         ],
     },
     {
+        "name": "ML & Foundation Model Operations",
+        "description": "Assess your organization's maturity in operationalizing machine learning — from training pipeline health and GPU infrastructure to model lifecycle management and compute cost optimization.",
+        "overall_weight": 0.85,
+        "display_order": 4,
+        "is_active": False,
+        "is_gated": True,
+        "gate_question": "Is your organization currently training, fine-tuning, or managing machine learning or foundation models in-house?",
+        "questions": [
+            {
+                "text": "How mature is your organization's approach to operationalizing machine learning — moving models from development to production reliably?",
+                "weight": 2.0,
+                "general": True,
+                "display_order": 1,
+                "context_tags": [],
+                "options": [
+                    (1, "We have no formal process — models are deployed manually with no standardization"),
+                    (2, "We have ad-hoc deployment processes for some models, but no consistent MLOps practices"),
+                    (3, "Standardized MLOps pipelines exist for major models with version control and basic monitoring"),
+                    (4, "Full MLOps maturity: automated training, evaluation, deployment, monitoring, and retraining pipelines"),
+                ],
+                "personas": [],
+            },
+            {
+                "text": "How does your organization manage and track the cost of ML compute (GPU/TPU/CPU clusters)?",
+                "weight": 1.5,
+                "general": True,
+                "display_order": 2,
+                "context_tags": [],
+                "options": [
+                    (1, "We don't track ML compute costs separately — it's part of the general cloud bill"),
+                    (2, "High-level cost tracking by team or project, reviewed monthly"),
+                    (3, "Per-job and per-model cost tracking with budget alerts"),
+                    (4, "Real-time compute cost optimization: per-experiment cost attribution, idle GPU detection, spot instance orchestration, and cost-per-trained-model tracking"),
+                ],
+                "personas": [],
+            },
+            {
+                "text": "How do you track, compare, and select ML experiments before promoting a model to production?",
+                "weight": 1.5,
+                "general": True,
+                "display_order": 3,
+                "context_tags": [],
+                "options": [
+                    (1, "We don't track experiments formally — results are in notebooks or spreadsheets"),
+                    (2, "Some logging of metrics per experiment, but no centralized tracking"),
+                    (3, "Experiment tracking platform in use with metric comparison and artifact storage"),
+                    (4, "Full experiment lifecycle management: automated metric logging, model registry integration, reproducibility guarantees, and governance-based promotion policies"),
+                ],
+                "personas": [],
+            },
+            {
+                "text": "How does your organization monitor ML model performance after deployment to production?",
+                "weight": 1.0,
+                "general": True,
+                "display_order": 4,
+                "context_tags": [],
+                "options": [
+                    (1, "We don't monitor models post-deployment — issues are found by end users"),
+                    (2, "Basic uptime and API error rate monitoring only"),
+                    (3, "Model performance metrics tracked (latency, throughput, accuracy on known test sets)"),
+                    (4, "Full production model observability: concept drift detection, data quality monitoring, performance degradation alerting, and automated retraining triggers"),
+                ],
+                "personas": [],
+            },
+            {
+                "text": "How do you monitor GPU utilization and efficiency during model training?",
+                "weight": 2.0,
+                "general": False,
+                "display_order": 5,
+                "context_tags": ["gpu", "cuda", "model_training", "nvidia"],
+                "options": [
+                    (1, "We don't monitor GPU utilization during training"),
+                    (2, "Basic GPU utilization metrics available but not actively monitored"),
+                    (3, "GPU utilization, memory usage, and job throughput tracked per training run"),
+                    (4, "Full GPU observability: real-time utilization, memory efficiency, bottleneck detection, and automated alerts for idle or underutilized compute"),
+                ],
+                "personas": [("ml_ai_engineer", 1.2)],
+            },
+            {
+                "text": "How do you manage model versioning, registration, and promotion through your ML lifecycle?",
+                "weight": 1.5,
+                "general": False,
+                "display_order": 6,
+                "context_tags": [],
+                "options": [
+                    (1, "No formal versioning — models are saved as files with manual naming"),
+                    (2, "Basic version control for model artifacts, but no formal registry"),
+                    (3, "Centralized model registry with versioning and stage tracking (staging, production, archived)"),
+                    (4, "Full model lifecycle management: automated registration, metadata tracking, lineage tracing, governance policies, and audit trails for every production change"),
+                ],
+                "personas": [("ml_ai_engineer", 1.2)],
+            },
+            {
+                "text": "How do you ensure reproducibility of ML training runs?",
+                "weight": 1.5,
+                "general": False,
+                "display_order": 7,
+                "context_tags": [],
+                "options": [
+                    (1, "Reproducibility is not a priority — we can't reliably recreate past training results"),
+                    (2, "Code is version-controlled, but data and environment versions are not consistently tracked"),
+                    (3, "Code, data versions, and key hyperparameters are logged per run"),
+                    (4, "Full reproducibility: code, data, environment (Docker/conda), hyperparameters, and random seeds captured per run with one-click rerun capability"),
+                ],
+                "personas": [("ml_ai_engineer", 1.2)],
+            },
+            {
+                "text": "How integrated are your ML training pipelines with your standard CI/CD processes?",
+                "weight": 1.0,
+                "general": False,
+                "display_order": 8,
+                "context_tags": [],
+                "options": [
+                    (1, "ML pipelines are completely separate from software CI/CD"),
+                    (2, "Some shared infrastructure, but ML pipelines are managed manually"),
+                    (3, "ML pipelines are triggered automatically on code or data changes"),
+                    (4, "Full ML CI/CD: automated training, evaluation, comparison against baseline, and deployment gating on model quality metrics"),
+                ],
+                "personas": [("ml_ai_engineer", 1.1), ("devops_engineer", 1.1)],
+            },
+            {
+                "text": "How does your organization measure and optimize the ROI of ML compute investments?",
+                "weight": 1.5,
+                "general": False,
+                "display_order": 9,
+                "context_tags": [],
+                "options": [
+                    (1, "We don't measure ML compute ROI"),
+                    (2, "High-level budget tracking — we know the total spend but not the value delivered"),
+                    (3, "Cost-per-model or cost-per-experiment tracked alongside model business impact"),
+                    (4, "Full ML investment optimization: compute cost attributed to business outcomes, automated rightsizing recommendations, and executive dashboards linking ML spend to product metrics"),
+                ],
+                "personas": [("cto_executive", 0.9), ("vp_engineering", 0.9)],
+            },
+            {
+                "text": "How does your organization govern which ML models are deployed to production and who can access or modify them?",
+                "weight": 1.5,
+                "general": False,
+                "display_order": 10,
+                "context_tags": [],
+                "options": [
+                    (1, "No formal governance — any engineer can deploy a model"),
+                    (2, "Informal review process before deployment"),
+                    (3, "Defined approval workflow with documented owners and review criteria"),
+                    (4, "Automated governance: model cards required, approval workflows enforced, access controls by model, and full audit trail from training to production"),
+                ],
+                "personas": [("cto_executive", 0.9), ("vp_engineering", 0.9)],
+            },
+            {
+                "text": "How is your GPU and ML compute infrastructure managed and scaled?",
+                "weight": 1.5,
+                "general": False,
+                "display_order": 11,
+                "context_tags": ["gpu", "kubernetes", "cloud_compute", "aws", "gcp", "azure"],
+                "options": [
+                    (1, "Manual provisioning — engineers request compute ad-hoc"),
+                    (2, "Fixed compute clusters with manual scaling when capacity runs out"),
+                    (3, "Auto-scaling GPU clusters with queue-based job scheduling"),
+                    (4, "Intelligent compute orchestration: multi-cloud GPU scheduling, spot/preemptible instance management, priority queuing, and cost-optimized autoscaling"),
+                ],
+                "personas": [("sre_platform_engineer", 1.1)],
+            },
+            {
+                "text": "How do you monitor model serving infrastructure for reliability and performance?",
+                "weight": 1.0,
+                "general": False,
+                "display_order": 12,
+                "context_tags": [],
+                "options": [
+                    (1, "No dedicated monitoring for model serving — same as generic application monitoring"),
+                    (2, "Basic uptime and latency monitoring for model endpoints"),
+                    (3, "Model-specific SLOs for latency and throughput with alerting"),
+                    (4, "Full model serving observability: per-model SLOs, traffic-based autoscaling, A/B traffic splitting, shadow mode deployment, and automated rollback on performance degradation"),
+                ],
+                "personas": [("sre_platform_engineer", 1.1), ("devops_engineer", 1.1)],
+            },
+            {
+                "text": "How do developers in your organization consume ML models in production applications?",
+                "weight": 1.0,
+                "general": False,
+                "display_order": 13,
+                "context_tags": [],
+                "options": [
+                    (1, "Models are accessed through ad-hoc scripts or direct file loading"),
+                    (2, "REST APIs exist for some models, but discovery and documentation are poor"),
+                    (3, "Centralized model serving platform with versioned APIs and SDK"),
+                    (4, "Self-service ML platform: model catalog with documentation, versioned APIs, usage tracking, and automated deprecation notices"),
+                ],
+                "personas": [("software_developer", 1.0)],
+            },
+        ],
+    },
+    {
         "name": "Security & DevSecOps",
         "description": "Assess your organization's maturity in integrating security into development, operations, and cloud infrastructure management.",
         "overall_weight": 1.0,
-        "display_order": 4,
+        "display_order": 5,
+        "is_active": True,
         "is_gated": False,
         "gate_question": None,
         "questions": [
@@ -549,6 +785,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": True,
                 "display_order": 1,
+                "context_tags": [],
                 "options": [
                     (1, "Security is reviewed only at release or after deployment"),
                     (2, "Penetration testing and security reviews happen, but late in the cycle"),
@@ -562,6 +799,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 2,
+                "context_tags": [],
                 "options": [
                     (1, "We don't actively track open-source vulnerabilities"),
                     (2, "Scans run occasionally with slow, manual remediation"),
@@ -575,6 +813,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": True,
                 "display_order": 3,
+                "context_tags": [],
                 "options": [
                     (1, "No runtime security monitoring"),
                     (2, "Basic WAF and network-level controls only"),
@@ -588,6 +827,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": True,
                 "display_order": 4,
+                "context_tags": [],
                 "options": [
                     (1, "We rely on cloud provider defaults with no active posture management"),
                     (2, "Periodic manual security audits"),
@@ -601,6 +841,7 @@ PILLARS = [
                 "weight": 2.0,
                 "general": False,
                 "display_order": 5,
+                "context_tags": [],
                 "options": [
                     (1, "No formal compliance program"),
                     (2, "Compliance requirements addressed reactively when audits occur"),
@@ -614,6 +855,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 6,
+                "context_tags": [],
                 "options": [
                     (1, "No application-level security controls beyond network firewalls"),
                     (2, "Basic WAF rules and rate limiting"),
@@ -627,6 +869,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 7,
+                "context_tags": [],
                 "options": [
                     (1, "Secrets are stored in code or shared via email and messaging tools"),
                     (2, "Centralized secrets manager in place but not consistently used"),
@@ -640,6 +883,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 8,
+                "context_tags": [],
                 "options": [
                     (1, "Post-deployment only, or never"),
                     (2, "Pre-release (staging or QA) only"),
@@ -653,6 +897,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 9,
+                "context_tags": [],
                 "options": [
                     (1, "Findings are generated but not systematically tracked or actioned"),
                     (2, "Findings reviewed manually by the security team periodically"),
@@ -666,6 +911,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 10,
+                "context_tags": ["kubernetes", "containers", "docker"],
                 "options": [
                     (1, "No container-specific security controls"),
                     (2, "Basic image scanning before deployment"),
@@ -679,6 +925,7 @@ PILLARS = [
                 "weight": 1.5,
                 "general": False,
                 "display_order": 11,
+                "context_tags": [],
                 "options": [
                     (1, "Security is solely the security team's responsibility; developers are not involved"),
                     (2, "Security requirements are handed off to developers at the end of sprints"),
@@ -692,6 +939,7 @@ PILLARS = [
                 "weight": 1.0,
                 "general": False,
                 "display_order": 12,
+                "context_tags": [],
                 "options": [
                     (1, "I rely entirely on the security team to identify vulnerabilities"),
                     (2, "I am aware of common vulnerabilities but have limited tooling support"),

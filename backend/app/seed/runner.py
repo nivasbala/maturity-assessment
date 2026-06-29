@@ -42,6 +42,7 @@ async def _seed_pillar(db: AsyncSession, pillar_data: dict) -> None:
         description=pillar_data["description"],
         overall_weight=pillar_data["overall_weight"],
         display_order=pillar_data["display_order"],
+        is_active=pillar_data.get("is_active", True),
         is_gated=pillar_data["is_gated"],
         gate_question=pillar_data["gate_question"],
     )
@@ -55,6 +56,7 @@ async def _seed_pillar(db: AsyncSession, pillar_data: dict) -> None:
             question_weight=q_data["weight"],
             is_general=q_data["general"],
             display_order=q_data["display_order"],
+            context_tags=q_data.get("context_tags", []),
         )
         db.add(question)
         await db.flush()

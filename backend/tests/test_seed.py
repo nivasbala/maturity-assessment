@@ -44,8 +44,8 @@ def _make_db(existing_user=None, existing_pillar=None):
 # ---------------------------------------------------------------------------
 
 
-def test_four_pillars_defined():
-    assert len(PILLARS) == 4
+def test_five_pillars_defined():
+    assert len(PILLARS) == 5
 
 
 def test_pillar_names():
@@ -53,6 +53,7 @@ def test_pillar_names():
     assert "Full-Stack Observability" in names
     assert "AIOps & Intelligent Observability" in names
     assert "AI System Observability" in names
+    assert "ML & Foundation Model Operations" in names
     assert "Security & DevSecOps" in names
 
 
@@ -63,10 +64,33 @@ def test_p3_is_gated():
     assert len(p3["gate_question"]) > 0
 
 
+def test_p4_is_gated():
+    p4 = next(p for p in PILLARS if p["name"] == "ML & Foundation Model Operations")
+    assert p4["is_gated"] is True
+    assert p4["gate_question"] is not None
+    assert len(p4["gate_question"]) > 0
+
+
+def test_p4_is_inactive():
+    p4 = next(p for p in PILLARS if p["name"] == "ML & Foundation Model Operations")
+    assert p4["is_active"] is False
+
+
 def test_non_gated_pillars():
+    gated_names = {"AI System Observability", "ML & Foundation Model Operations"}
     for pillar in PILLARS:
-        if pillar["name"] != "AI System Observability":
+        if pillar["name"] not in gated_names:
             assert pillar["is_gated"] is False
+
+
+def test_all_pillars_have_is_active_key():
+    for pillar in PILLARS:
+        assert "is_active" in pillar, f"{pillar['name']} missing is_active"
+
+
+def test_active_pillars():
+    inactive = [p["name"] for p in PILLARS if not p["is_active"]]
+    assert inactive == ["ML & Foundation Model Operations"]
 
 
 def test_p1_has_15_questions():
@@ -74,9 +98,15 @@ def test_p1_has_15_questions():
     assert len(p1["questions"]) == 15
 
 
+def test_p4_has_13_questions():
+    p4 = next(p for p in PILLARS if p["name"] == "ML & Foundation Model Operations")
+    assert len(p4["questions"]) == 13
+
+
 def test_p2_p3_p5_have_12_questions():
+    twelve_q_pillars = {"AIOps & Intelligent Observability", "AI System Observability", "Security & DevSecOps"}
     for pillar in PILLARS:
-        if pillar["name"] != "Full-Stack Observability":
+        if pillar["name"] in twelve_q_pillars:
             assert len(pillar["questions"]) == 12, f"{pillar['name']} should have 12 questions"
 
 
@@ -136,6 +166,75 @@ def test_display_orders_are_sequential_per_pillar():
     for pillar in PILLARS:
         orders = [q["display_order"] for q in pillar["questions"]]
         assert orders == list(range(1, len(orders) + 1)), f"{pillar['name']} display_order not sequential"
+
+
+def test_all_questions_have_context_tags_key():
+    for pillar in PILLARS:
+        for q in pillar["questions"]:
+            assert "context_tags" in q, f"Question '{q['text'][:40]}' missing context_tags"
+
+
+def test_context_tags_is_list_on_all_questions():
+    for pillar in PILLARS:
+        for q in pillar["questions"]:
+            assert isinstance(q["context_tags"], list), f"context_tags must be a list: '{q['text'][:40]}'"
+
+
+def test_known_questions_have_non_empty_context_tags():
+    tag_checks = {
+        "Full-Stack Observability": {
+            6: ["microservices", "kubernetes", "cloud_native"],
+            8: ["aws", "gcp", "azure", "terraform", "infrastructure"],
+            9: ["ci_cd", "devops", "github", "gitlab"],
+        },
+        "AIOps & Intelligent Observability": {
+            5: ["aiops", "machine_learning", "ai"],
+        },
+        "AI System Observability": {
+            5: ["llm", "ai_agents", "langchain", "openai", "anthropic"],
+        },
+        "ML & Foundation Model Operations": {
+            5: ["gpu", "cuda", "model_training", "nvidia"],
+            11: ["gpu", "kubernetes", "cloud_compute", "aws", "gcp", "azure"],
+        },
+        "Security & DevSecOps": {
+            10: ["kubernetes", "containers", "docker"],
+        },
+    }
+    for pillar in PILLARS:
+        checks = tag_checks.get(pillar["name"], {})
+        for q in pillar["questions"]:
+            expected = checks.get(q["display_order"])
+            if expected is not None:
+                assert q["context_tags"] == expected, (
+                    f"{pillar['name']} Q{q['display_order']} context_tags mismatch: "
+                    f"got {q['context_tags']}"
+                )
+
+
+def test_pillar_display_orders_are_sequential():
+    orders = sorted(p["display_order"] for p in PILLARS)
+    assert orders == list(range(1, len(PILLARS) + 1))
+
+
+def test_p5_display_order_is_5():
+    p5 = next(p for p in PILLARS if p["name"] == "Security & DevSecOps")
+    assert p5["display_order"] == 5
+
+
+def test_p4_display_order_is_4():
+    p4 = next(p for p in PILLARS if p["name"] == "ML & Foundation Model Operations")
+    assert p4["display_order"] == 4
+
+
+def test_p2_overall_weight():
+    p2 = next(p for p in PILLARS if p["name"] == "AIOps & Intelligent Observability")
+    assert p2["overall_weight"] == 0.9
+
+
+def test_p3_overall_weight():
+    p3 = next(p for p in PILLARS if p["name"] == "AI System Observability")
+    assert p3["overall_weight"] == 0.85
 
 
 # ---------------------------------------------------------------------------
