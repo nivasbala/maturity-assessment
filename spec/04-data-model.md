@@ -1,6 +1,6 @@
 ---
 title: Data Model
-version: 1.2
+version: 1.4
 last_updated: 2026-06-28
 ---
 
@@ -8,7 +8,7 @@ last_updated: 2026-06-28
 
 > **When to load this file:** Any task that touches the database — migrations, API routes, services, scoring, seeding, or reporting. This is the most cross-referenced file in the spec. When in doubt, load it.
 
-Ten tables. No additional tables for MVP. All foreign keys enforce referential integrity. Soft deletes (`is_active = FALSE`) are used throughout — never hard delete data.
+Eleven tables. No additional tables for MVP. All foreign keys enforce referential integrity. Soft deletes (`is_active = FALSE`) are used throughout — never hard delete data.
 
 ---
 
@@ -54,6 +54,7 @@ CREATE TABLE pillars (
     is_active      BOOLEAN NOT NULL DEFAULT TRUE,
     is_gated       BOOLEAN NOT NULL DEFAULT FALSE,       -- TRUE for gated pillars (P3, P4)
     gate_question  TEXT,                                  -- shown if is_gated = TRUE
+    question_count INTEGER NOT NULL DEFAULT 12,          -- admin-configurable per pillar; validated at service layer against system_settings bounds
     created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -145,6 +146,16 @@ CREATE TABLE reports (
     next_steps       JSONB NOT NULL DEFAULT '[]',      -- [{title, description, priority, timeframe}]
     pillar_breakdown JSONB NOT NULL DEFAULT '{}',      -- per-sub-area scores if applicable
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- System Settings: Generic key-value store for admin-configurable platform settings.
+-- Seeded on startup. Admin can update values via the admin panel.
+-- Values are always stored as strings; service layer parses and validates.
+CREATE TABLE system_settings (
+    key         VARCHAR(100) PRIMARY KEY,
+    value       VARCHAR(255) NOT NULL,
+    description TEXT,
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 ```
 
@@ -273,13 +284,27 @@ If `should_refresh_research` returns `False`, skip Agent 1 and use `account.rese
 
 Question selection is performed by Agent 2 (Question Selection Agent — see `05-architecture-api.md` Section 1.3). This section defines what the calling service fetches from the DB and passes to Agent 2.
 
+### Question count resolution (Option B)
+
+The number of questions shown per session is configured per pillar by an admin via `pillars.question_count` (default 12). Bounds are enforced by `system_settings` (see Section 9). At `/select-pillar` time:
+
+```python
+# Always include ALL active general questions for this pillar
+general_questions = get_active_general_questions(pillar_id)   # is_general=TRUE
+general_count     = len(general_questions)
+
+# Persona-specific questions fill the remainder
+persona_count     = pillar.question_count - general_count     # e.g. 12 - 4 = 8
+
+# Persona-eligible pool
+persona_questions = get_active_persona_questions(pillar_id, persona)
+```
+
+Agent 2 receives `question_count`, `general_count`, and `persona_count` as explicit inputs.
+
 ### What the service fetches before calling Agent 2
 
 ```python
-# From DB for the selected pillar:
-general_questions   = get_active_general_questions(pillar_id)      # is_general=TRUE
-persona_questions   = get_active_persona_questions(pillar_id, persona)  # via question_personas
-
 all_candidates = general_questions + persona_questions
 # Each question includes: id, text, is_general, question_weight, context_tags
 ```
@@ -299,15 +324,87 @@ research_cache.get("business_outcomes", [])    # e.g. ["uptime SLAs", "deploymen
 
 ### Fallback rule (if Agent 2 fails)
 
-If Agent 2 raises an exception, times out, or returns an invalid response, the calling service falls back to rule-based selection:
+If Agent 2 raises an exception, times out, or returns an invalid response, the calling service falls back to rule-based selection using the same `question_count`:
 
 ```python
-def fallback_select_questions(general_qs, persona_qs) -> list[Question]:
-    selected_persona = sorted(persona_qs, key=lambda q: q.display_order)[:8]
-    if len(selected_persona) < 8:
+def fallback_select_questions(
+    general_qs: list[Question],
+    persona_qs: list[Question],
+    question_count: int
+) -> list[Question]:
+    persona_count    = question_count - len(general_qs)
+    selected_persona = sorted(persona_qs, key=lambda q: q.display_order)[:persona_count]
+    # Backfill from general pool if persona pool is smaller than required
+    if len(selected_persona) < persona_count:
         backfill = [q for q in general_qs if q not in selected_persona]
-        selected_persona += backfill[:8 - len(selected_persona)]
-    return general_qs + selected_persona  # total: 12
+        selected_persona += backfill[:persona_count - len(selected_persona)]
+    return general_qs + selected_persona  # total: question_count
 ```
 
 The assessment always proceeds. Agent 2 is an enhancement, not a dependency.
+
+### When question_count changes take effect
+
+`question_count` is read from `pillars` at `/select-pillar` time (when Agent 2 runs):
+- Assessments with `status = 'pending'` (URL sent, not started): use the current `question_count` at the moment the prospect clicks the pillar card
+- Assessments with `status = 'in_progress'` or `'completed'`: unaffected — count was locked when Agent 2 ran
+
+---
+
+## 9. SYSTEM SETTINGS
+
+The `system_settings` table stores admin-configurable platform-level settings as key-value pairs. Values are always stored as strings; the service layer parses and validates them.
+
+### Seed rows (inserted on startup if not present)
+
+```python
+[
+    {
+        "key":         "question_count_min",
+        "value":       "12",
+        "description": "Minimum questions per pillar session. Cannot be set below 12 (hard floor enforced in service layer)."
+    },
+    {
+        "key":         "question_count_max",
+        "value":       "25",
+        "description": "Maximum questions per pillar session. Must be >= question_count_min. No upper ceiling."
+    }
+]
+```
+
+### Validation rules (enforced at service layer — not in DB)
+
+**When updating `question_count_min`:**
+- New value must be >= 12 (absolute hard floor — enforced in code, never relaxable)
+- New value must be <= current `question_count_max`
+- Existing pillar `question_count` values below the new min are NOT automatically updated — admin's responsibility
+
+**When updating `question_count_max`:**
+- New value must be >= current `question_count_min`
+- No upper ceiling
+- Existing pillar `question_count` values above the new max are NOT automatically updated — admin's responsibility
+
+**When setting `question_count` on a pillar:**
+- Must be >= `question_count_min` (from system_settings)
+- Must be <= `question_count_max` (from system_settings)
+- Returns 400 with descriptive error if out of bounds
+
+```python
+# services/settings_service.py
+def get_setting(key: str) -> str:
+    row = db.query(SystemSettings).filter_by(key=key).first()
+    return row.value
+
+def get_question_count_bounds() -> tuple[int, int]:
+    min_val = int(get_setting("question_count_min"))
+    max_val = int(get_setting("question_count_max"))
+    return min_val, max_val
+
+def validate_question_count(value: int) -> None:
+    min_val, max_val = get_question_count_bounds()
+    if value < min_val or value > max_val:
+        raise HTTPException(
+            status_code=400,
+            detail=f"question_count must be between {min_val} and {max_val}"
+        )
+```

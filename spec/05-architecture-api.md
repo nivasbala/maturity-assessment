@@ -1,6 +1,6 @@
 ---
 title: Architecture & API Design
-version: 1.3
+version: 1.5
 last_updated: 2026-06-28
 ---
 
@@ -371,6 +371,16 @@ DELETE /api/admin/questions/{id}              → deactivate question (is_active
 
 GET    /api/admin/accounts                    → list all accounts (all internal users)
 GET    /api/admin/assessments                 → list all assessments
+
+GET    /api/admin/settings                    → list all system settings {key, value, description, updated_at}
+GET    /api/admin/settings/{key}              → get single setting by key
+PUT    /api/admin/settings/{key}              → update setting value
+  Body:    {value: string}
+  Validates per 04-data-model.md Section 9 rules:
+    - question_count_min: new int >= 12; new int <= current question_count_max
+    - question_count_max: new int >= current question_count_min
+  Returns: updated setting object
+  Error:   400 with descriptive message if validation fails
 ```
 
 ### 2.3 Internal User Endpoints (role: internal_user or admin)
@@ -622,8 +632,9 @@ Two tabs:
 
 **Pillars (`/admin/pillars`)**
 - Table: Name, Display Order, Active, Gated, Question Count, Actions (Edit, Toggle Active)
-- "New Pillar" button → modal form: Name, Description, Overall Weight, Display Order, Is Gated, Gate Question (shown if Is Gated = true)
+- "New Pillar" button → modal form: Name, Description, Overall Weight, Display Order, Is Gated, Gate Question (shown if Is Gated = true), Questions Per Assessment (number input; min and max fetched from system_settings at form load; shown as helper text e.g. "Min: 12 / Max: 25")
 - Toggle Active button sets is_active without deleting
+- Note: changing Questions Per Assessment takes effect immediately for assessments not yet started (status = 'pending'); in-progress and completed assessments are unaffected
 
 **Questions (`/admin/pillars/:id/questions`)**
 Split-panel layout:
@@ -638,3 +649,13 @@ Split-panel layout:
   - Answer Options: 4 text fields labeled "Level 1 — Reactive", "Level 2 — Developing", "Level 3 — Defined", "Level 4 — Optimized"
   - Active toggle
   - Save / Cancel buttons
+
+**System Settings (`/admin/settings`)**
+- Simple key-value editor showing all rows from `system_settings` table
+- Each row displays: Setting Name (human-readable label from key), Current Value (editable number input), Description (read-only helper text)
+- Question Count Bounds section:
+  - **Min Questions Per Session** (`question_count_min`): number input, minimum value 12 enforced in UI and backend
+  - **Max Questions Per Session** (`question_count_max`): number input, must be >= min value
+  - Save button per row (or a single Save All)
+- Validation errors shown inline: e.g. "Minimum cannot be set below 12" or "Maximum must be at least equal to minimum"
+- Note shown below the form: "Changing these bounds does not automatically update existing pillar question counts. Review pillars after changing bounds."

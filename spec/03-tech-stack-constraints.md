@@ -1,6 +1,6 @@
 ---
 title: Tech Stack, Constraints & Decisions
-version: 1.1
+version: 1.2
 last_updated: 2026-06-28
 ---
 
@@ -139,7 +139,8 @@ maturity-platform/
 │       │   ├── account_service.py
 │       │   ├── assessment_service.py
 │       │   ├── question_service.py
-│       │   └── scoring_service.py
+│       │   ├── scoring_service.py
+│       │   └── settings_service.py  # system_settings reads + bounds validation
 │       ├── agents/               # LangGraph agents
 │       │   ├── research_agent.py           # Agent 1: Company Research
 │       │   ├── question_selection_agent.py # Agent 2: LLM Question Selection

@@ -1,6 +1,6 @@
 ---
 title: Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
-version: 1.2
+version: 1.4
 last_updated: 2026-06-28
 ---
 
@@ -16,7 +16,8 @@ last_updated: 2026-06-28
 
 - Three user roles: End Customer (Prospect), Internal User, Admin
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive), P5 Security & DevSecOps
-- 50-question bank per pillar; 12 shown per session (LLM-selected by Agent 2)
+- 50-question bank per pillar; session question count is admin-configurable per pillar (default 12); bounds enforced by system_settings (question_count_min default 12, question_count_max default 25, both admin-adjustable)
+- Admin CRUD: pillars (including question count), questions (with persona tagging, weighting, and context_tags), internal users, system settings (question count bounds)
 - Three-agent architecture: Agent 1 (Research), Agent 2 (Question Selection), Agent 3 (Report Generation)
 - Agent 2 (Question Selection): LLM selects the 12 most diagnostic questions using company research + persona; falls back to rule-based if Agent 2 fails
 - Short URL generation and prospect landing flow
@@ -24,7 +25,6 @@ last_updated: 2026-06-28
 - Internal user dashboard: per-account view, per-pillar status, aggregated view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
 - Internal users can only see assessments and reports they created
-- Admin CRUD: pillars, questions (with persona tagging, weighting, and context_tags for Agent 2 selection hints), internal users
 - Local JWT authentication (bcrypt passwords)
 - Docker Compose single-machine deployment
 - Nginx reverse proxy
@@ -209,11 +209,12 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement `seed/seed_data.py` inserting all 5 pillars from `02-domain-model.md` (P4 seeded with `is_active=FALSE`)
 - Insert all questions from `06-question-bank.md` with correct weights, is_general flags, persona tags, and `context_tags` arrays
 - Insert all answer options with correct maturity_level values
-- Seed is idempotent: check pillar count before running, skip if already seeded
+- Seed `system_settings` with two rows (see `04-data-model.md` Section 9): `question_count_min=12` and `question_count_max=25`
+- Seed is idempotent: check pillar count and system_settings key count before running, skip if already seeded
 - Seed runs automatically on backend container start after migrations
 
 **Verification:**
-- [ ] After startup: 5 pillars exist with correct is_gated flags
+- [ ] After startup: 5 pillars exist with correct is_gated flags and question_count = 12
 - [ ] P3 has is_gated=TRUE and gate_question set
 - [ ] P4 has is_gated=TRUE, gate_question set, and is_active=FALSE
 - [ ] P1, P2, P5 have is_active=TRUE; P4 has is_active=FALSE
@@ -221,6 +222,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - [ ] question_personas rows exist for all persona-tagged questions
 - [ ] Each question has exactly 4 answer_options with maturity_levels 1–4
 - [ ] Questions with context_tags in `06-question-bank.md` have correct non-empty context_tags JSONB arrays seeded
+- [ ] system_settings table has exactly 2 rows: question_count_min=12 and question_count_max=25
 
 ---
 
@@ -228,14 +230,23 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Branch:** `task/05-admin-api-ui`
 **Spec files:** `04-data-model.md` + `05-architecture-api.md` + `02-domain-model.md`
 
-- Implement all admin endpoints from `05-architecture-api.md` Section 2.2
-- Implement Admin Panel pages from `05-architecture-api.md` Section 3.4
+- Implement all admin endpoints from `05-architecture-api.md` Section 2.2 (including `GET/PUT /api/admin/settings`)
+- Implement `settings_service.py` with `get_setting()`, `get_question_count_bounds()`, and `validate_question_count()` from `04-data-model.md` Section 9
+- Wire `validate_question_count()` into the pillar create/update path
+- Implement Admin Panel pages from `05-architecture-api.md` Section 3.4 (Users, Pillars, Questions, System Settings)
+- Pillars form fetches current min/max from system_settings to display as input bounds and helper text
 - Soft-delete throughout: is_active = FALSE, never hard delete
-- Users page, Pillars page, Questions split-panel page
 
 **Verification:**
+- [ ] Admin can create and edit a pillar with question_count; value is validated against system_settings bounds
+- [ ] Setting question_count below question_count_min returns 400 with descriptive error
+- [ ] Setting question_count above question_count_max returns 400 with descriptive error
+- [ ] Admin can update question_count_min (minimum 12 enforced; cannot be set above question_count_max)
+- [ ] Admin can update question_count_max (no ceiling; must be >= question_count_min)
+- [ ] Setting question_count_min below 12 returns 400 with descriptive error
+- [ ] Setting question_count_max below question_count_min returns 400 with descriptive error
+- [ ] Pillars form shows correct min/max helper text from current system_settings values
 - [ ] Admin can create a question with 4 answer options, persona tags, weight, and context_tags
-- [ ] Question appears in question list
 - [ ] Deactivating a pillar sets is_active=FALSE, pillar no longer returned by public endpoints
 - [ ] Creating internal user succeeds; user can log in
 

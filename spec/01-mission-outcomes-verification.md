@@ -1,6 +1,6 @@
 ---
 title: Mission, Outcomes & Verification Contract
-version: 1.2
+version: 1.4
 last_updated: 2026-06-28
 ---
 
@@ -31,7 +31,7 @@ The application is complete when ALL of the following are true:
 - [ ] An internal user can only see assessments and reports they created
 - [ ] An internal user can see raw prospect answers and the full report for each assessment
 - [ ] An internal user dashboard shows per-pillar status for each account and an aggregate view when 2+ pillars are complete
-- [ ] An admin can CRUD pillars, questions (with persona tagging and weighting), and internal users
+- [ ] An admin can CRUD pillars (including configuring question count per pillar), questions (with persona tagging and weighting), internal users, and system settings (question count bounds)
 - [ ] All pillar and question changes are data-only — no code deployments required
 - [ ] The application runs on a single machine via Docker Compose
 - [ ] The application architecture is container-native and cloud-portable (no machine-specific dependencies)
@@ -104,6 +104,12 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Setting a pillar to `is_active=FALSE` removes it from the prospect menu without deleting data
 - [ ] Creating a question with `is_general=TRUE` and no persona tags causes it to appear for all personas
 - [ ] Deactivating a question removes it from future sessions but does not affect completed assessments
+- [ ] Admin can set `question_count` on a pillar to any value within current system_settings bounds
+- [ ] Setting `question_count` outside system_settings bounds returns 400 with descriptive error
+- [ ] A `question_count` change takes effect on the next `/select-pillar` call (pending assessments); in-progress and completed assessments are unaffected
+- [ ] Admin can update `question_count_min` (hard floor: cannot go below 12)
+- [ ] Admin can update `question_count_max` (no ceiling; must be >= question_count_min)
+- [ ] system_settings changes are reflected immediately in the Pillars form helper text and pillar validation
 
 ### 3.9 Infrastructure
 - [ ] `docker compose up` starts all services without manual steps
