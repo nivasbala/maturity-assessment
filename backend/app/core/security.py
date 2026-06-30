@@ -41,3 +41,14 @@ def decode_token(token: str, expected_type: str = "access") -> dict[str, Any]:
     if payload.get("type") != expected_type:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
     return payload
+
+
+def create_session_token(data: dict[str, Any]) -> str:
+    """Create a short-lived (2hr) JWT for prospect assessment sessions."""
+    expire = datetime.now(timezone.utc) + timedelta(hours=2)
+    return jwt.encode({**data, "exp": expire, "type": "session"}, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+
+
+def decode_session_token(token: str) -> dict[str, Any]:
+    """Decode and validate a prospect session token."""
+    return decode_token(token, expected_type="session")
