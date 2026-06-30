@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createUser, deactivateUser, getUsers } from '../../api/admin'
+import { extractApiError } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import type { User } from '../../types'
 
@@ -48,8 +49,7 @@ export default function UsersPage() {
       setForm({ name: '', email: '', password: '' })
       load()
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setFormError(msg ?? 'Failed to create user.')
+      setFormError(extractApiError(e, 'Failed to create user.'))
     } finally {
       setSaving(false)
     }

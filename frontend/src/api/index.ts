@@ -25,3 +25,17 @@ api.interceptors.response.use(
 )
 
 export default api
+
+// FastAPI 422 validation errors return detail as an array of objects.
+// This extracts a readable string regardless of format.
+export function extractApiError(e: unknown, fallback = 'An error occurred.'): string {
+  const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+  if (!detail) return fallback
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail)) {
+    return detail
+      .map((d) => (typeof d === 'object' && d !== null && 'msg' in d ? String((d as { msg: unknown }).msg) : String(d)))
+      .join('; ')
+  }
+  return fallback
+}

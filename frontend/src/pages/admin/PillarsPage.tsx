@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createPillar, deactivatePillar, getPillars, updatePillar } from '../../api/admin'
+import { extractApiError } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Pillar } from '../../types'
 
@@ -86,8 +87,7 @@ export default function PillarsPage() {
       setShowModal(false)
       load()
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setFormError(msg ?? 'Failed to save pillar.')
+      setFormError(extractApiError(e, 'Failed to save pillar.'))
     } finally {
       setSaving(false)
     }

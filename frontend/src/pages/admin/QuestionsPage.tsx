@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { createQuestion, deactivateQuestion, getQuestions, updateQuestion } from '../../api/admin'
+import { extractApiError } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Question } from '../../types'
 import { PERSONAS } from '../../types'
@@ -99,8 +100,7 @@ export default function QuestionsPage() {
       setSelected(null)
       load()
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-      setFormError(msg ?? 'Failed to save question.')
+      setFormError(extractApiError(e, 'Failed to save question.'))
     } finally {
       setSaving(false)
     }
