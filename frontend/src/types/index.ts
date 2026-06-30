@@ -174,6 +174,76 @@ export interface Report {
   created_at: string
 }
 
+// ── Prospect / Public flow types ──────────────────────────────────────────────
+
+export interface AvailablePillar {
+  id: string
+  name: string
+  description: string
+  is_gated: boolean
+  gate_question: string | null
+}
+
+export interface AssessmentInfo {
+  company_name: string
+  suggested_pillars: string[]
+  available_pillars: AvailablePillar[]
+}
+
+export interface RegisterRequest {
+  prospect_name: string
+  prospect_email: string
+  prospect_role: string
+  p3_gate_answered_yes?: boolean | null
+  p4_gate_answered_yes?: boolean | null
+}
+
+export interface AnswerOptionPublic {
+  id: string
+  text: string
+  display_order: number
+}
+
+export interface QuestionPublic {
+  id: string
+  text: string
+  answer_options: AnswerOptionPublic[]
+}
+
+export interface SelectPillarResponse {
+  assessment_id: string
+  questions: QuestionPublic[]
+}
+
+export interface ReportPublic {
+  id: string
+  assessment_id: string
+  pillar_score: number
+  maturity_level: number
+  maturity_label: string
+  executive_summary: string
+  strengths: { title: string; description: string }[]
+  gap_analysis: {
+    gap: string
+    current_state: string
+    target_state: string
+    impact: 'high' | 'medium' | 'low'
+    effort: 'high' | 'medium' | 'low'
+  }[]
+  next_steps: {
+    title: string
+    description: string
+    priority: 'quick_win' | 'strategic' | 'foundational'
+    timeframe: string
+  }[]
+  pillar_breakdown: Record<string, unknown>
+  created_at: string
+  company_name: string
+  pillar_name: string
+  prospect_name: string | null
+  prospect_role: string | null
+}
+
 export const PERSONAS = [
   { value: 'cto_executive', label: 'CTO / C-Suite' },
   { value: 'vp_engineering', label: 'VP Engineering' },
