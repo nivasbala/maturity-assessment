@@ -194,7 +194,7 @@ async def test_compute_pillar_score_applies_persona_weight():
 
 @pytest.mark.asyncio
 async def test_question_selection_fallback_no_duplicates():
-    """Fallback question selection must not return duplicate question IDs."""
+    """Fallback selection must not return duplicate IDs even after backfill."""
     from app.services.public_service import _select_questions_fallback
 
     pillar_id = uuid4()
@@ -211,9 +211,11 @@ async def test_question_selection_fallback_no_duplicates():
 
     general_ids = [uuid4() for _ in range(4)]
     persona_ids = [uuid4() for _ in range(4)]
+    backfill_ids = [uuid4() for _ in range(4)]
 
     general_qs = [make_question(qid, True, i + 1) for i, qid in enumerate(general_ids)]
     persona_qs = [make_question(qid, False, i + 10) for i, qid in enumerate(persona_ids)]
+    backfill_qs = [make_question(qid, False, i + 20) for i, qid in enumerate(backfill_ids)]
 
     db = AsyncMock()
 
@@ -222,12 +224,49 @@ async def test_question_selection_fallback_no_duplicates():
         r.scalars.return_value.all.return_value = items
         return r
 
-    db.execute.side_effect = [make_result(general_qs), make_result(persona_qs)]
+    # 3 execute calls: general, persona, backfill
+    db.execute.side_effect = [make_result(general_qs), make_result(persona_qs), make_result(backfill_qs)]
 
     questions = await _select_questions_fallback(db, pillar_id, persona)
 
     question_ids = [q.id for q in questions]
     assert len(question_ids) == len(set(question_ids)), "Duplicate question IDs found in selection"
+    assert len(question_ids) == 12
+
+
+@pytest.mark.asyncio
+async def test_question_selection_fallback_backfills_to_12():
+    """Fallback must reach 12 questions by pulling from other-persona questions."""
+    from app.services.public_service import _select_questions_fallback
+
+    pillar_id = uuid4()
+    persona = "sre_platform_engineer"
+
+    def make_question(qid: UUID, is_general: bool, display_order: int) -> MagicMock:
+        q = MagicMock()
+        q.id = qid
+        q.is_general = is_general
+        q.display_order = display_order
+        q.answer_options = []
+        q.personas = []
+        return q
+
+    # Only 4 general + 4 SRE-specific; backfill provides 4 more from other personas
+    general_qs = [make_question(uuid4(), True, i + 1) for i in range(4)]
+    persona_qs = [make_question(uuid4(), False, i + 10) for i in range(4)]
+    backfill_qs = [make_question(uuid4(), False, i + 20) for i in range(4)]
+
+    db = AsyncMock()
+
+    def make_result(items):
+        r = MagicMock()
+        r.scalars.return_value.all.return_value = items
+        return r
+
+    db.execute.side_effect = [make_result(general_qs), make_result(persona_qs), make_result(backfill_qs)]
+
+    questions = await _select_questions_fallback(db, pillar_id, persona)
+    assert len(questions) == 12
 
 
 @pytest.mark.asyncio

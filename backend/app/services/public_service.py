@@ -126,8 +126,14 @@ async def _select_questions_fallback(
     db: AsyncSession,
     pillar_id: UUID,
     persona: str,
+    target: int = 12,
 ) -> list[Question]:
-    """Rule-based question selection: all general + up to 8 persona by display_order.
+    """Rule-based question selection targeting `target` questions.
+
+    Selection order:
+      1. All general questions (is_general=TRUE) — always included.
+      2. Persona-eligible questions (via question_personas) up to fill the target.
+      3. If still short, backfill from any other active non-general questions for the pillar.
 
     This is the fallback used when Agent 2 is unavailable (Task 9 wires in the LLM agent).
     """
@@ -168,25 +174,53 @@ async def _select_questions_fallback(
     general_ids = {q.id for q in general_qs}
     pure_persona = [q for q in persona_qs if q.id not in general_ids]
 
-    # Take up to 8 persona-specific questions; backfill from general if insufficient
-    selected_persona: list[Question] = list(pure_persona[:8])
-    if len(selected_persona) < 8:
-        # Backfill from general questions not already in selected_persona
-        selected_persona_ids = {q.id for q in selected_persona}
-        backfill = [q for q in general_qs if q.id not in selected_persona_ids]
-        selected_persona += backfill[: 8 - len(selected_persona)]
+    # Start with all general questions; fill remaining slots from persona questions
+    selected: list[Question] = list(general_qs)
+    selected_ids = set(general_ids)
+    slots_remaining = target - len(selected)
 
-    questions = list(general_qs) + [q for q in selected_persona if q.id not in general_ids]
+    for q in pure_persona:
+        if slots_remaining <= 0:
+            break
+        if q.id not in selected_ids:
+            selected.append(q)
+            selected_ids.add(q.id)
+            slots_remaining -= 1
+
+    # If still short of target, backfill from any other active non-general questions
+    if slots_remaining > 0:
+        all_other_qs = (
+            await db.execute(
+                select(Question)
+                .options(
+                    selectinload(Question.answer_options),
+                    selectinload(Question.personas),
+                )
+                .where(
+                    Question.pillar_id == pillar_id,
+                    Question.is_general.is_(False),
+                    Question.is_active.is_(True),
+                    Question.id.not_in(list(selected_ids)),
+                )
+                .order_by(Question.display_order)
+            )
+        ).scalars().all()
+
+        for q in all_other_qs:
+            if slots_remaining <= 0:
+                break
+            selected.append(q)
+            selected_ids.add(q.id)
+            slots_remaining -= 1
 
     logger.info(
-        "_select_questions_fallback: pillar_id=%s persona=%s total=%d (general=%d persona=%d)",
+        "_select_questions_fallback: pillar_id=%s persona=%s total=%d (target=%d)",
         pillar_id,
         persona,
-        len(questions),
-        len(general_qs),
-        len([q for q in selected_persona if q.id not in general_ids]),
+        len(selected),
+        target,
     )
-    return questions
+    return selected
 
 
 # ── Service functions ─────────────────────────────────────────────────────────
