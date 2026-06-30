@@ -17,7 +17,7 @@ export default function NavBar() {
   return (
     <nav className="bg-[#1B2B4B] text-white h-14 flex items-center px-6 gap-6 shrink-0">
       <NavLink
-        to={isAdmin ? '/admin/users' : '/dashboard'}
+        to="/"
         className="text-white font-semibold text-base tracking-tight hover:opacity-80"
       >
         Maturity Assessment
