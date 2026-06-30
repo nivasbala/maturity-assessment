@@ -111,7 +111,9 @@ export default function AccountDetailPage() {
 
   const handleCopyUrl = (token: string) => {
     const url = `${window.location.origin}/assess/${token}`
-    navigator.clipboard.writeText(url)
+    navigator.clipboard.writeText(url).catch(() => {
+      setActionError(`Failed to copy. URL: ${url}`)
+    })
   }
 
   if (loading) {

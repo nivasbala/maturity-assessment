@@ -43,4 +43,4 @@ export const getAssessmentReport = (assessmentId: string) =>
 // ── Pillars (for suggested pillar picker) ─────────────────────────────────────
 
 export const getActivePillars = () =>
-  api.get<{ items: Pillar[] }>('/admin/pillars', { params: { size: 50 } }).then((r) => r.data.items)
+  api.get<{ items: Pillar[] }>('/pillars', { params: { size: 50 } }).then((r) => r.data.items)

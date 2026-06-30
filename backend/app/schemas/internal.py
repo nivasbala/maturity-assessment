@@ -124,6 +124,26 @@ class AssessmentAnswersOut(BaseModel):
 
 # ── Report ────────────────────────────────────────────────────────────────────
 
+class StrengthItem(BaseModel):
+    title: str
+    description: str
+
+
+class GapItem(BaseModel):
+    gap: str
+    current_state: str
+    target_state: str
+    impact: str
+    effort: str
+
+
+class NextStepItem(BaseModel):
+    title: str
+    description: str
+    priority: str
+    timeframe: str
+
+
 class ReportOut(BaseModel):
     id: UUID
     assessment_id: UUID
@@ -131,9 +151,9 @@ class ReportOut(BaseModel):
     maturity_level: int
     maturity_label: str
     executive_summary: str
-    strengths: list[dict]
-    gap_analysis: list[dict]
-    next_steps: list[dict]
+    strengths: list[StrengthItem]
+    gap_analysis: list[GapItem]
+    next_steps: list[NextStepItem]
     pillar_breakdown: dict
     created_at: datetime
 

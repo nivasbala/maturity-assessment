@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -106,12 +107,6 @@ async def get_account_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
     assert_owns_account(current_user, account)
 
-    pillars = (
-        await db.execute(
-            select(Pillar).where(Pillar.is_active == True).order_by(Pillar.display_order)  # noqa: E712
-        )
-    ).scalars().all()
-
     assessments = (
         await db.execute(
             select(Assessment)
@@ -120,6 +115,17 @@ async def get_account_detail(
         )
     ).scalars().all()
     assessment_map = {a.pillar_id: a for a in assessments}
+
+    # Include active pillars plus any deactivated pillars that already have an
+    # assessment for this account (so completed work is never silently dropped).
+    assessed_pillar_ids = list(assessment_map.keys())
+    pillar_filter = Pillar.is_active == True  # noqa: E712
+    if assessed_pillar_ids:
+        from sqlalchemy import or_
+        pillar_filter = or_(Pillar.is_active == True, Pillar.id.in_(assessed_pillar_ids))  # noqa: E712
+    pillars = (
+        await db.execute(select(Pillar).where(pillar_filter).order_by(Pillar.display_order))
+    ).scalars().all()
 
     pillar_statuses: list[PillarStatusRow] = []
     for pillar in pillars:
@@ -203,14 +209,25 @@ async def create_assessment(
         status="pending",
     )
     db.add(assessment)
-    await db.commit()
-    await db.refresh(assessment)
+    try:
+        await db.commit()
+        await db.refresh(assessment)
+    except IntegrityError:
+        await db.rollback()
+        logger.warning(
+            "create_assessment: duplicate constraint hit for account_id=%s pillar_id=%s",
+            account_id,
+            pillar_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Assessment already exists for this account and pillar",
+        )
     logger.info(
-        "create_assessment: assessment_id=%s account_id=%s pillar_id=%s token=%s",
+        "create_assessment: assessment_id=%s account_id=%s pillar_id=%s",
         assessment.id,
         account_id,
         pillar_id,
-        token,
     )
     full_url = f"{settings.base_url}/assess/{token}"
     return AssessmentCreatedOut(
@@ -398,12 +415,6 @@ async def get_account_aggregate(
         )
     ).scalars().all()
 
-    if len(completed) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Aggregate view requires at least 2 completed assessments",
-        )
-
     scores = [
         AggregateScoreItem(
             pillar_id=a.pillar_id,
@@ -416,6 +427,12 @@ async def get_account_aggregate(
         for a in completed
         if a.report
     ]
+
+    if len(scores) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aggregate view requires at least 2 completed assessments",
+        )
 
     logger.info("get_account_aggregate: account_id=%s completed=%d", account_id, len(scores))
     return AggregateOut(

@@ -37,5 +37,11 @@ export function extractApiError(e: unknown, fallback = 'An error occurred.'): st
       .map((d) => (typeof d === 'object' && d !== null && 'msg' in d ? String((d as { msg: unknown }).msg) : String(d)))
       .join('; ')
   }
+  if (typeof detail === 'object' && detail !== null) {
+    const obj = detail as Record<string, unknown>
+    if (typeof obj.message === 'string') return obj.message
+    if (typeof obj.msg === 'string') return obj.msg
+    return JSON.stringify(detail)
+  }
   return fallback
 }
