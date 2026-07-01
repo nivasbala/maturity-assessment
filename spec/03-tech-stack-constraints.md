@@ -1,6 +1,6 @@
 ---
 title: Tech Stack, Constraints & Decisions
-version: 1.2
+version: 1.3
 last_updated: 2026-06-28
 ---
 
@@ -161,6 +161,7 @@ maturity-platform/
         ├── pages/
         │   ├── prospect/         # Assessment flow pages
         │   │   ├── LandingPage.tsx
+        │   │   ├── ResearchSummaryPage.tsx
         │   │   ├── PillarSelectPage.tsx
         │   │   ├── AssessmentPage.tsx
         │   │   └── ReportPage.tsx

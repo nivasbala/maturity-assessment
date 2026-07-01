@@ -1,6 +1,6 @@
 ---
 title: Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
-version: 1.4
+version: 1.5
 last_updated: 2026-06-28
 ---
 
@@ -18,8 +18,9 @@ last_updated: 2026-06-28
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive), P5 Security & DevSecOps
 - 50-question bank per pillar; session question count is admin-configurable per pillar (default 12); bounds enforced by system_settings (question_count_min default 12, question_count_max default 25, both admin-adjustable)
 - Admin CRUD: pillars (including question count), questions (with persona tagging, weighting, and context_tags), internal users, system settings (question count bounds)
-- Three-agent architecture: Agent 1 (Research), Agent 2 (Question Selection), Agent 3 (Report Generation)
-- Agent 2 (Question Selection): LLM selects the 12 most diagnostic questions using company research + persona; falls back to rule-based if Agent 2 fails
+- Three-agent architecture: Agent 1 (Research — dual input: web + prospect context), Agent 2 (Question Selection — dual input: research profile + prospect context), Agent 3 (Report Generation)
+- Prospect context collection at registration: optional infrastructure location, tech stack description, and current tools — passed to Agent 1 as primary input alongside web research
+- Research summary validation step: prospect reviews and optionally corrects Agent 1 output before proceeding to pillar selection
 - Short URL generation and prospect landing flow
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregated view (2+ pillars)
@@ -274,24 +275,35 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Branch:** `task/07-prospect-landing-flow`
 **Spec files:** `02-domain-model.md` + `04-data-model.md` + `05-architecture-api.md` + `06-question-bank.md`
 
-- Implement all `/api/public/assess/` endpoints from `05-architecture-api.md` Section 2.4
+- Implement all `/api/public/assess/` endpoints from `05-architecture-api.md` Section 2.4:
+  - `/register`: accept optional context fields (infrastructure_location, tech_stack_description, current_tools); save to accounts table; trigger Agent 1 in background
+  - `/research-summary` (GET): return Agent 1 output from research_cache; `is_ready: false` while Agent 1 is still running
+  - `/confirm-research` (POST): save prospect_corrections and research_confirmed_at; stub for Task 7
+  - `/select-pillar`: synchronous; implement with rule-based fallback for now (Agent 2 wired in Task 9)
 - Session token: short-lived JWT (2hr), stored in sessionStorage on client
-- Agent 1 triggered in background (non-blocking) at `/register` time
-- `/select-pillar` endpoint: synchronous — implement with rule-based fallback selection for now (Agent 2 is wired in Task 9); return 12 questions using fallback logic from `04-data-model.md` Section 8
-- Show "Personalizing your questions…" loading state on pillar card while /select-pillar runs
-- P3 gate logic: if p3_gate_answered_yes=false, remove P3 from available_pillars
-- P4 gate logic: if p4_gate_answered_yes=false, remove P4 from available_pillars (P4 also hidden if is_active=FALSE)
-- Build Landing Page, Pillar Selection Page, Assessment Page (Section 3.2 of `05-architecture-api.md`)
+- Build all pages from `05-architecture-api.md` Section 3.2:
+  - Landing Page: registration form with optional context section (expandable)
+  - Research Summary Page: loading state until Agent 1 ready; displays company profile; optional correction textarea; confirm button
+  - Pillar Selection Page, Assessment Page
+- Gate logic: P3/P4 hidden based on gate answers and is_active flag
 
 **Verification:**
-- [ ] SRE persona for P1 returns exactly 12 questions (4 general + 8 SRE-specific)
-- [ ] CTO persona for P1 returns exactly 12 questions (4 general + 8 CTO-specific)
-- [ ] P3 hidden from pillar menu when gate answered No
-- [ ] P4 hidden from pillar menu when gate answered No OR when is_active=FALSE
+- [ ] Registration form collects optional infrastructure_location, tech_stack_description, current_tools
+- [ ] Optional context fields are saved to accounts table
 - [ ] Agent 1 fires at /register time (not at select-pillar time)
+- [ ] GET /research-summary returns is_ready=false while Agent 1 running; true once complete
+- [ ] ResearchSummaryPage shows spinner until is_ready=true, then displays company profile
+- [ ] ResearchSummaryPage shows key_challenges, business_outcomes, cloud_providers from research
+- [ ] data_confidence badge is shown (High / Medium / Low)
+- [ ] Prospect can add corrections via optional text area
+- [ ] POST /confirm-research saves corrections and research_confirmed_at
+- [ ] After confirmation, prospect sees pillar selection page
+- [ ] P3 hidden from pillar menu when gate answered No
+- [ ] P4 hidden when gate answered No OR when is_active=FALSE
+- [ ] SRE persona for P1 returns correct number of questions (4 general + 8 SRE-specific)
 - [ ] Pillar card shows loading state while /select-pillar runs
-- [ ] Progress bar shows correct count on assessment page
-- [ ] Submit disabled until all 12 questions answered
+- [ ] Progress bar shows correct question count
+- [ ] Submit disabled until all questions answered
 
 ---
 
@@ -319,11 +331,20 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 
 - Implement `core/llm_factory.py` exactly as specified in `03-tech-stack-constraints.md` Section 2
 - Implement Agent 1: research agent (`05-architecture-api.md` Section 1.2)
+  - Agent 1 receives TWO inputs: web research (company_name, company_website) AND
+    prospect-provided context (infrastructure_location, tech_stack_description, current_tools)
+  - technology_signals field is NOT in Agent 1 output — prospect context is passed directly to Agent 2
+  - Output includes: industry, company_size, products_summary, target_customers, builds_ai_products,
+    cloud_providers (extracted from infrastructure_location), key_challenges, business_outcomes,
+    operational_scale, data_confidence, research_notes
 - Implement Agent 2: question selection agent (`05-architecture-api.md` Section 1.3):
   - File: `backend/app/agents/question_selection_agent.py`
+  - Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect context
+    (infrastructure_location, tech_stack_description, current_tools, prospect_corrections)
   - Wire into `/select-pillar` endpoint (replacing the Task 7 stub)
+  - Resolve question_count, general_count, persona_count from pillar settings before calling Agent 2
   - Implement fallback to rule-based selection if Agent 2 fails
-  - Implement output validation (12 IDs, all in candidate pool)
+  - Implement output validation (IDs match candidate pool, correct count)
 - Implement Agent 3: report agent (`05-architecture-api.md` Section 1.4)
 - Implement LangGraph StateGraph orchestrator (`05-architecture-api.md` Section 1.5)
   - Orchestrator covers submit pipeline only (Agent 3 + scoring)

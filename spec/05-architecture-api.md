@@ -151,30 +151,134 @@ Prospect answers 12 questions → submits
 - If cache is stale or empty, run Agent 1 and update `accounts.research_cache` and `accounts.research_cached_at`
 - If search fails entirely, return a minimal profile from company name alone — do not block report generation
 
+**Two inputs passed into the agent by the calling service:**
+1. Web-searchable: `company_name`, `company_website`
+2. Prospect-provided (from `accounts` table, any may be empty): `infrastructure_location`, `tech_stack_description`, `current_tools`, `key_challenges_input`
+
 **System prompt:**
 ```
-You are a technology analyst researching companies for a maturity assessment.
-Given a company name and website, research the company and return a structured
-JSON profile. Focus on:
-- What the company does (products/services)
-- Industry vertical
-- Company size (employees, funding stage if startup)
-- Technology signals (cloud providers, programming languages, open source)
-- Whether they appear to be building AI-powered products
-- Key technology challenges their industry typically faces
-- Business outcomes that define success for this company — based on what they build and who they serve (e.g., an e-commerce company's success outcomes are increased sales conversion, customer retention, and satisfaction; a SaaS company's outcomes are churn reduction, expansion revenue, and uptime; a fintech's outcomes are transaction reliability, fraud reduction, and compliance). Infer the most meaningful business outcomes from the company's domain, products, and customer base.
+You are a business intelligence analyst preparing a company profile for a
+technology maturity assessment. You have TWO inputs: publicly available
+web information AND direct context provided by the prospect. Synthesize
+both into a precise, grounded profile.
 
-Return ONLY valid JSON with this exact structure, no preamble, no markdown:
+ACCURACY RULE: Do not infer or fabricate. If a field cannot be determined
+from the inputs, use the exact default specified. A missing value is better
+than an incorrect one.
+
+INPUT 1 — PROSPECT-PROVIDED CONTEXT (highest priority — treat as ground truth)
+The following was stated directly by the prospect at registration:
+  Infrastructure & deployment:  {infrastructure_location}
+  Tech stack description:       {tech_stack_description}
+  Current tools:                {current_tools}
+  Key challenges they stated:   {key_challenges_input}
+
+Empty fields above mean the prospect did not provide that information.
+
+INPUT 2 — WEB RESEARCH
+Run 2–3 targeted searches:
+  1. "{company_name} company products customers"
+  2. "{company_name} {company_website} about funding size"
+  3. "{company_name} technology engineering" (if additional context needed)
+
+Trusted sources: company website, LinkedIn, Crunchbase, press releases.
+Ignore sources older than 3 years.
+
+SYNTHESIS RULES
+1. key_challenges: if the prospect provided key_challenges_input, it is the
+   primary source — incorporate their exact challenges, then enrich with
+   operational context from web research (scale, customer type, product demands).
+   If key_challenges_input is empty, synthesize from product type + infrastructure
+   + company scale. Always produce company-specific, operational challenges.
+2. technology_signals: derive from tech_stack_description and current_tools
+   (prospect-provided). Do NOT infer technology details from web research alone.
+3. cloud_providers: extract from infrastructure_location if provided; otherwise
+   infer from web research if explicitly mentioned.
+4. business_outcomes: derive from business model + customer type from web research.
+
+FIELD DEFINITIONS AND DEFAULT VALUES
+
+company_name
+  The company's official name as it appears publicly.
+
+industry
+  Single lowercase label. Examples: "saas", "fintech", "healthcare",
+  "e-commerce", "cybersecurity", "devtools", "media", "logistics",
+  "gaming", "edtech", "ai", "manufacturing"
+  Default: "technology"
+
+company_size
+  Infer from employee count or funding signals.
+    "startup"    = <100 employees or Seed/Series A
+    "mid-market" = 100–999 employees or Series B/C/D
+    "enterprise" = 1000+ employees or publicly traded
+  Default: "mid-market"
+
+products_summary
+  2–3 sentences: what they build, who uses it, what problem it solves.
+  Specific to this company — not a generic category description.
+  Default: "Insufficient public information to summarize products."
+
+technology_signals
+  Lowercase technology keywords derived from prospect's tech_stack_description
+  and current_tools. Do NOT infer from web research.
+  Format: ["kubernetes", "python", "react", "postgresql", "kafka", "terraform"]
+  Default if prospect provided nothing: []
+
+builds_ai_products
+  true  = company ships AI-powered features to their end customers.
+  false = company uses AI internally only, or has no AI involvement.
+  Default: false
+
+cloud_providers
+  Extract from prospect's infrastructure_location, normalize to lowercase.
+  Valid values: "aws", "gcp", "azure", "cloudflare", "vercel", "heroku", "on-premises"
+  If infrastructure_location was empty, infer from web research if mentioned.
+  Default: []
+
+key_challenges
+  4–6 challenges SPECIFIC to this company.
+  If key_challenges_input is provided: use as primary source, enrich with
+  operational context (scale, customer SLAs, architecture complexity).
+  If empty: synthesize from product category + infrastructure + customer type.
+  Each challenge must be concrete and operational.
+  Good: "maintaining sub-100ms latency for payment transactions across 3 AWS regions"
+        "reducing on-call burden on a 5-person SRE team supporting 200+ services"
+  Prohibited: "scaling challenges", "keeping up with technology", generic trends
+  Default: []
+
+business_outcomes
+  4–6 measurable outcomes defining commercial success for this company.
+  Examples by type:
+    E-commerce:      ["checkout conversion rate", "cart abandonment rate", "delivery SLA"]
+    Developer tools: ["time-to-first-integration", "SDK adoption rate", "API uptime SLA"]
+    B2B SaaS:        ["monthly churn rate", "expansion MRR", "time-to-value"]
+    Fintech:         ["transaction success rate", "fraud detection recall", "compliance pass rate"]
+  Default: []
+
+data_confidence
+  "high"   = rich public presence, multiple independent confirming sources
+  "medium" = some information found; some fields estimated
+  "low"    = minimal public info; most fields from defaults or prospect input only
+  REQUIRED.
+
+research_notes
+  One sentence noting anything significant. Empty string if nothing notable.
+  Default: ""
+
+RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
 {
-  "company_name": string,
-  "industry": string,
+  "company_name": "string",
+  "industry": "string",
   "company_size": "startup" | "mid-market" | "enterprise",
-  "products_summary": string (2-3 sentences),
-  "technology_signals": string[],
+  "products_summary": "string",
+  "technology_signals": ["string"],
   "builds_ai_products": boolean,
-  "cloud_providers": string[],
-  "key_challenges": string[],
-  "business_outcomes": string[]   -- 3-5 outcomes specific to this company's domain and business model
+  "cloud_providers": ["string"],
+  "key_challenges": ["string"],
+  "business_outcomes": ["string"],
+  "data_confidence": "high" | "medium" | "low",
+  "research_notes": "string"
 }
 ```
 
@@ -199,10 +303,17 @@ You will receive:
 1. Prospect role: {persona_label} — {persona_description}
 2. Assessment pillar: {pillar_name}
    Description: {pillar_description}
-3. Company research context:
+3. Company research context (from Agent 1):
 {research_summary}
 
-4. Candidate questions (JSON):
+4. Prospect-provided context (direct input — treat as primary signal):
+   Infrastructure & deployment: {infrastructure_location}
+   Tech stack description:      {tech_stack_description}
+   Current tools:               {current_tools}
+   Key challenges they stated:  {key_challenges_input}
+   (Empty fields above were not provided by the prospect)
+
+5. Candidate questions (JSON):
 {candidate_questions_json}
 
 Each question has: "id", "text", "is_general", "context_tags"
@@ -215,12 +326,14 @@ MANDATORY RULES:
 - Select remaining questions ONLY from the provided list — never invent questions
 - Return exactly 12 question IDs total
 
-When research is available, prefer questions whose context_tags match the
-company's technology stack, cloud providers, and industry. Prioritize questions
-that address the specific challenges and business outcomes in the research.
-
-When research is empty, select the most broadly diagnostic questions for a
-{persona_label} in this pillar.
+SELECTION GUIDANCE:
+Use the prospect's directly stated context (Input 4) as the primary signal:
+- Match questions whose context_tags align with tech mentioned in tech_stack_description
+  or current_tools
+- Prioritize questions that directly address challenges stated in key_challenges_input
+- Use the research profile (Input 3) for additional business context: key_challenges,
+  business_outcomes, and technology_signals from web research
+When prospect context is sparse, rely more heavily on the research profile and persona.
 
 Return ONLY a valid JSON array of exactly 12 question IDs in presentation order.
 No explanation, no markdown, no preamble — just the array:
@@ -435,14 +548,20 @@ POST   /api/public/assess/{token}/register
     prospect_email: string,
     prospect_role: string,              -- must match persona enum
     p3_gate_answered_yes?: boolean,     -- required if P3 is active
-    p4_gate_answered_yes?: boolean      -- required if P4 is active
+    p4_gate_answered_yes?: boolean,     -- required if P4 is active
+    -- Optional prospect context (stored on account, passed to Agent 1):
+    infrastructure_location?: string,  -- where their apps and infrastructure run (free-form)
+    tech_stack_description?: string,   -- description of their tech stack (free-form)
+    current_tools?: string,            -- current toolset in use (free-form)
+    key_challenges_input?: string      -- prospect-stated key challenges (free-form)
   }
   Returns: {session_token: string}  -- short-lived JWT (2hr), stored client-side in sessionStorage
+  Side effect: saves optional context fields to accounts table if provided
   Side effect: if p3_gate_answered_yes = false, P3 excluded from subsequent pillar menu
   Side effect: if p4_gate_answered_yes = false, P4 excluded from subsequent pillar menu
   Side effect: P4 always excluded if pillar is_active = FALSE (regardless of gate answer)
-  Side effect: triggers Agent 1 in background (non-blocking) if no fresh research cache —
-               fired here so results are likely ready by the time select-pillar is called
+  Side effect: triggers Agent 1 in background (non-blocking) — Agent 1 receives both
+               company_name/website AND all prospect-provided context fields
 
 POST   /api/public/assess/{token}/select-pillar
   Headers: X-Session-Token: <session_token>
@@ -524,8 +643,14 @@ GET    /api/public/assess/{token}/report/{assessment_id}
   - P3 gate: "Is your organization currently building, deploying, or operating AI-powered applications or services?"
   - P4 gate: "Is your organization currently training, fine-tuning, or managing machine learning or foundation models in-house?"
   - Each gate question: yes/no radio buttons, only shown if the corresponding gated pillar is active
+- **Optional context section** (collapsible, labeled "Help us personalize your assessment (optional)"):
+  - Infrastructure & deployment (textarea): placeholder "e.g. AWS us-east-1, on-premises database, GCP for ML workloads"
+  - Tech stack (textarea): placeholder "e.g. Python microservices, Kubernetes, PostgreSQL, Redis, Kafka"
+  - Current tools (textarea): placeholder "e.g. Datadog, PagerDuty, GitHub Actions, Terraform"
+  - Key challenges (textarea): placeholder "e.g. reducing alert noise across 300+ microservices, managing GPU costs for real-time inference" — label: "What are your biggest technology or operational challenges?"
+  - Helper text beneath the section: "The more context you provide, the more relevant your questions and report will be"
 - Primary CTA: "Begin Assessment"
-- On submit: POST `/register`, store session_token in sessionStorage, navigate to pillar select
+- On submit: POST `/register` (including optional context fields), store session_token in sessionStorage, navigate to pillar select
 
 **Pillar Selection Page (`/assess/:token/pillars`)**
 - 2-column card grid of available pillars

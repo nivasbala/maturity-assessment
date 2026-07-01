@@ -1,6 +1,6 @@
 ---
 title: Mission, Outcomes & Verification Contract
-version: 1.4
+version: 1.5
 last_updated: 2026-06-28
 ---
 
@@ -21,12 +21,13 @@ Build a **Partner Maturity Assessment Platform** that enables Datadog's internal
 The application is complete when ALL of the following are true:
 
 - [ ] An internal user can create a prospect account, generate a short URL, and send it to a prospect
-- [ ] A prospect can click the URL, enter their details, select a pillar, answer 12 questions (persona-filtered + research-informed where available), and immediately see their maturity report on screen
+- [ ] A prospect can click the URL, complete registration (including optional tech context), review and confirm the research summary, select a pillar, answer the configured number of questions, and immediately see their maturity report on screen
 - [ ] A prospect can download their report as a PDF
 - [ ] A prospect can optionally take additional pillar assessments after completing one
-- [ ] The Pillar 3 (AI System Observability) gate question correctly routes prospects
-- [ ] Agent 1 researches the prospect's company and caches the result at the account level
-- [ ] Agent 2 generates a structured maturity report using assessment answers + company research
+- [ ] The research summary validation step shows Agent 1 output and allows prospect to add corrections before proceeding
+- [ ] The Pillar 3 (AI Application Observability) gate question correctly routes prospects
+- [ ] Agent 1 researches the prospect's company using both web research and prospect-provided context
+- [ ] Agent 3 generates a structured maturity report using assessment answers + company research
 - [ ] The LLM provider is configurable via a single environment variable with no code changes required
 - [ ] An internal user can only see assessments and reports they created
 - [ ] An internal user can see raw prospect answers and the full report for each assessment
@@ -74,32 +75,47 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Score correctly applies question_weight and persona_weight in formula
 
 ### 3.5 Agent Behavior
-- [ ] Agent 1 fires at `/register` time (not at `/select-pillar` time) — verify by checking research_cache is populated before select-pillar is called
+- [ ] Agent 1 fires at `/register` time (non-blocking) — verify by checking research_cache is populated before select-pillar is called
+- [ ] Agent 1 receives both web research inputs (company_name, website) AND prospect-provided context (infrastructure_location, tech_stack_description, current_tools)
+- [ ] Agent 1 output does NOT include technology_signals — prospect tech context is passed separately to Agent 2
+- [ ] Agent 1 output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes
 - [ ] Agent 1 result stored in `accounts.research_cache` after first run
 - [ ] Second pillar assessment for same account uses cached research (no second Agent 1 call)
 - [ ] Cache older than 7 days triggers Agent 1 re-run
+- [ ] Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, prospect_corrections)
 - [ ] Agent 2 (Question Selection) runs synchronously at `/select-pillar` time
-- [ ] Agent 2 receives: persona, pillar context, research_cache, and all candidate questions for the pillar
-- [ ] Agent 2 output is validated: exactly 12 IDs, all from the provided candidate pool
+- [ ] Agent 2 output is validated: correct count, all IDs from the provided candidate pool
 - [ ] Agent 2 failure triggers rule-based fallback — assessment proceeds without user-facing error
 - [ ] LangGraph orchestrator (submit pipeline) covers Agent 3 only — does NOT call Agent 1 or Agent 2
 - [ ] LangGraph research_node reads from cache; only re-runs Agent 1 if cache is NULL
 - [ ] If Agent 1 fails or cache empty at submit time, Agent 3 still generates report with empty company profile
 - [ ] Changing `LLM_PROVIDER=anthropic` in `.env` and restarting works without code changes for all three agents
 
-### 3.6 Report Completeness
+### 3.6 Research Summary Validation
+- [ ] GET /research-summary returns is_ready=false while Agent 1 is running
+- [ ] GET /research-summary returns is_ready=true with full profile once Agent 1 completes
+- [ ] ResearchSummaryPage shows loading spinner until is_ready=true
+- [ ] ResearchSummaryPage displays: company overview, key_challenges, business_outcomes, cloud_providers, operational_scale, data_confidence badge
+- [ ] data_confidence badge accurately reflects the quality of available public information
+- [ ] Prospect can submit optional corrections via the correction text area
+- [ ] POST /confirm-research saves prospect_corrections to accounts table
+- [ ] POST /confirm-research sets research_confirmed_at timestamp on accounts table
+- [ ] Corrections are passed to Agent 2 and Agent 3 alongside the research profile
+- [ ] Prospect cannot proceed to pillar selection without passing through the research summary page (UI routing enforced)
+
+### 3.7 Report Completeness
 - [ ] Report contains: executive_summary, strengths (2–4), gap_analysis (3–6), next_steps (4–6)
 - [ ] No vendor product names appear in generated report text
 - [ ] Radar chart renders with correct pillar score
 - [ ] PDF download produces a non-empty PDF file
 
-### 3.7 Internal User Dashboard
+### 3.8 Internal User Dashboard
 - [ ] Account row shows correct count of sent / completed pillars
 - [ ] Aggregate view visible only when 2+ pillars are completed for an account
 - [ ] Raw answers tab shows all 12 questions with correct selected answer text
 - [ ] "Generate URL" disabled for a pillar that already has an assessment (pending or complete)
 
-### 3.8 Admin CRUD
+### 3.9 Admin CRUD
 - [ ] Creating a new pillar with `is_active=TRUE` makes it appear in the prospect pillar menu
 - [ ] Setting a pillar to `is_active=FALSE` removes it from the prospect menu without deleting data
 - [ ] Creating a question with `is_general=TRUE` and no persona tags causes it to appear for all personas
@@ -111,7 +127,7 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Admin can update `question_count_max` (no ceiling; must be >= question_count_min)
 - [ ] system_settings changes are reflected immediately in the Pillars form helper text and pillar validation
 
-### 3.9 Infrastructure
+### 3.10 Infrastructure
 - [ ] `docker compose up` starts all services without manual steps
 - [ ] Database migrations run automatically on backend container startup
 - [ ] Seed data loads automatically if pillars table is empty

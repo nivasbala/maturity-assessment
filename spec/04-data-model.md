@@ -31,16 +31,24 @@ CREATE TABLE users (
 -- Accounts: One per prospect company. Created by an internal user.
 -- research_cache stores Agent 1 output and is reused across all pillar
 -- assessments for the same company. Cache TTL: 7 days.
+-- Prospect-provided context fields are collected at registration (all optional)
+-- and used as primary inputs to Agent 1 alongside web research.
 CREATE TABLE accounts (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_name        VARCHAR(255) NOT NULL,
-    company_website     VARCHAR(500),
-    internal_user_id    UUID NOT NULL REFERENCES users(id),
-    suggested_pillars   UUID[] DEFAULT '{}',        -- pillar IDs the internal user recommends
-    research_cache      JSONB,                       -- Agent 1 output cached here
-    research_cached_at  TIMESTAMPTZ,
-    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name            VARCHAR(255) NOT NULL,
+    company_website         VARCHAR(500),
+    internal_user_id        UUID NOT NULL REFERENCES users(id),
+    suggested_pillars       UUID[] DEFAULT '{}',        -- pillar IDs the internal user recommends
+    -- Prospect-provided context (optional, collected at registration):
+    infrastructure_location TEXT,   -- where their apps and infrastructure run
+    tech_stack_description  TEXT,   -- description of their tech stack
+    current_tools           TEXT,   -- current toolset in use
+    key_challenges_input    TEXT,   -- prospect-stated key challenges (free-form)
+    -- Research:
+    research_cache          JSONB,                       -- Agent 1 output cached here
+    research_cached_at      TIMESTAMPTZ,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Pillars: Fully data-driven.
@@ -320,6 +328,12 @@ research_cache.get("technology_signals", [])   # e.g. ["AWS", "Python", "Kuberne
 research_cache.get("cloud_providers", [])      # e.g. ["AWS", "GCP"]
 research_cache.get("key_challenges", [])       # e.g. ["scaling microservices", "alert fatigue"]
 research_cache.get("business_outcomes", [])    # e.g. ["uptime SLAs", "deployment velocity"]
+
+# Prospect-provided context — also passed directly to Agent 2 alongside the research:
+account.infrastructure_location    # where their apps and infra run (free-form, may be empty)
+account.tech_stack_description     # their tech stack (free-form, may be empty)
+account.current_tools              # current toolset (free-form, may be empty)
+account.key_challenges_input       # prospect-stated key challenges (free-form, may be empty)
 ```
 
 ### Fallback rule (if Agent 2 fails)
