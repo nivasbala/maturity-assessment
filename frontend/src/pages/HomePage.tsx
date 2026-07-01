@@ -191,7 +191,10 @@ export default function HomePage() {
           </p>
           <div className="grid sm:grid-cols-3 gap-8">
             {STEPS.map((step) => (
-              <div key={step.number} className="relative">
+              <div
+                key={step.number}
+                className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
+              >
                 <div className="text-5xl font-black text-brand mb-2 leading-none">
                   {step.number}
                 </div>
@@ -222,7 +225,7 @@ export default function HomePage() {
             {PILLARS.slice(0, 3).map((p) => (
               <div
                 key={p.title}
-                className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-5 hover:shadow-md transition-shadow"
+                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-5 hover:shadow-md transition-shadow"
               >
                 <div className="text-2xl mb-3">{p.icon}</div>
                 <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1.5">
@@ -239,7 +242,7 @@ export default function HomePage() {
             {PILLARS.slice(3).map((p) => (
               <div
                 key={p.title}
-                className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-5 hover:shadow-md transition-shadow w-full sm:max-w-[calc(33.333%-10px)]"
+                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-5 hover:shadow-md transition-shadow w-full sm:max-w-[calc(33.333%-10px)]"
               >
                 <div className="text-2xl mb-3">{p.icon}</div>
                 <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1.5">
@@ -375,7 +378,7 @@ export default function HomePage() {
             ].map(([range, label, desc, color]) => (
               <div
                 key={label}
-                className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700 rounded-lg px-5 py-4 border border-gray-100 dark:border-gray-600"
+                className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700 rounded-lg px-5 py-4 border border-gray-200 dark:border-gray-600"
               >
                 <div
                   className="w-1.5 self-stretch rounded-full shrink-0 mt-0.5"
