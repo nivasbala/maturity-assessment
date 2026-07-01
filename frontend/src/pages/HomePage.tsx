@@ -199,6 +199,22 @@ function VerticalReportMockup() {
   )
 }
 
+function SectionDivider() {
+  return (
+    <div className="flex items-center justify-center py-0">
+      <div className="flex items-center gap-3">
+        <div className="w-16 h-px bg-brand/40" />
+        <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+        <div className="w-8 h-px bg-brand/60" />
+        <div className="w-2 h-2 rounded-full border-2 border-brand" />
+        <div className="w-8 h-px bg-brand/60" />
+        <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+        <div className="w-16 h-px bg-brand/40" />
+      </div>
+    </div>
+  )
+}
+
 export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -215,7 +231,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-white dark:bg-gray-900 font-sans">
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <header className="bg-[#1B2B4B] px-8 h-14 relative flex items-center">
-        <span className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-2xl tracking-tight">
+        <span className="absolute left-1/2 -translate-x-1/2 text-brand font-bold text-3xl tracking-tight whitespace-nowrap">
           Observability Maturity Assessment
         </span>
         <div className="flex items-center gap-3 ml-auto">
@@ -236,7 +252,9 @@ export default function HomePage() {
             AI-Powered Assessment
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">
-            Know exactly where you stand and what to do next.
+            Know exactly where you stand.
+            <br />
+            <span className="text-brand">Know exactly what to do next.</span>
           </h1>
           <p className="text-white/70 text-base leading-relaxed mb-6 max-w-lg mx-auto">
             Benchmark your observability posture across five critical pillars
@@ -252,7 +270,8 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800 border-t-2 border-brand">
+      <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
+      <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             How it works
@@ -401,7 +420,8 @@ export default function HomePage() {
       </section>
 
       {/* ── Pillars ──────────────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-white dark:bg-gray-900 border-t-2 border-brand">
+      <div className="bg-white dark:bg-gray-900 pt-8"><SectionDivider /></div>
+      <section className="py-10 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             Five pillars. One clear picture.
@@ -448,7 +468,8 @@ export default function HomePage() {
       </section>
 
       {/* ── What you'll get ──────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800 border-t-2 border-brand">
+      <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
+      <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             What you'll get
@@ -481,7 +502,8 @@ export default function HomePage() {
       </section>
 
       {/* ── Maturity levels ──────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-white dark:bg-gray-900 border-t-2 border-brand">
+      <div className="bg-white dark:bg-gray-900 pt-8"><SectionDivider /></div>
+      <section className="py-10 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-8">
             Four maturity levels
@@ -512,7 +534,8 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="bg-[#1B2B4B] py-12 px-6 text-center border-t-2 border-brand">
+      <div className="bg-[#1B2B4B] pt-8"><SectionDivider /></div>
+      <section className="bg-[#1B2B4B] py-10 px-6 text-center">
         <h2 className="text-2xl font-bold text-white mb-2">
           Ready to assess your maturity?
         </h2>
