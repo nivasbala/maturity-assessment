@@ -20,6 +20,13 @@ export interface Pillar {
   created_at: string
 }
 
+export interface SystemSetting {
+  key: string
+  value: string
+  description: string | null
+  updated_at: string
+}
+
 export interface AnswerOption {
   id: string
   text: string

@@ -4,6 +4,7 @@ from app.models.pillar import Pillar
 from app.models.question import Question, QuestionPersona, AnswerOption
 from app.models.assessment import Assessment, AssessmentAnswer
 from app.models.report import Report
+from app.models.system_settings import SystemSetting
 
 __all__ = [
     "User",
@@ -15,4 +16,5 @@ __all__ = [
     "Assessment",
     "AssessmentAnswer",
     "Report",
+    "SystemSetting",
 ]

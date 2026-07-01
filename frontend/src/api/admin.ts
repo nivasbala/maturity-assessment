@@ -5,6 +5,7 @@ import type {
   Paginated,
   Pillar,
   Question,
+  SystemSetting,
   User,
 } from '../types'
 
@@ -34,6 +35,7 @@ export const createPillar = (data: {
   display_order: number
   is_gated: boolean
   gate_question?: string | null
+  question_count: number
 }) => api.post<Pillar>('/admin/pillars', data).then((r) => r.data)
 
 export const updatePillar = (
@@ -46,6 +48,7 @@ export const updatePillar = (
     is_active: boolean
     is_gated: boolean
     gate_question: string | null
+    question_count: number
   }>
 ) => api.put<Pillar>(`/admin/pillars/${id}`, data).then((r) => r.data)
 
@@ -84,3 +87,11 @@ export const getAdminAccounts = (page = 1, size = 25) =>
 
 export const getAdminAssessments = (page = 1, size = 25) =>
   api.get<Paginated<Assessment>>('/admin/assessments', { params: { page, size } }).then((r) => r.data)
+
+// ── System Settings ───────────────────────────────────────────────────────────
+
+export const getSettings = () =>
+  api.get<SystemSetting[]>('/admin/settings').then((r) => r.data)
+
+export const updateSetting = (key: string, value: string) =>
+  api.put<SystemSetting>(`/admin/settings/${key}`, { value }).then((r) => r.data)

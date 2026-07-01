@@ -358,7 +358,7 @@ async def select_pillar(
         await db.refresh(assessment)
 
     # Question selection — rule-based fallback (Agent 2 wired in Task 9)
-    questions = await _select_questions_fallback(db, pillar_id, persona)
+    questions = await _select_questions_fallback(db, pillar_id, persona, target=pillar.question_count)
 
     logger.info(
         "select_pillar: assessment_id=%s pillar=%s persona=%s questions=%d",

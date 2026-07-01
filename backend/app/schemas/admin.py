@@ -51,6 +51,7 @@ class PillarCreate(BaseModel):
     display_order: int = Field(ge=1)
     is_gated: bool = False
     gate_question: str | None = None
+    question_count: int = Field(default=12, ge=1)
 
 
 class PillarUpdate(BaseModel):
@@ -61,6 +62,7 @@ class PillarUpdate(BaseModel):
     is_active: bool | None = None
     is_gated: bool | None = None
     gate_question: str | None = None
+    question_count: int | None = Field(default=None, ge=1)
 
 
 class PillarOut(BaseModel):
@@ -74,8 +76,23 @@ class PillarOut(BaseModel):
     is_active: bool
     is_gated: bool
     gate_question: str | None
-    question_count: int = 0
+    question_count: int
     created_at: datetime
+
+
+# ── System Settings ──────────────────────────────────────────────────────────
+
+class SettingOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    key: str
+    value: str
+    description: str | None
+    updated_at: datetime
+
+
+class SettingUpdate(BaseModel):
+    value: str = Field(min_length=1)
 
 
 # ── Questions ─────────────────────────────────────────────────────────────────

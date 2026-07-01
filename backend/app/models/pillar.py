@@ -18,6 +18,7 @@ class Pillar(Base):
     is_active = Column(Boolean, nullable=False, default=True)
     is_gated = Column(Boolean, nullable=False, default=False)
     gate_question = Column(Text, nullable=True)
+    question_count = Column(Integer, nullable=False, default=12)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 

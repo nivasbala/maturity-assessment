@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createPillar, deactivatePillar, getPillars, updatePillar } from '../../api/admin'
+import { createPillar, deactivatePillar, getPillars, getSettings, updatePillar } from '../../api/admin'
 import { extractApiError } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Pillar } from '../../types'
@@ -12,6 +12,7 @@ const EMPTY_FORM = {
   display_order: 1,
   is_gated: false,
   gate_question: '',
+  question_count: 12,
 }
 
 export default function PillarsPage() {
@@ -23,6 +24,9 @@ export default function PillarsPage() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const [qMin, setQMin] = useState(12)
+  const [qMax, setQMax] = useState(25)
 
   const [showModal, setShowModal] = useState(false)
   const [editing, setEditing] = useState<Pillar | null>(null)
@@ -47,6 +51,12 @@ export default function PillarsPage() {
   useEffect(() => {
     if (!me) { navigate('/login'); return }
     if (me.role !== 'admin') { navigate('/dashboard'); return }
+    getSettings().then((rows) => {
+      const minRow = rows.find((r) => r.key === 'question_count_min')
+      const maxRow = rows.find((r) => r.key === 'question_count_max')
+      if (minRow) setQMin(parseInt(minRow.value))
+      if (maxRow) setQMax(parseInt(maxRow.value))
+    }).catch(() => {})
     load()
   }, [page])
 
@@ -66,6 +76,7 @@ export default function PillarsPage() {
       display_order: p.display_order,
       is_gated: p.is_gated,
       gate_question: p.gate_question ?? '',
+      question_count: p.question_count,
     })
     setFormError(null)
     setShowModal(true)
@@ -117,6 +128,7 @@ export default function PillarsPage() {
         <div className="flex items-center gap-4 text-sm">
           <a href="/admin/users" className="text-gray-300 hover:text-white">Users</a>
           <a href="/admin/pillars" className="text-blue-300 font-medium">Pillars</a>
+          <a href="/admin/settings" className="text-gray-300 hover:text-white">Settings</a>
           <button onClick={() => clearAuth().then(() => navigate('/login'))} className="text-gray-400 hover:text-white">
             Sign out
           </button>
@@ -144,7 +156,7 @@ export default function PillarsPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Order</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Weight</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Gated</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Questions</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Qs/Session</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -247,6 +259,20 @@ export default function PillarsPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Questions Per Session
+                  <span className="ml-1 text-xs text-gray-400 font-normal">(min {qMin} — max {qMax})</span>
+                </label>
+                <input
+                  type="number"
+                  min={qMin}
+                  max={qMax}
+                  value={form.question_count}
+                  onChange={(e) => setForm({ ...form, question_count: parseInt(e.target.value) || qMin })}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <input

@@ -25,6 +25,7 @@ from app.schemas.admin import (
     UserOut,
     UserUpdate,
 )
+from app.services import settings_service
 
 logger = logging.getLogger(__name__)
 
@@ -95,16 +96,7 @@ async def deactivate_user(db: AsyncSession, user_id: UUID) -> UserOut | None:
 
 
 async def _pillar_with_count(db: AsyncSession, pillar: Pillar) -> PillarOut:
-    count = (
-        await db.execute(
-            select(func.count()).select_from(Question).where(
-                Question.pillar_id == pillar.id, Question.is_active == True  # noqa: E712
-            )
-        )
-    ).scalar_one()
-    data = PillarOut.model_validate(pillar)
-    data.question_count = count
-    return data
+    return PillarOut.model_validate(pillar)
 
 
 async def list_pillars(db: AsyncSession, page: int = 1, size: int = 25) -> Paginated[PillarOut]:
@@ -124,6 +116,7 @@ async def get_pillar(db: AsyncSession, pillar_id: UUID) -> PillarOut | None:
 
 
 async def create_pillar(db: AsyncSession, data: PillarCreate) -> PillarOut:
+    await settings_service.validate_question_count(db, data.question_count)
     pillar = Pillar(
         name=data.name,
         description=data.description,
@@ -131,11 +124,12 @@ async def create_pillar(db: AsyncSession, data: PillarCreate) -> PillarOut:
         display_order=data.display_order,
         is_gated=data.is_gated,
         gate_question=data.gate_question,
+        question_count=data.question_count,
     )
     db.add(pillar)
     await db.commit()
     await db.refresh(pillar)
-    logger.info("Admin: created pillar name=%s", data.name)
+    logger.info("Admin: created pillar name=%s question_count=%d", data.name, data.question_count)
     return await _pillar_with_count(db, pillar)
 
 
@@ -143,7 +137,10 @@ async def update_pillar(db: AsyncSession, pillar_id: UUID, data: PillarUpdate) -
     row = (await db.execute(select(Pillar).where(Pillar.id == pillar_id))).scalar_one_or_none()
     if not row:
         return None
-    for field, value in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True)
+    if "question_count" in updates:
+        await settings_service.validate_question_count(db, updates["question_count"])
+    for field, value in updates.items():
         setattr(row, field, value)
     await db.commit()
     await db.refresh(row)

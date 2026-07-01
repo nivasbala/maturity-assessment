@@ -33,7 +33,7 @@ from app.models import (
 # ---------------------------------------------------------------------------
 
 
-def test_all_nine_tables_registered():
+def test_all_tables_registered():
     expected = {
         "users",
         "accounts",
@@ -44,6 +44,7 @@ def test_all_nine_tables_registered():
         "assessments",
         "assessment_answers",
         "reports",
+        "system_settings",
     }
     assert expected == set(Base.metadata.tables.keys())
 

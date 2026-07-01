@@ -17,11 +17,13 @@ from app.schemas.admin import (
     QuestionCreate,
     QuestionOut,
     QuestionUpdate,
+    SettingOut,
+    SettingUpdate,
     UserCreate,
     UserOut,
     UserUpdate,
 )
-from app.services import admin_service
+from app.services import admin_service, settings_service
 
 logger = logging.getLogger(__name__)
 
@@ -236,3 +238,38 @@ async def list_assessments(
     db: AsyncSession = Depends(get_db),
 ) -> Paginated[AssessmentOut]:
     return await admin_service.list_assessments(db, page=page, size=size)
+
+
+# ── System Settings ──────────────────────────────────────────────────────────
+
+
+@router.get("/settings", response_model=list[SettingOut])
+async def list_settings(
+    _: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> list[SettingOut]:
+    rows = await settings_service.get_all_settings(db)
+    return [SettingOut.model_validate(r) for r in rows]
+
+
+@router.get("/settings/{key}", response_model=SettingOut)
+async def get_setting(
+    key: str,
+    _: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> SettingOut:
+    row = await settings_service.get_setting(db, key)
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Setting '{key}' not found")
+    return SettingOut.model_validate(row)
+
+
+@router.put("/settings/{key}", response_model=SettingOut)
+async def update_setting(
+    key: str,
+    body: SettingUpdate,
+    _: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> SettingOut:
+    row = await settings_service.update_setting(db, key, body.value)
+    return SettingOut.model_validate(row)

@@ -7,8 +7,14 @@ from app.core.config import settings
 from app.core.security import hash_password
 from app.models.pillar import Pillar
 from app.models.question import AnswerOption, Question, QuestionPersona
+from app.models.system_settings import SystemSetting
 from app.models.user import User
 from app.seed.seed_data import PILLARS
+
+SYSTEM_SETTINGS_DEFAULTS = [
+    ("question_count_min", "12", "Minimum number of questions per assessment session (hard floor)"),
+    ("question_count_max", "25", "Maximum number of questions per assessment session"),
+]
 
 logger = logging.getLogger(__name__)
 
@@ -80,8 +86,20 @@ async def _seed_pillar(db: AsyncSession, pillar_data: dict) -> None:
     logger.info("Seeded pillar: %s", pillar.name)
 
 
+async def _seed_system_settings(db: AsyncSession) -> None:
+    for key, value, description in SYSTEM_SETTINGS_DEFAULTS:
+        existing = (await db.execute(select(SystemSetting).where(SystemSetting.key == key))).scalar_one_or_none()
+        if existing:
+            logger.info("system_settings key=%s already exists, skipping", key)
+            continue
+        db.add(SystemSetting(key=key, value=value, description=description))
+    await db.flush()
+    logger.info("Seeded system_settings")
+
+
 async def seed_all(db: AsyncSession) -> None:
     await _seed_admin(db)
     for pillar_data in PILLARS:
         await _seed_pillar(db, pillar_data)
+    await _seed_system_settings(db)
     await db.commit()

@@ -13,6 +13,7 @@ import ReportDetailPage from './pages/internal/ReportDetailPage'
 import UsersPage from './pages/admin/UsersPage'
 import PillarsPage from './pages/admin/PillarsPage'
 import QuestionsPage from './pages/admin/QuestionsPage'
+import SettingsPage from './pages/admin/SettingsPage'
 
 function AuthenticatedLayout() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
             <Route path="/admin/users" element={<UsersPage />} />
             <Route path="/admin/pillars" element={<PillarsPage />} />
             <Route path="/admin/pillars/:id/questions" element={<QuestionsPage />} />
+            <Route path="/admin/settings" element={<SettingsPage />} />
           </Route>
         </Routes>
       </BrowserRouter>
