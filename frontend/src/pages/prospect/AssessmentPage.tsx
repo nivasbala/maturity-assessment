@@ -172,7 +172,7 @@ export default function AssessmentPage() {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!allAnswered}
+                disabled={!selectedOptionId}
                 className="px-5 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-1"
               >
                 Submit Assessment
