@@ -9,8 +9,8 @@
 1. **Never modify spec files.** They are read-only reference material. If you believe a spec is wrong, stop and flag it to the user — do not self-correct silently.
 2. **Spec wins over inference.** If the spec and your training disagree, follow the spec.
 3. **Load spec files at the start of each task**, before writing any code.
-4. **Verify against `specs/01-mission-outcomes-verification.md`** before merging any task branch.
-5. **Section 2 of `specs/07-build-plan.md` defines the git workflow.** Follow it exactly for every task.
+4. **Verify against `spec/01-mission-outcomes-verification.md`** before merging any task branch.
+5. **Section 2 of `spec/07-build-plan.md` defines the git workflow.** Follow it exactly for every task.
 
 ### Agent Context Map
 
@@ -46,7 +46,7 @@ Load **only** the files listed for your current task. Do not load files not list
 ```bash
 gh pr create \
   --title "Task NN: <task name>" \
-  --body "Completes task NN as defined in specs/07-build-plan.md. Verification criteria checked." \
+  --body "Completes task NN as defined in spec/07-build-plan.md. Verification criteria checked." \
   --base main
 
 gh pr merge --squash --auto
@@ -69,7 +69,7 @@ If a task fails its verification criteria: fix on the **same task branch**. Neve
 
 ## SECTION 3: VERIFICATION GATE
 
-Before opening a PR for any task, run the applicable criteria from `specs/01-mission-outcomes-verification.md`. Do not open a PR if any criterion fails — fix on the same branch first.
+Before opening a PR for any task, run the applicable criteria from `spec/01-mission-outcomes-verification.md`. Do not open a PR if any criterion fails — fix on the same branch first.
 
 Key areas to verify:
 - **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
@@ -183,7 +183,7 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 - Cloud deployment automation (AWS ECS/EKS, GCP, Azure)
 - Any feature not explicitly described in the spec files
 
-If a feature is not in the MVP scope list above, do not build it. When in doubt, check `specs/07-build-plan.md` before starting any new work. Phase 2 items in Section 4 of that file are informational only.
+If a feature is not in the MVP scope list above, do not build it. When in doubt, check `spec/07-build-plan.md` before starting any new work. Phase 2 items in Section 4 of that file are informational only.
 
 ---
 
@@ -255,7 +255,7 @@ Arrows also need: `startBinding: null`, `endBinding: null`, `startArrowhead: nul
 
 ## SECTION 10: UI CONSISTENCY & IMPLEMENTATION RULES
 
-Apply to every task that produces or modifies a frontend component (Tasks 5, 6, 7, 10, 11). Authoritative detail in `specs/05-architecture-api.md` Section 3.2. Verify against `specs/01-mission-outcomes-verification.md` Section 3.11 before opening any UI task PR.
+Apply to every task that produces or modifies a frontend component (Tasks 5, 6, 7, 10, 11). Authoritative detail in `spec/05-architecture-api.md` Section 3.2. Verify against `spec/01-mission-outcomes-verification.md` Section 3.11 before opening any UI task PR.
 
 ### Navigation
 
@@ -283,9 +283,9 @@ Fields to persist: all LandingPage fields, `prospect_corrections`, and Assessmen
 |---|---|
 | Primary button | `bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600` |
 | Back / nav link | `text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300` |
-| Ghost button | `border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400` |
+| Ghost button | `border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950` |
 | Disabled | `bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400` |
-| Destructive only | `bg-red-600 hover:bg-red-700 text-white dark:bg-red-500` |
+| Destructive only | `bg-red-600 hover:bg-red-700 text-white dark:bg-red-500 dark:hover:bg-red-600` |
 
 ### Dark Mode — No Black Text
 

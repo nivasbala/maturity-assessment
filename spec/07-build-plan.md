@@ -14,7 +14,7 @@ last_updated: 2026-06-28
 
 ### 1.1 In Scope — MVP (Build These)
 
-- Three user roles: End Customer (Prospect), Internal User, Admin
+- Three user roles: Prospect (unauthenticated), Internal User, Admin
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI Application Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive), P5 Security & DevSecOps
 - 50-question bank per pillar; session question count is admin-configurable per pillar (default 12); bounds enforced by system_settings (question_count_min default 12, question_count_max default 25, both admin-adjustable)
 - Admin CRUD: pillars (including question count), questions (with persona tagging, weighting, and context_tags), internal users, system settings (question count bounds)
@@ -58,8 +58,8 @@ cd maturity-platform
 git init
 git remote add origin https://github.com/<org>/<repo>.git
 git checkout -b main
-# Copy specs/ directory here
-git add specs/
+# Copy spec/ directory here
+git add spec/
 git commit -m "Initial commit: add spec files"
 git push -u origin main
 ```
@@ -87,7 +87,7 @@ git checkout -b task/NN-task-name
 # 5. Open a PR on GitHub
 gh pr create \
   --title "Task NN: <task name>" \
-  --body "Completes task NN as defined in specs/07-build-plan.md. Verification criteria checked." \
+  --body "Completes task NN as defined in spec/07-build-plan.md. Verification criteria checked." \
   --base main
 
 # 6. Squash merge the PR
@@ -227,7 +227,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement all admin endpoints from `05-architecture-api.md` Section 2.2 (including `GET/PUT /api/admin/settings`)
 - Implement `settings_service.py` with `get_setting()`, `get_question_count_bounds()`, and `validate_question_count()` from `04-data-model.md` Section 9
 - Wire `validate_question_count()` into the pillar create/update path
-- Implement Admin Panel pages from `05-architecture-api.md` Section 3.4 (Users, Pillars, Questions, System Settings)
+- Implement Admin Panel pages from `05-architecture-api.md` Section 3.5 (Users, Pillars, Questions, System Settings)
 - Pillars form fetches current min/max from system_settings to display as input bounds and helper text
 - Soft-delete throughout: is_active = FALSE, never hard delete
 
@@ -253,7 +253,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement internal user accounts endpoints from `05-architecture-api.md` Section 2.3
 - Implement short URL token generation (Section 6 of `04-data-model.md`)
 - Implement assessment creation: enforces UNIQUE(account_id, pillar_id)
-- Build Accounts List and Account Detail pages (Section 3.3 of `05-architecture-api.md`)
+- Build Accounts List and Account Detail pages (Section 3.4 of `05-architecture-api.md`)
 - "Generate URL" button copies `{BASE_URL}/assess/{token}` to clipboard
 
 **Verification:**
@@ -274,7 +274,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
   - `/confirm-research` (POST): save prospect_corrections and research_confirmed_at; stub for Task 7
   - `/select-pillar`: synchronous; implement with rule-based fallback for now (Agent 2 wired in Task 9)
 - Session token: short-lived JWT (2hr), stored in sessionStorage on client
-- Build all pages from `05-architecture-api.md` Section 3.2:
+- Build all pages from `05-architecture-api.md` Section 3.3:
   - Landing Page: registration form with optional context section (expandable)
   - Research Summary Page: loading state until Agent 1 ready; displays company profile; optional correction textarea; confirm button
   - Pillar Selection Page, Assessment Page
@@ -364,7 +364,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Branch:** `task/10-report-display-pdf`
 **Spec files:** `05-architecture-api.md` + `02-domain-model.md`
 
-- Implement Report Page with all 7 sections from `05-architecture-api.md` Section 3.2
+- Implement Report Page with all 7 sections from `05-architecture-api.md` Section 3.3
 - Loading state with 3 rotating descriptive messages during agent execution
 - Recharts RadarChart showing pillar score
 - Gap analysis table with impact/effort badges
@@ -385,7 +385,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Branch:** `task/11-internal-dashboard`
 **Spec files:** `05-architecture-api.md` + `04-data-model.md` + `02-domain-model.md`
 
-- Implement all internal user dashboard pages from `05-architecture-api.md` Section 3.3
+- Implement all internal user dashboard pages from `05-architecture-api.md` Section 3.4
 - Implement `GET /api/accounts/{id}/aggregate` endpoint
 - Aggregate view: radar chart with all completed pillar scores; unlocks at 2+ completions
 - Raw answers tab: all question_count questions + selected answer + maturity level

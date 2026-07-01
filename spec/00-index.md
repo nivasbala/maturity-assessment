@@ -69,7 +69,7 @@ These rules apply to every agent session:
 CLAUDE.md was generated from this spec directory and is maintained independently in the project root. Re-run the following only if CLAUDE.md is lost or needs to be fully regenerated from scratch:
 
 ```
-Read all files in specs/ (00-index through 07-build-plan), then generate CLAUDE.md
+Read all files in spec/ (00-index through 07-build-plan), then generate CLAUDE.md
 covering: Spec Usage Rules, Git Workflow, Verification Gate, Environment Setup,
 Coding Conventions, LLM Switching Rule, Scope Boundary, Logging and Testing,
 Excalidraw Diagram Files, and UI Consistency Rules. Pull each section directly

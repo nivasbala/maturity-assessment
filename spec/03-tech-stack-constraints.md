@@ -102,7 +102,7 @@ maturity-platform/
 ├── docker-compose.yml
 ├── .env
 ├── .env.example
-├── specs/                        ← read-only spec files, never modified by agent
+├── spec/                         ← read-only spec files, never modified by agent
 │   ├── 00-index.md
 │   ├── 01-mission-outcomes-verification.md
 │   ├── 02-domain-model.md
