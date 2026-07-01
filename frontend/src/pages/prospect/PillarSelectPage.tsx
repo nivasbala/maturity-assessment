@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getAssessmentInfo, selectPillar } from '../../api/public'
 import { extractApiError } from '../../api'
@@ -14,6 +14,7 @@ export default function PillarSelectPage() {
   const [loadError, setLoadError] = useState('')
   const [loadingPillar, setLoadingPillar] = useState<AvailablePillar | null>(null)
   const [pillarError, setPillarError] = useState('')
+  const cancelledRef = useRef(false)
 
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
   const p3Gate: boolean | null = JSON.parse(sessionStorage.getItem('p3_gate') ?? 'null')
@@ -54,8 +55,15 @@ export default function PillarSelectPage() {
     return `pillar_questions_${token}_${pillarId}`
   }
 
+  function handleCancelLoading() {
+    cancelledRef.current = true
+    setLoadingPillar(null)
+    setPillarError('')
+  }
+
   async function handleSelectPillar(pillar: AvailablePillar) {
     setPillarError('')
+    cancelledRef.current = false
 
     const cacheKey = getCacheKey(pillar.id)
     const cached = sessionStorage.getItem(cacheKey)
@@ -77,6 +85,7 @@ export default function PillarSelectPage() {
     setLoadingPillar(pillar)
     try {
       const result = await selectPillar(token!, sessionToken, pillar.id)
+      if (cancelledRef.current) return
       sessionStorage.setItem(cacheKey, JSON.stringify(result))
       navigate(`/assess/${token}/assessment/${result.assessment_id}`, {
         state: {
@@ -88,6 +97,7 @@ export default function PillarSelectPage() {
         },
       })
     } catch (e) {
+      if (cancelledRef.current) return
       setPillarError(extractApiError(e, 'Failed to load questions. Please try again.'))
       setLoadingPillar(null)
     }
@@ -127,6 +137,12 @@ export default function PillarSelectPage() {
           <p className="text-sm text-gray-400 dark:text-gray-500">
             Tailoring the assessment for your role and company
           </p>
+          <button
+            onClick={handleCancelLoading}
+            className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
+          >
+            ← Choose a different pillar
+          </button>
         </div>
         </div>
       </div>

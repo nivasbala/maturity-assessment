@@ -32,9 +32,15 @@ export default function LandingPage() {
   const [gateAnswers, setGateAnswers] = useState<Record<string, boolean | null>>({})
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
-  const [infrastructureLocation, setInfrastructureLocation] = useState('')
-  const [techStackDescription, setTechStackDescription] = useState('')
-  const [currentTools, setCurrentTools] = useState('')
+  const [infrastructureLocation, setInfrastructureLocation] = useState(
+    sessionStorage.getItem('infrastructure_location') ?? ''
+  )
+  const [techStackDescription, setTechStackDescription] = useState(
+    sessionStorage.getItem('tech_stack_description') ?? ''
+  )
+  const [currentTools, setCurrentTools] = useState(
+    sessionStorage.getItem('current_tools') ?? ''
+  )
 
   useEffect(() => {
     if (!token) return
@@ -42,6 +48,27 @@ export default function LandingPage() {
       .then(setInfo)
       .catch((e) => setLoadError(extractApiError(e, 'Failed to load assessment.')))
   }, [token])
+
+  // Restore gate answers from sessionStorage once pillar IDs are known
+  useEffect(() => {
+    if (!info) return
+    const gated = info.available_pillars.filter((p) => p.is_gated)
+    if (gated.length === 0) return
+    const p3Raw = sessionStorage.getItem('p3_gate')
+    const p4Raw = sessionStorage.getItem('p4_gate')
+    const restored: Record<string, boolean | null> = {}
+    if (gated[0] && p3Raw !== null) {
+      const val: boolean | null = JSON.parse(p3Raw)
+      if (val !== null) restored[gated[0].id] = val
+    }
+    if (gated[1] && p4Raw !== null) {
+      const val: boolean | null = JSON.parse(p4Raw)
+      if (val !== null) restored[gated[1].id] = val
+    }
+    if (Object.keys(restored).length > 0) {
+      setGateAnswers((prev) => ({ ...restored, ...prev }))
+    }
+  }, [info])
 
   const gatedPillars = info?.available_pillars.filter((p) => p.is_gated) ?? []
 
@@ -94,6 +121,9 @@ export default function LandingPage() {
       sessionStorage.setItem('prospect_name', `${firstName.trim()} ${lastName.trim()}`)
       sessionStorage.setItem('prospect_role', role)
       sessionStorage.setItem('prospect_email', email.trim())
+      sessionStorage.setItem('infrastructure_location', infrastructureLocation.trim())
+      sessionStorage.setItem('tech_stack_description', techStackDescription.trim())
+      sessionStorage.setItem('current_tools', currentTools.trim())
       navigate(`/assess/${token}/research-summary`)
     } catch (e) {
       setFormError(extractApiError(e, 'Registration failed. Please try again.'))
