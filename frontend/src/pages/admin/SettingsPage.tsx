@@ -16,7 +16,7 @@ const DESCRIPTIONS: Record<string, string> = {
 }
 
 export default function SettingsPage() {
-  const { user: me, clearAuth } = useAuth()
+  const { user: me } = useAuth()
   const navigate = useNavigate()
 
   const [settings, setSettings] = useState<SystemSetting[]>([])
@@ -72,36 +72,28 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <nav className="bg-[#1B2B4B] text-white px-6 py-3 flex items-center justify-between">
-        <span className="font-semibold text-sm">Admin Panel</span>
-        <div className="flex items-center gap-4 text-sm">
-          <a href="/admin/users" className="text-gray-300 hover:text-white">Users</a>
-          <a href="/admin/pillars" className="text-gray-300 hover:text-white">Pillars</a>
-          <a href="/admin/settings" className="text-blue-300 font-medium">Settings</a>
-          <button onClick={() => clearAuth().then(() => navigate('/login'))} className="text-gray-400 hover:text-white">
-            Sign out
-          </button>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-bold text-[#1B2B4B] mb-6">System Settings</h1>
+        <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-6">System Settings</h1>
 
-        {error && <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-lg text-sm border border-red-200">{error}</div>}
-        {loading && <p className="text-gray-400 text-sm">Loading…</p>}
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm border border-red-200 dark:border-red-800">
+            {error}
+          </div>
+        )}
+        {loading && <p className="text-gray-400 dark:text-gray-500 text-sm">Loading…</p>}
 
         <div className="space-y-4">
           {settings.map((s) => (
-            <div key={s.key} className="bg-white rounded-xl border border-gray-200 p-5">
+            <div key={s.key} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-gray-800">{LABELS[s.key] ?? s.key}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{DESCRIPTIONS[s.key] ?? s.description}</p>
+                  <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{LABELS[s.key] ?? s.key}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{DESCRIPTIONS[s.key] ?? s.description}</p>
                 </div>
                 {editing !== s.key && (
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-lg font-bold text-[#1B2B4B]">{s.value}</span>
+                    <span className="text-lg font-bold text-[#1B2B4B] dark:text-gray-100">{s.value}</span>
                     <button
                       onClick={() => startEdit(s)}
                       className="text-xs text-[#0066FF] hover:underline"
@@ -119,7 +111,7 @@ export default function SettingsPage() {
                     min="1"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    className="w-24 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
                   />
                   <button
                     onClick={() => handleSave(s.key)}
@@ -128,17 +120,17 @@ export default function SettingsPage() {
                   >
                     {saving ? 'Saving…' : 'Save'}
                   </button>
-                  <button onClick={cancelEdit} className="text-xs text-gray-500 hover:text-gray-700">
+                  <button onClick={cancelEdit} className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                     Cancel
                   </button>
-                  {saveError && <span className="text-xs text-red-600">{saveError}</span>}
+                  {saveError && <span className="text-xs text-red-600 dark:text-red-400">{saveError}</span>}
                 </div>
               )}
             </div>
           ))}
         </div>
 
-        <p className="mt-6 text-xs text-gray-400">
+        <p className="mt-6 text-xs text-gray-400 dark:text-gray-500">
           Changes take effect on the next assessment session — existing in-progress assessments are not affected.
         </p>
       </div>

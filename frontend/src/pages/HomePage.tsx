@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import DarkModeToggle from '../components/DarkModeToggle'
 
 const PILLARS = [
   {
@@ -68,18 +69,21 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-white font-sans">
+    <div className="min-h-screen bg-white dark:bg-gray-900 font-sans">
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <header className="bg-[#1B2B4B] px-8 h-14 flex items-center justify-between">
         <span className="text-white font-semibold text-base tracking-tight">
           Maturity Assessment
         </span>
-        <button
-          onClick={handleCta}
-          className="text-sm text-white/80 hover:text-white transition-colors"
-        >
-          {user ? 'Go to dashboard →' : 'Log in →'}
-        </button>
+        <div className="flex items-center gap-3">
+          <DarkModeToggle />
+          <button
+            onClick={handleCta}
+            className="text-sm text-white/80 hover:text-white transition-colors"
+          >
+            {user ? 'Go to dashboard →' : 'Log in →'}
+          </button>
+        </div>
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -130,12 +134,12 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-gray-50">
+      <section className="py-20 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] text-center mb-2">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-2">
             How it works
           </h2>
-          <p className="text-gray-500 text-center text-sm mb-12">
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-12">
             From link to report in three steps.
           </p>
           <div className="grid sm:grid-cols-3 gap-8">
@@ -144,10 +148,10 @@ export default function HomePage() {
                 <div className="text-5xl font-black text-[#0066FF]/10 mb-2 leading-none">
                   {step.number}
                 </div>
-                <h3 className="font-semibold text-[#1B2B4B] text-base mb-2">
+                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-base mb-2">
                   {step.title}
                 </h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
                   {step.description}
                 </p>
               </div>
@@ -157,12 +161,12 @@ export default function HomePage() {
       </section>
 
       {/* ── Pillars ──────────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-white">
+      <section className="py-20 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] text-center mb-2">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-2">
             Five pillars. One clear picture.
           </h2>
-          <p className="text-gray-500 text-center text-sm mb-12 max-w-lg mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-12 max-w-lg mx-auto">
             Each assessment is scored from 1.0 (Initial) to 4.0 (Optimised),
             giving you a precise, actionable maturity level per pillar.
           </p>
@@ -170,20 +174,20 @@ export default function HomePage() {
             {PILLARS.map((p) => (
               <div
                 key={p.title}
-                className="border border-gray-100 rounded-xl p-5 hover:shadow-md transition-shadow"
+                className="border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-5 hover:shadow-md transition-shadow"
               >
                 <div className="text-2xl mb-3">{p.icon}</div>
-                <h3 className="font-semibold text-[#1B2B4B] text-sm mb-1.5">
+                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1.5">
                   {p.title}
                 </h3>
-                <p className="text-gray-500 text-sm leading-relaxed">
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
                   {p.description}
                 </p>
               </div>
             ))}
             {/* Filler card */}
-            <div className="border border-dashed border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center">
-              <p className="text-gray-400 text-sm">
+            <div className="border border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-5 flex flex-col items-center justify-center text-center">
+              <p className="text-gray-400 dark:text-gray-500 text-sm">
                 Assessments are AI-personalised to your role and company context.
               </p>
             </div>
@@ -192,9 +196,9 @@ export default function HomePage() {
       </section>
 
       {/* ── Maturity levels ──────────────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-gray-50">
+      <section className="py-20 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] text-center mb-12">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-12">
             Four maturity levels
           </h2>
           <div className="space-y-3">
@@ -206,7 +210,7 @@ export default function HomePage() {
             ].map(([range, label, desc, color]) => (
               <div
                 key={label}
-                className="flex items-start gap-4 bg-white rounded-lg px-5 py-4 border border-gray-100"
+                className="flex items-start gap-4 bg-white dark:bg-gray-700 rounded-lg px-5 py-4 border border-gray-100 dark:border-gray-600"
               >
                 <div
                   className="w-1.5 self-stretch rounded-full shrink-0 mt-0.5"
@@ -214,10 +218,10 @@ export default function HomePage() {
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 mb-0.5">
-                    <span className="font-semibold text-[#1B2B4B] text-sm">{label}</span>
-                    <span className="text-gray-400 text-xs">{range}</span>
+                    <span className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm">{label}</span>
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">{range}</span>
                   </div>
-                  <p className="text-gray-500 text-sm">{desc}</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm">{desc}</p>
                 </div>
               </div>
             ))}

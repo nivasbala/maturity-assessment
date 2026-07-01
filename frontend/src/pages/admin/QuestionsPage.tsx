@@ -25,7 +25,7 @@ const EMPTY_FORM = {
 
 export default function QuestionsPage() {
   const { id: pillarId } = useParams<{ id: string }>()
-  const { user: me, clearAuth } = useAuth()
+  const { user: me } = useAuth()
   const navigate = useNavigate()
 
   const [questions, setQuestions] = useState<Question[]>([])
@@ -137,25 +137,14 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      <nav className="bg-[#1B2B4B] text-white px-6 py-3 flex items-center justify-between">
-        <span className="font-semibold text-sm">Admin Panel</span>
-        <div className="flex items-center gap-4 text-sm">
-          <a href="/admin/users" className="text-gray-300 hover:text-white">Users</a>
-          <a href="/admin/pillars" className="text-gray-300 hover:text-white">Pillars</a>
-          <button onClick={() => clearAuth().then(() => navigate('/login'))} className="text-gray-400 hover:text-white">
-            Sign out
-          </button>
-        </div>
-      </nav>
-
-      <div className="flex h-[calc(100vh-48px)]">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-[calc(100vh-56px)]">
         {/* Left panel — question list */}
-        <div className="w-96 border-r border-gray-200 bg-white flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+        <div className="w-96 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
+          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>
               <a href="/admin/pillars" className="text-xs text-[#0066FF] hover:underline">← Pillars</a>
-              <h2 className="text-sm font-bold text-[#1B2B4B] mt-0.5">Questions</h2>
+              <h2 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100 mt-0.5">Questions</h2>
             </div>
             <button
               onClick={startCreate}
@@ -165,27 +154,31 @@ export default function QuestionsPage() {
             </button>
           </div>
 
-          {error && <div className="m-3 p-2 bg-red-50 text-red-700 text-xs rounded border border-red-200">{error}</div>}
+          {error && (
+            <div className="m-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-xs rounded border border-red-200 dark:border-red-800">
+              {error}
+            </div>
+          )}
 
           <div className="overflow-y-auto flex-1">
-            {loading && <div className="px-4 py-6 text-center text-sm text-gray-400">Loading…</div>}
+            {loading && <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">Loading…</div>}
             {!loading && questions.length === 0 && (
-              <div className="px-4 py-6 text-center text-sm text-gray-400">No questions yet.</div>
+              <div className="px-4 py-6 text-center text-sm text-gray-400 dark:text-gray-500">No questions yet.</div>
             )}
             {questions.map((q) => (
               <button
                 key={q.id}
                 onClick={() => startEdit(q)}
-                className={`w-full text-left px-4 py-3 border-b border-gray-100 hover:bg-blue-50 transition-colors ${selected?.id === q.id ? 'bg-blue-50 border-l-2 border-l-[#0066FF]' : ''}`}
+                className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${selected?.id === q.id ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-l-[#0066FF]' : ''}`}
               >
                 <div className="flex items-start gap-2">
-                  <span className={`mt-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${q.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                  <span className={`mt-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${q.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>
                     {q.display_order}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-xs text-gray-800 leading-snug line-clamp-2">{q.text}</p>
-                    <div className="mt-1 flex items-center gap-2 text-xs text-gray-400">
-                      {q.is_general && <span className="px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-full">General</span>}
+                    <p className="text-xs text-gray-800 dark:text-gray-200 leading-snug line-clamp-2">{q.text}</p>
+                    <div className="mt-1 flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500">
+                      {q.is_general && <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full">General</span>}
                       <span>w: {q.question_weight}</span>
                       {!q.is_general && <span>{q.personas.length} persona{q.personas.length !== 1 ? 's' : ''}</span>}
                     </div>
@@ -197,39 +190,43 @@ export default function QuestionsPage() {
         </div>
 
         {/* Right panel — form */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
           {!isEditing && (
-            <div className="flex items-center justify-center h-full text-sm text-gray-400">
+            <div className="flex items-center justify-center h-full text-sm text-gray-400 dark:text-gray-500">
               Select a question to edit, or click + New
             </div>
           )}
 
           {isEditing && (
             <div className="max-w-2xl mx-auto px-6 py-6">
-              <h3 className="text-base font-bold text-[#1B2B4B] mb-4">
+              <h3 className="text-base font-bold text-[#1B2B4B] dark:text-gray-100 mb-4">
                 {selected ? 'Edit Question' : 'New Question'}
               </h3>
 
-              {formError && <div className="mb-3 p-2 bg-red-50 text-red-700 text-sm rounded border border-red-200">{formError}</div>}
+              {formError && (
+                <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded border border-red-200 dark:border-red-800">
+                  {formError}
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Question Text</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Question Text</label>
                   <textarea
                     value={form.text}
                     onChange={(e) => setForm({ ...form, text: e.target.value })}
                     rows={3}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Question Weight</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Question Weight</label>
                     <select
                       value={form.question_weight}
                       onChange={(e) => setForm({ ...form, question_weight: parseFloat(e.target.value) })}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
                     >
                       {WEIGHT_OPTIONS.map((w) => <option key={w} value={w}>{w}</option>)}
                     </select>
@@ -242,7 +239,7 @@ export default function QuestionsPage() {
                         onChange={(e) => setForm({ ...form, is_general: e.target.checked })}
                         className="rounded"
                       />
-                      <span className="font-medium text-gray-700">Show to all personas</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Show to all personas</span>
                     </label>
                     <label className="flex items-center gap-2 text-sm">
                       <input
@@ -251,26 +248,26 @@ export default function QuestionsPage() {
                         onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
                         className="rounded"
                       />
-                      <span className="font-medium text-gray-700">Active</span>
+                      <span className="font-medium text-gray-700 dark:text-gray-300">Active</span>
                     </label>
                   </div>
                 </div>
 
                 {!form.is_general && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Personas</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Personas</label>
                     <div className="grid grid-cols-2 gap-2">
                       {PERSONAS.map(({ value, label }) => {
                         const selected_p = form.personas.find((p) => p.persona === value)
                         return (
-                          <div key={value} className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
+                          <div key={value} className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800">
                             <input
                               type="checkbox"
                               checked={!!selected_p}
                               onChange={() => togglePersona(value)}
                               className="rounded flex-shrink-0"
                             />
-                            <span className="text-xs text-gray-700 flex-1 min-w-0 truncate">{label}</span>
+                            <span className="text-xs text-gray-700 dark:text-gray-300 flex-1 min-w-0 truncate">{label}</span>
                             {selected_p && (
                               <input
                                 type="number"
@@ -279,7 +276,7 @@ export default function QuestionsPage() {
                                 max="3.0"
                                 value={selected_p.persona_weight}
                                 onChange={(e) => updatePersonaWeight(value, parseFloat(e.target.value))}
-                                className="w-14 text-xs border border-gray-300 rounded px-1 py-0.5"
+                                className="w-14 text-xs border border-gray-300 dark:border-gray-600 rounded px-1 py-0.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                               />
                             )}
                           </div>
@@ -290,11 +287,11 @@ export default function QuestionsPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Answer Options</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Answer Options</label>
                   <div className="space-y-2">
                     {form.answer_options.map((opt, i) => (
                       <div key={opt.maturity_level} className="flex items-start gap-2">
-                        <span className="text-xs text-gray-500 mt-2.5 w-40 flex-shrink-0">{MATURITY_LABELS[opt.maturity_level]}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 mt-2.5 w-40 flex-shrink-0">{MATURITY_LABELS[opt.maturity_level]}</span>
                         <textarea
                           value={opt.text}
                           onChange={(e) => {
@@ -303,7 +300,7 @@ export default function QuestionsPage() {
                             setForm({ ...form, answer_options: updated })
                           }}
                           rows={2}
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                          className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
                         />
                       </div>
                     ))}
@@ -320,14 +317,14 @@ export default function QuestionsPage() {
                   </button>
                   <button
                     onClick={() => { setIsEditing(false); setSelected(null) }}
-                    className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
                   >
                     Cancel
                   </button>
                   {selected && (
                     <button
                       onClick={() => handleToggleActive(selected).then(() => { setIsEditing(false); setSelected(null) })}
-                      className="ml-auto text-sm text-red-600 hover:text-red-800 font-medium"
+                      className="ml-auto text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
                     >
                       {selected.is_active ? 'Deactivate' : 'Activate'}
                     </button>

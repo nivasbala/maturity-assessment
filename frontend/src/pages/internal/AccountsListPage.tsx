@@ -47,45 +47,45 @@ function NewAccountModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] mb-4">New Account</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">New Account</h2>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded text-sm">
             {error}
           </div>
         )}
 
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Company Name <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
               placeholder="Acme Corp"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Website
             </label>
             <input
               type="text"
               value={companyWebsite}
               onChange={(e) => setCompanyWebsite(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
               placeholder="https://acmecorp.com"
             />
           </div>
 
           {pillars.length > 0 && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Suggested Pillars
               </label>
               <div className="space-y-2">
@@ -97,7 +97,7 @@ function NewAccountModal({
                       onChange={() => togglePillar(p.id)}
                       className="rounded border-gray-300 text-[#0066FF] focus:ring-[#0066FF]"
                     />
-                    <span className="text-sm text-gray-700">{p.name}</span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{p.name}</span>
                   </label>
                 ))}
               </div>
@@ -108,7 +108,7 @@ function NewAccountModal({
         <div className="mt-6 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded hover:bg-gray-50"
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
@@ -157,20 +157,20 @@ export default function AccountsListPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading accounts…</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-500 dark:text-gray-400">Loading accounts…</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#1B2B4B]">Accounts</h1>
-            <p className="text-sm text-gray-500 mt-1">{total} account{total !== 1 ? 's' : ''}</p>
+            <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">Accounts</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{total} account{total !== 1 ? 's' : ''}</p>
           </div>
           <button
             onClick={() => setShowModal(true)}
@@ -181,26 +181,26 @@ export default function AccountsListPage() {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded text-sm">
             {error}
           </div>
         )}
 
         {/* Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Company</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Website</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Suggested Pillars</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Date Created</th>
+              <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Company</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Website</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Suggested Pillars</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Date Created</th>
               </tr>
             </thead>
             <tbody>
               {accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-400">
+                  <td colSpan={4} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
                     No accounts yet. Click "New Account" to get started.
                   </td>
                 </tr>
@@ -209,10 +209,10 @@ export default function AccountsListPage() {
                   <tr
                     key={a.id}
                     onClick={() => navigate(`/dashboard/accounts/${a.id}`)}
-                    className="border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors"
+                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-[#1B2B4B]">{a.company_name}</td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-4 py-3 font-medium text-[#1B2B4B] dark:text-gray-100">{a.company_name}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {a.company_website ? (
                         <a
                           href={a.company_website}
@@ -227,10 +227,10 @@ export default function AccountsListPage() {
                         '—'
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {a.suggested_pillars.length > 0 ? a.suggested_pillars.length : '—'}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(a.created_at).toLocaleDateString()}
                     </td>
                   </tr>
@@ -241,7 +241,7 @@ export default function AccountsListPage() {
 
           {/* Pagination */}
           {total > PAGE_SIZE && (
-            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between text-sm text-gray-500">
+            <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
               <span>
                 Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total}
               </span>
@@ -249,14 +249,14 @@ export default function AccountsListPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
-                  className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50"
+                  className="px-3 py-1 border dark:border-gray-600 rounded disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
                 >
                   Previous
                 </button>
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page * PAGE_SIZE >= total}
-                  className="px-3 py-1 border rounded disabled:opacity-40 hover:bg-gray-50"
+                  className="px-3 py-1 border dark:border-gray-600 rounded disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300"
                 >
                   Next
                 </button>

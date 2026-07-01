@@ -4,6 +4,7 @@ import { getAssessmentInfo, registerProspect } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
 import { PERSONAS } from '../../types'
+import FloatingThemeToggle from '../../components/FloatingThemeToggle'
 
 export default function LandingPage() {
   const { token } = useParams<{ token: string }>()
@@ -59,13 +60,9 @@ export default function LandingPage() {
       const p3Pillar = gatedPillars.find((p) => p.name.toLowerCase().includes('ai system') || p.name.toLowerCase().includes('p3'))
       const p4Pillar = gatedPillars.find((p) => p.name.toLowerCase().includes('ml') || p.name.toLowerCase().includes('p4') || p.name.toLowerCase().includes('foundation'))
 
-      // Derive gate answers by pillar display_order — use gated pillar index as proxy
-      // The backend checks display_order 3 for P3 gate and display_order 4 for P4 gate.
-      // Frontend passes them by matching the gate question text to P3/P4 concepts.
       const p3Gate = p3Pillar ? (gateAnswers[p3Pillar.id] ?? null) : null
       const p4Gate = p4Pillar ? (gateAnswers[p4Pillar.id] ?? null) : null
 
-      // Fallback: assign by order of appearance in gatedPillars
       const gateByIndex = gatedPillars.map((gp) => gateAnswers[gp.id] ?? null)
       const p3GateFinal = p3Gate !== null ? p3Gate : (gateByIndex[0] ?? null)
       const p4GateFinal = p4Gate !== null ? p4Gate : (gateByIndex[1] ?? null)
@@ -91,9 +88,10 @@ export default function LandingPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <FloatingThemeToggle />
         <div className="text-center">
-          <p className="text-red-600 font-medium">{loadError}</p>
+          <p className="text-red-600 dark:text-red-400 font-medium">{loadError}</p>
         </div>
       </div>
     )
@@ -101,22 +99,24 @@ export default function LandingPage() {
 
   if (!info) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading assessment…</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <FloatingThemeToggle />
+        <div className="text-gray-500 dark:text-gray-400">Loading assessment…</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center py-12 px-4">
-      <div className="w-full max-w-lg bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center py-12 px-4">
+      <FloatingThemeToggle />
+      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-sm font-medium text-blue-600 uppercase tracking-wider mb-1">
+          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
             {info.company_name}
           </p>
-          <h1 className="text-2xl font-bold text-[#1B2B4B] mb-3">Maturity Assessment</h1>
-          <p className="text-gray-600 text-sm leading-relaxed">
+          <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-3">Maturity Assessment</h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
             This assessment will evaluate your organization's technology maturity across key pillars.
             Your answers will generate a personalized report with actionable recommendations.
           </p>
@@ -126,44 +126,44 @@ export default function LandingPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
               <input
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
                 placeholder="Jane"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
               <input
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
                 placeholder="Smith"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Work Email</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Work Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
               placeholder="jane@company.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Your Role</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Role</label>
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent bg-white"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
             >
               <option value="">Select your role…</option>
               {PERSONAS.map((p) => (
@@ -174,7 +174,7 @@ export default function LandingPage() {
             </select>
           </div>
 
-          {/* Gate questions — rendered for each active gated pillar */}
+          {/* Gate questions */}
           {gatedPillars.map((gp) => (
             <GateQuestion
               key={gp.id}
@@ -185,7 +185,7 @@ export default function LandingPage() {
           ))}
 
           {formError && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
               {formError}
             </p>
           )}
@@ -213,8 +213,8 @@ function GateQuestion({
   onChange: (val: boolean) => void
 }) {
   return (
-    <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-      <p className="text-sm font-medium text-gray-700 mb-3">{pillar.gate_question}</p>
+    <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
+      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{pillar.gate_question}</p>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -224,7 +224,7 @@ function GateQuestion({
             onChange={() => onChange(true)}
             className="accent-[#0066FF]"
           />
-          <span className="text-sm text-gray-700">Yes</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">Yes</span>
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
           <input
@@ -234,7 +234,7 @@ function GateQuestion({
             onChange={() => onChange(false)}
             className="accent-[#0066FF]"
           />
-          <span className="text-sm text-gray-700">No</span>
+          <span className="text-sm text-gray-700 dark:text-gray-300">No</span>
         </label>
       </div>
     </div>

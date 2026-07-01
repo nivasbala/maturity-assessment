@@ -3,8 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { createAssessment, getAccountDetail } from '../../api/internal'
 import type { AccountDetail, AssessmentCreated, PillarStatusRow } from '../../types'
 
-// ── URL modal ──────────────────────────────────────────────────────────────────
-
 function UrlModal({
   result,
   onClose,
@@ -23,12 +21,12 @@ function UrlModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] mb-2">Assessment URL Generated</h2>
-        <p className="text-sm text-gray-500 mb-4">Share this URL with the prospect to begin their assessment.</p>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6">
+        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Assessment URL Generated</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Share this URL with the prospect to begin their assessment.</p>
 
-        <div className="bg-gray-50 border border-gray-200 rounded p-3 flex items-center gap-2">
-          <span className="flex-1 text-sm text-gray-800 break-all font-mono">{result.full_url}</span>
+        <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-3 flex items-center gap-2">
+          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 break-all font-mono">{result.full_url}</span>
           <button
             onClick={handleCopy}
             className="shrink-0 px-3 py-1 text-sm bg-[#0066FF] text-white rounded hover:bg-blue-700 focus:outline-none"
@@ -40,7 +38,7 @@ function UrlModal({
         <div className="mt-4 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50 text-gray-600"
+            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400"
           >
             Done
           </button>
@@ -50,16 +48,14 @@ function UrlModal({
   )
 }
 
-// ── Status badge ───────────────────────────────────────────────────────────────
-
 function StatusBadge({ status }: { status: PillarStatusRow['status'] }) {
   if (!status) return <span className="text-gray-400 text-sm">Not Sent</span>
   const map: Record<string, { label: string; className: string }> = {
-    pending: { label: 'Sent', className: 'bg-blue-100 text-blue-700' },
-    in_progress: { label: 'In Progress', className: 'bg-yellow-100 text-yellow-700' },
-    completed: { label: 'Completed', className: 'bg-green-100 text-green-700' },
+    pending: { label: 'Sent', className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
+    in_progress: { label: 'In Progress', className: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' },
+    completed: { label: 'Completed', className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
   }
-  const style = map[status] ?? { label: status, className: 'bg-gray-100 text-gray-600' }
+  const style = map[status] ?? { label: status, className: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }
   return (
     <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${style.className}`}>
       {style.label}
@@ -67,15 +63,13 @@ function StatusBadge({ status }: { status: PillarStatusRow['status'] }) {
   )
 }
 
-// ── Main page ──────────────────────────────────────────────────────────────────
-
 export default function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [account, setAccount] = useState<AccountDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [generating, setGenerating] = useState<string | null>(null) // pillar_id being generated
+  const [generating, setGenerating] = useState<string | null>(null)
   const [urlResult, setUrlResult] = useState<AssessmentCreated | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -94,7 +88,6 @@ export default function AccountDetailPage() {
     try {
       const result = await createAssessment(id, pillarId)
       setUrlResult(result)
-      // Refresh account to update pillar status grid
       const updated = await getAccountDetail(id)
       setAccount(updated)
     } catch (err: unknown) {
@@ -118,24 +111,23 @@ export default function AccountDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Loading account…</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-gray-500 dark:text-gray-400">Loading account…</div>
       </div>
     )
   }
 
   if (error || !account) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600">{error ?? 'Account not found'}</div>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-red-600 dark:text-red-400">{error ?? 'Account not found'}</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Back nav */}
         <button
           onClick={() => navigate('/dashboard')}
           className="text-sm text-[#0066FF] hover:underline mb-4 flex items-center gap-1"
@@ -143,11 +135,10 @@ export default function AccountDetailPage() {
           ← Accounts
         </button>
 
-        {/* Account header */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-[#1B2B4B]">{account.company_name}</h1>
+              <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">{account.company_name}</h1>
               {account.company_website && (
                 <a
                   href={account.company_website}
@@ -158,7 +149,7 @@ export default function AccountDetailPage() {
                   {account.company_website}
                 </a>
               )}
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Created by {account.internal_user_name} on{' '}
                 {new Date(account.created_at).toLocaleDateString()}
               </p>
@@ -167,43 +158,42 @@ export default function AccountDetailPage() {
         </div>
 
         {actionError && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded text-sm">
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded text-sm">
             {actionError}
           </div>
         )}
 
-        {/* Pillar status grid */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="text-lg font-semibold text-[#1B2B4B]">Pillar Assessments</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100">Pillar Assessments</h2>
           </div>
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Pillar</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Prospect</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Role</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Score</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Action</th>
+              <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillar</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Prospect</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Role</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Score</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Status</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Action</th>
               </tr>
             </thead>
             <tbody>
               {account.pillar_statuses.map((row) => (
-                <tr key={row.pillar_id} className="border-b border-gray-100">
-                  <td className="px-4 py-3 font-medium text-[#1B2B4B]">
+                <tr key={row.pillar_id} className="border-b border-gray-100 dark:border-gray-700">
+                  <td className="px-4 py-3 font-medium text-[#1B2B4B] dark:text-gray-100">
                     {row.pillar_name}
                     {row.is_gated && (
-                      <span className="ml-2 text-xs bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded">
+                      <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded">
                         Gated
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{row.prospect_name ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-500">{row.prospect_role ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{row.prospect_name ?? '—'}</td>
+                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{row.prospect_role ?? '—'}</td>
                   <td className="px-4 py-3">
                     {row.pillar_score !== null ? (
-                      <span className="font-medium text-[#1B2B4B]">
+                      <span className="font-medium text-[#1B2B4B] dark:text-gray-100">
                         {row.pillar_score.toFixed(1)} / 4.0
                       </span>
                     ) : (

@@ -1,5 +1,6 @@
 import { useNavigate, NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import DarkModeToggle from './DarkModeToggle'
 
 export default function NavBar() {
   const { user, clearAuth } = useAuth()
@@ -44,6 +45,7 @@ export default function NavBar() {
       </div>
 
       <div className="flex items-center gap-3 text-sm">
+        <DarkModeToggle />
         <span className="text-white/60">{user.name}</span>
         <button
           onClick={handleLogout}

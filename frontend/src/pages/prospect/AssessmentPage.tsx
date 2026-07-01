@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { submitAssessment } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { QuestionPublic } from '../../types'
+import FloatingThemeToggle from '../../components/FloatingThemeToggle'
 
 interface LocationState {
   questions: QuestionPublic[]
@@ -17,7 +18,6 @@ export default function AssessmentPage() {
   const questions: QuestionPublic[] = state?.questions ?? []
 
   const [currentIndex, setCurrentIndex] = useState(0)
-  // Map of question_id → answer_option_id
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
@@ -76,17 +76,18 @@ export default function AssessmentPage() {
   const progress = Math.round(((currentIndex + 1) / totalQuestions) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
+      <FloatingThemeToggle />
       <div className="max-w-2xl mx-auto">
         {/* Progress */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-gray-600">
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Question {currentIndex + 1} of {totalQuestions}
             </span>
-            <span className="text-sm text-gray-400">{progress}%</span>
+            <span className="text-sm text-gray-400 dark:text-gray-500">{progress}%</span>
           </div>
-          <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#0066FF] rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
@@ -95,8 +96,8 @@ export default function AssessmentPage() {
         </div>
 
         {/* Question card */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 mb-6">
-          <h2 className="text-lg font-semibold text-[#1B2B4B] mb-6 leading-snug">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-6">
+          <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-6 leading-snug">
             {currentQuestion.text}
           </h2>
 
@@ -109,8 +110,8 @@ export default function AssessmentPage() {
                   onClick={() => selectOption(option.id)}
                   className={`w-full text-left border rounded-lg px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:ring-offset-1 ${
                     isSelected
-                      ? 'border-[#0066FF] bg-blue-50 text-[#1B2B4B] font-medium'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-gray-50'
+                      ? 'border-[#0066FF] bg-blue-50 dark:bg-blue-900/20 text-[#1B2B4B] dark:text-gray-100 font-medium'
+                      : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <span className="inline-block w-5 h-5 rounded-full border-2 mr-3 align-middle flex-shrink-0 transition-colors" style={{
@@ -125,7 +126,7 @@ export default function AssessmentPage() {
         </div>
 
         {submitError && (
-          <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="mb-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
             {submitError}
           </div>
         )}
@@ -135,7 +136,7 @@ export default function AssessmentPage() {
           <button
             onClick={goBack}
             disabled={currentIndex === 0}
-            className="px-5 py-2 text-sm font-medium text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1"
+            className="px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1"
           >
             Back
           </button>

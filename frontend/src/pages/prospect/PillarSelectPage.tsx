@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getAssessmentInfo, selectPillar } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
+import FloatingThemeToggle from '../../components/FloatingThemeToggle'
 
 export default function PillarSelectPage() {
   const { token } = useParams<{ token: string }>()
@@ -29,20 +30,6 @@ export default function PillarSelectPage() {
     return null
   }
 
-  function isPillarVisible(pillar: AvailablePillar): boolean {
-    if (!pillar.is_active) return false
-    // Determine gated pillar by index in the available list or by name keywords
-    const name = pillar.name.toLowerCase()
-    if (name.includes('ai system') || name.includes('p3')) {
-      return p3Gate !== false
-    }
-    if (name.includes('ml') || name.includes('foundation') || name.includes('p4')) {
-      return p3Gate !== false ? p4Gate !== false : false
-    }
-    return true
-  }
-
-  // Fallback gate filtering by display position of gated pillars
   function isPillarVisibleByOrder(pillar: AvailablePillar, gatedPillars: AvailablePillar[]): boolean {
     if (!pillar.is_gated) return true
     const idx = gatedPillars.indexOf(pillar)
@@ -75,16 +62,18 @@ export default function PillarSelectPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <p className="text-red-600">{loadError}</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <FloatingThemeToggle />
+        <p className="text-red-600 dark:text-red-400">{loadError}</p>
       </div>
     )
   }
 
   if (!info) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500">Loading pillars…</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <FloatingThemeToggle />
+        <div className="text-gray-500 dark:text-gray-400">Loading pillars…</div>
       </div>
     )
   }
@@ -92,20 +81,21 @@ export default function PillarSelectPage() {
   const visiblePillars = info.available_pillars.filter(shouldShow)
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
+      <FloatingThemeToggle />
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
-          <p className="text-sm font-medium text-blue-600 uppercase tracking-wider mb-1">
+          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
             {info.company_name}
           </p>
-          <h1 className="text-2xl font-bold text-[#1B2B4B] mb-2">Select an Assessment Area</h1>
-          <p className="text-gray-600 text-sm">
+          <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-2">Select an Assessment Area</h1>
+          <p className="text-gray-600 dark:text-gray-400 text-sm">
             Choose a pillar to assess. Each takes approximately 8 minutes.
           </p>
         </div>
 
         {pillarError && (
-          <div className="mb-6 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+          <div className="mb-6 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
             {pillarError}
           </div>
         )}
@@ -119,19 +109,19 @@ export default function PillarSelectPage() {
             return (
               <div
                 key={pillar.id}
-                className={`relative bg-white rounded-xl border p-5 flex flex-col ${
-                  isSuggested ? 'border-[#0066FF]' : 'border-gray-200'
+                className={`relative bg-white dark:bg-gray-800 rounded-xl border p-5 flex flex-col ${
+                  isSuggested ? 'border-[#0066FF]' : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
                 {isSuggested && (
-                  <span className="absolute top-3 right-3 text-xs font-semibold text-[#0066FF] bg-blue-50 px-2 py-0.5 rounded-full">
+                  <span className="absolute top-3 right-3 text-xs font-semibold text-[#0066FF] bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                     Recommended
                   </span>
                 )}
-                <h2 className="text-base font-semibold text-[#1B2B4B] mb-1 pr-20">{pillar.name}</h2>
-                <p className="text-sm text-gray-600 mb-4 flex-1 line-clamp-2">{pillar.description}</p>
+                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-1 pr-20">{pillar.name}</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex-1 line-clamp-2">{pillar.description}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">~8 minutes</span>
+                  <span className="text-xs text-gray-400 dark:text-gray-500">~8 minutes</span>
                   <button
                     onClick={() => handleSelectPillar(pillar)}
                     disabled={isDisabled}
@@ -146,7 +136,7 @@ export default function PillarSelectPage() {
         </div>
 
         {visiblePillars.length === 0 && (
-          <p className="text-center text-gray-500 mt-8">
+          <p className="text-center text-gray-500 dark:text-gray-400 mt-8">
             No assessment areas are available. Please contact your Datadog representative.
           </p>
         )}
