@@ -31,7 +31,27 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen flex">
+      {/* Left branding panel — matches sidebar width and style */}
+      <div className="w-56 shrink-0 bg-[#1B2B4B] flex flex-col">
+        <div className="px-5 pt-6 pb-5 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <rect x="2" y="5" width="28" height="18" rx="2" stroke="#3B82F6" strokeWidth="1.8"/>
+              <polyline points="6,14 10,14 12,8 16,20 19,10 22,14 26,14" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="13" y1="23" x2="19" y2="23" stroke="#3B82F6" strokeWidth="1.8"/>
+              <line x1="16" y1="23" x2="16" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
+              <line x1="11" y1="28" x2="21" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
+            </svg>
+            <span className="text-white font-semibold text-sm tracking-tight leading-tight">
+              Maturity<br />Assessment
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Right: login form */}
+      <div className="flex-1 bg-[#F8FAFC] dark:bg-gray-900 flex items-center justify-center">
       <FloatingThemeToggle />
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 w-full max-w-sm">
         <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">Sign in</h1>
@@ -73,6 +93,7 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

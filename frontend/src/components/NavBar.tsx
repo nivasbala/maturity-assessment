@@ -72,7 +72,7 @@ export default function NavBar() {
         </div>
         <button
           onClick={handleLogout}
-          className="w-full text-left px-3 py-2 rounded-lg text-sm text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+          className="w-full text-left px-3 py-2 rounded-lg text-sm text-brand hover:text-blue-400 transition-colors"
         >
           ← Log out
         </button>
