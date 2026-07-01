@@ -411,10 +411,14 @@ async def submit_assessment(
     if assessment.account_id != account_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    if len(body.answers) != 12:
+    pillar = (
+        await db.execute(select(Pillar).where(Pillar.id == assessment.pillar_id))
+    ).scalar_one_or_none()
+    expected_count = pillar.question_count if pillar else 12
+    if len(body.answers) != expected_count:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Exactly 12 answers required",
+            detail=f"Exactly {expected_count} answers required",
         )
 
     # Validate answer_option_ids belong to the correct questions
