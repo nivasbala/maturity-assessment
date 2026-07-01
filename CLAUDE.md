@@ -73,7 +73,7 @@ Before opening a PR for any task, run the applicable criteria from `specs/01-mis
 
 Key areas to verify:
 - **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
-- **Question Selection:** Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect's raw tech context (infrastructure_location, tech_stack_description, current_tools, prospect_corrections); selects `pillar.question_count` questions using both; falls back to rule-based if Agent 2 fails
+- **Question Selection:** Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect's raw tech context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections); selects `pillar.question_count` questions using both; falls back to rule-based if Agent 2 fails
 - **Gated Pillars (P3 & P4):** P3 hidden when gate answered No; P4 hidden when gate answered No OR when is_active=FALSE
 - **Research Summary:** prospect reviews Agent 1 output before pillar selection; optional corrections saved; data_confidence badge shown; GET /research-summary polls until is_ready=true
 - **Agent Behavior:** Agent 1 fires at `/register` (non-blocking, dual inputs: web + prospect context); Agent 2 runs synchronously at `/select-pillar`; LangGraph orchestrator at submit covers Agent 3 only; all agents use same LLM factory
@@ -153,9 +153,9 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 ### In Scope — MVP (Build These)
 
 - Three user roles: Prospect (unauthenticated), Internal User, Admin
-- Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive — activates via admin panel), P5 Security & DevSecOps
+- Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI Application Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive — activates via admin panel), P5 Security & DevSecOps
 - 50-question bank per pillar; session question count admin-configurable per pillar (default 12); bounds controlled by system_settings (question_count_min default 12 hard floor, question_count_max default 25, both admin-editable via System Settings page)
-- Prospect context collection at registration: optional infrastructure location, tech stack description, and current tools — stored on account, passed to Agent 1 as primary input
+- Prospect context collection at registration: optional infrastructure location, tech stack description, current tools, and key challenges — stored on account, passed to Agent 1 as primary input
 - Research summary validation step between registration and pillar selection: prospect reviews Agent 1 output, optionally corrects it, then confirms before proceeding
 - Three-agent architecture: Agent 1 (Research, dual-input: web + prospect context), Agent 2 (Question Selection, dual-input: research profile + prospect context), Agent 3 (Report Generation)
 - Agent 2 uses prospect's raw tech descriptions as primary selection signal; falls back to rule-based if LLM fails
@@ -171,7 +171,7 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 
 ### Explicitly Out of Scope — MVP (Do Not Build)
 
-- Agent 3: Admin chatbot for question management
+- Admin AI Chatbot for question management (no agent number assigned — admins converse to update and refine questions; see Phase 2)
 - Email notifications of any kind
 - CRM integration (Salesforce, HubSpot, Marketo)
 - Benchmarking or peer comparison features
