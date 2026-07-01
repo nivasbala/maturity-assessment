@@ -85,11 +85,10 @@ const REPORT_BENEFITS = [
   },
 ]
 
-/* ── Reusable horizontal mockup shell ────────────────────────────────────── */
+/* ── Horizontal animated mockup (How it works) ───────────────────────────── */
 function HorizontalMockup({ animName, children }: { animName: string; children: React.ReactNode }) {
   return (
-    <div className="relative w-full overflow-hidden rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 h-56">
-      {/* sliding track — 4 slides wide */}
+    <div className="relative w-full overflow-hidden rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 h-80">
       <div
         className="absolute inset-0 flex flex-row"
         style={{
@@ -99,23 +98,106 @@ function HorizontalMockup({ animName, children }: { animName: string; children: 
       >
         {children}
       </div>
-      {/* right-edge fade */}
       <div className="absolute top-0 right-0 bottom-0 w-12 pointer-events-none bg-gradient-to-l from-white to-transparent dark:from-gray-900" />
-      {/* dot indicators */}
-      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none" style={{ animation: `${animName}Dots 15s ease-in-out infinite` }}>
+      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none">
         {[0, 1, 2].map((i) => (
-          <div key={i} className={`w-1.5 h-1.5 rounded-full bg-brand/30`} />
+          <div key={i} className="w-1.5 h-1.5 rounded-full bg-brand/30" />
         ))}
       </div>
     </div>
   )
 }
 
-/* each slide takes 25% of the 400%-wide track = 100% of visible container */
-const SLIDE = 'w-1/4 shrink-0 h-56 px-5 py-4 flex flex-col gap-2 overflow-hidden'
+const SLIDE = 'w-1/4 shrink-0 h-80 px-5 py-5 flex flex-col gap-2 overflow-hidden'
 const LABEL = 'text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider'
 const HEADING = 'text-[13px] font-bold text-[#1B2B4B] dark:text-gray-100'
 const SKEL = 'h-2 rounded-full bg-gray-200 dark:bg-gray-700'
+
+/* ── Vertical report mockup (What you'll get) ────────────────────────────── */
+function VerticalReportMockup() {
+  return (
+    <div className="w-full max-w-xs mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden">
+      {/* Header */}
+      <div className="bg-[#1B2B4B] px-4 py-3">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-white text-xs font-bold">Observability Maturity Report</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="bg-amber-400 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+            Overall: 2.8 / 4.0
+          </span>
+          <span className="text-white/60 text-[10px]">Developing</span>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="px-4 py-3 space-y-4">
+        {/* Executive Summary */}
+        <div>
+          <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+            Executive Summary
+          </p>
+          <div className="space-y-1.5">
+            {['100%', '90%', '95%', '82%', '88%'].map((w, i) => (
+              <div key={i} className={`${SKEL}`} style={{ width: w }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Pillar Scores */}
+        <div>
+          <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+            Pillar Scores
+          </p>
+          <div className="space-y-2">
+            {[
+              ['Full-Stack Obs.', 85, '#22c55e', '3.4'],
+              ['AIOps', 52, '#f59e0b', '2.1'],
+              ['AI System Obs.', 45, '#ef4444', '1.8'],
+              ['Security', 77, '#22c55e', '3.1'],
+              ['ML & Model Ops', 60, '#f59e0b', '2.4'],
+            ].map(([name, pct, color, score]) => (
+              <div key={String(name)}>
+                <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-400 mb-0.5">
+                  <span>{String(name)}</span>
+                  <span className="font-semibold" style={{ color }}>{String(score)}</span>
+                </div>
+                <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Next Steps */}
+        <div>
+          <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+            Prioritised Next Steps
+          </p>
+          <div className="space-y-1.5">
+            {[
+              ['1', 'Centralise log aggregation across all services', '#3b82f6'],
+              ['2', 'Implement distributed tracing end-to-end', '#3b82f6'],
+              ['3', 'Enable AIOps anomaly detection baselines', '#f59e0b'],
+              ['4', 'Shift security scanning left into CI pipeline', '#f59e0b'],
+            ].map(([num, text, color]) => (
+              <div key={String(num)} className="flex items-start gap-1.5">
+                <span className="text-[10px] font-bold shrink-0 w-3" style={{ color }}>{String(num)}.</span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">{String(text)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* PDF Button */}
+        <div className="border border-brand/30 bg-brand/5 dark:bg-brand/10 rounded-lg py-2 text-center">
+          <span className="text-brand text-[11px] font-semibold">Download PDF Report</span>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -133,8 +215,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-white dark:bg-gray-900 font-sans">
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
       <header className="bg-[#1B2B4B] px-8 h-14 relative flex items-center">
-        <span className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-xl tracking-tight">
-          Maturity Assessment
+        <span className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-2xl tracking-tight">
+          Observability Maturity Assessment
         </span>
         <div className="flex items-center gap-3 ml-auto">
           <DarkModeToggle />
@@ -148,20 +230,17 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-[#1B2B4B] text-white pt-12 pb-14 px-6">
+      <section className="bg-[#1B2B4B] text-white pt-5 pb-14 px-6">
         <div className="max-w-2xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1 rounded-full mb-5 tracking-wide uppercase">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1 rounded-full mb-4 tracking-wide uppercase">
             AI-Powered Assessment
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">
-            Know exactly where you stand.
-            <br />
-            <span className="text-brand">Know exactly what to do next.</span>
+            Know exactly where you stand and what to do next.
           </h1>
           <p className="text-white/70 text-base leading-relaxed mb-6 max-w-lg mx-auto">
-            A personalised observability maturity assessment that benchmarks your
-            organisation across five critical pillars and delivers a prioritised
-            action plan — in under 10 minutes.
+            Benchmark your observability posture across five critical pillars
+            <br />and get a prioritised action plan — in under 10 minutes.
           </p>
           <button
             onClick={handleCta}
@@ -173,7 +252,7 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800">
+      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800 border-t-2 border-brand">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             How it works
@@ -322,7 +401,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Pillars ──────────────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-white dark:bg-gray-900">
+      <section className="py-12 px-6 bg-white dark:bg-gray-900 border-t-2 border-brand">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             Five pillars. One clear picture.
@@ -369,7 +448,7 @@ export default function HomePage() {
       </section>
 
       {/* ── What you'll get ──────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800">
+      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800 border-t-2 border-brand">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             What you'll get
@@ -395,116 +474,14 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Right: horizontal report mockup */}
-            <HorizontalMockup animName="reportH">
-              {/* Slide 1: executive summary + overall score */}
-              <div className={SLIDE}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-                  <span className={LABEL}>Maturity Report</span>
-                </div>
-                <p className={HEADING}>Executive Summary</p>
-                <div className="inline-flex self-start text-white text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#f59e0b' }}>
-                  Overall: 2.8 / 4.0 · Developing
-                </div>
-                <div className="flex flex-col gap-1.5 mt-1">
-                  {['95%', '80%', '88%', '70%'].map((w, i) => (
-                    <div key={i} className={`${SKEL}`} style={{ width: w }} />
-                  ))}
-                </div>
-                <div className="mt-auto">
-                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-400 rounded-full" style={{ width: '70%' }} />
-                  </div>
-                  <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
-                    <span>Initial</span><span>Optimised</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Slide 2: pillar scores */}
-              <div className={SLIDE}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-                  <span className={LABEL}>Pillar Scores</span>
-                </div>
-                <p className={HEADING}>How you scored</p>
-                <div className="flex flex-col gap-2 mt-1">
-                  {[
-                    ['Full-Stack Obs.', 85, '#22c55e', '3.4'],
-                    ['AIOps', 52, '#f59e0b', '2.1'],
-                    ['AI System Obs.', 45, '#ef4444', '1.8'],
-                    ['Security', 77, '#22c55e', '3.1'],
-                  ].map(([name, pct, color, score]) => (
-                    <div key={String(name)}>
-                      <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mb-0.5">
-                        <span>{String(name)}</span>
-                        <span className="font-semibold" style={{ color }}>{String(score)}</span>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Slide 3: strengths & next steps */}
-              <div className={SLIDE}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-                  <span className={LABEL}>Next Steps</span>
-                </div>
-                <p className={HEADING}>Prioritised actions</p>
-                <div className="flex flex-col gap-1.5 mt-1">
-                  {[
-                    ['1', 'Centralise log aggregation across all services', '#3b82f6'],
-                    ['2', 'Implement distributed tracing end-to-end', '#3b82f6'],
-                    ['3', 'Enable AIOps anomaly detection baselines', '#f59e0b'],
-                    ['4', 'Shift security scanning left into CI pipeline', '#f59e0b'],
-                  ].map(([num, text, color]) => (
-                    <div key={String(num)} className="flex items-start gap-1.5">
-                      <span className="text-[10px] font-bold shrink-0 w-3" style={{ color }}>{String(num)}.</span>
-                      <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">{String(text)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-auto border border-brand/30 bg-brand/5 dark:bg-brand/10 rounded-lg py-1.5 text-center">
-                  <span className="text-brand text-[11px] font-semibold">Download PDF</span>
-                </div>
-              </div>
-
-              {/* Slide 4: repeat slide 1 */}
-              <div className={SLIDE}>
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
-                  <span className={LABEL}>Maturity Report</span>
-                </div>
-                <p className={HEADING}>Executive Summary</p>
-                <div className="inline-flex self-start text-white text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#f59e0b' }}>
-                  Overall: 2.8 / 4.0 · Developing
-                </div>
-                <div className="flex flex-col gap-1.5 mt-1">
-                  {['95%', '80%', '88%', '70%'].map((w, i) => (
-                    <div key={i} className={`${SKEL}`} style={{ width: w }} />
-                  ))}
-                </div>
-                <div className="mt-auto">
-                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-400 rounded-full" style={{ width: '70%' }} />
-                  </div>
-                  <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
-                    <span>Initial</span><span>Optimised</span>
-                  </div>
-                </div>
-              </div>
-            </HorizontalMockup>
+            {/* Right: vertical report mockup */}
+            <VerticalReportMockup />
           </div>
         </div>
       </section>
 
       {/* ── Maturity levels ──────────────────────────────────────────────── */}
-      <section className="py-12 px-6 bg-white dark:bg-gray-900">
+      <section className="py-12 px-6 bg-white dark:bg-gray-900 border-t-2 border-brand">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-8">
             Four maturity levels
@@ -535,7 +512,7 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="bg-[#1B2B4B] py-12 px-6 text-center">
+      <section className="bg-[#1B2B4B] py-12 px-6 text-center border-t-2 border-brand">
         <h2 className="text-2xl font-bold text-white mb-2">
           Ready to assess your maturity?
         </h2>
@@ -554,23 +531,13 @@ export default function HomePage() {
       {/* ── Footer ───────────────────────────────────────────────────────── */}
       <footer className="bg-[#111827] py-5 px-8 text-center">
         <p className="text-gray-500 text-xs">
-          Maturity Assessment Platform · Powered by AI
+          Observability Maturity Assessment Platform · Powered by AI
         </p>
       </footer>
 
       {/* ── Animation keyframes ──────────────────────────────────────────── */}
       <style>{`
-        /* Both gifs use the same 4-slide timing; translateX % is relative to the 400%-wide track */
         @keyframes flowH {
-          0%     { transform: translateX(0); }
-          26.7%  { transform: translateX(0); }
-          33.3%  { transform: translateX(-25%); }
-          60%    { transform: translateX(-25%); }
-          66.7%  { transform: translateX(-50%); }
-          93.3%  { transform: translateX(-50%); }
-          100%   { transform: translateX(-75%); }
-        }
-        @keyframes reportH {
           0%     { transform: translateX(0); }
           26.7%  { transform: translateX(0); }
           33.3%  { transform: translateX(-25%); }
