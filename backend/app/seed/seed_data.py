@@ -400,7 +400,7 @@ PILLARS = [
         ],
     },
     {
-        "name": "AI System Observability",
+        "name": "AI Application Observability",
         "description": "Assess your organization's maturity in monitoring, evaluating, and governing AI systems and LLM-powered applications in production.",
         "overall_weight": 0.85,
         "display_order": 3,

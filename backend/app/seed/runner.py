@@ -37,17 +37,26 @@ async def _seed_admin(db: AsyncSession) -> None:
 
 
 async def _seed_pillar(db: AsyncSession, pillar_data: dict) -> None:
+    display_order = pillar_data["display_order"]
     name = pillar_data["name"]
-    result = await db.execute(select(Pillar).where(Pillar.name == name))
-    if result.scalar_one_or_none():
-        logger.info("Pillar already exists, skipping: %s", name)
+
+    existing = (
+        await db.execute(select(Pillar).where(Pillar.display_order == display_order))
+    ).scalar_one_or_none()
+
+    if existing:
+        if existing.name != name:
+            logger.info("Pillar display_order=%s renamed: %r → %r", display_order, existing.name, name)
+            existing.name = name
+        else:
+            logger.info("Pillar already exists, skipping: %s", name)
         return
 
     pillar = Pillar(
         name=name,
         description=pillar_data["description"],
         overall_weight=pillar_data["overall_weight"],
-        display_order=pillar_data["display_order"],
+        display_order=display_order,
         is_active=pillar_data.get("is_active", True),
         is_gated=pillar_data["is_gated"],
         gate_question=pillar_data["gate_question"],
