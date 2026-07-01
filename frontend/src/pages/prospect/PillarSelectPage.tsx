@@ -183,7 +183,7 @@ export default function PillarSelectPage() {
               )}
               <button
                 onClick={() => navigate(`/assess/${token}`)}
-                className="mt-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline underline-offset-2 transition-colors"
+                className="mt-2 text-xs text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
               >
                 ← Change details
               </button>
@@ -197,7 +197,7 @@ export default function PillarSelectPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-3">
           {visiblePillars.map((pillar) => {
             const isSuggested = info.suggested_pillars.includes(pillar.id)
             const isDisabled = loadingPillar !== null
@@ -205,25 +205,29 @@ export default function PillarSelectPage() {
             return (
               <div
                 key={pillar.id}
-                className={`relative bg-white dark:bg-gray-800 rounded-xl border p-5 flex flex-col ${
+                className={`bg-white dark:bg-gray-800 rounded-xl border p-5 flex items-center gap-5 ${
                   isSuggested ? 'border-brand' : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
-                {isSuggested && (
-                  <span className="absolute top-3 right-3 text-xs font-semibold text-brand bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
-                    Recommended
-                  </span>
-                )}
-                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-1 pr-20">{pillar.name}</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 flex-1 line-clamp-2">{pillar.description}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400 dark:text-gray-500">~8 minutes</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100">{pillar.name}</h2>
+                    {isSuggested && (
+                      <span className="text-xs font-semibold text-brand bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full shrink-0">
+                        Recommended
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{pillar.description}</p>
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-xs text-gray-400 dark:text-gray-500">~8 min</span>
                   <button
                     onClick={() => handleSelectPillar(pillar)}
                     disabled={isDisabled}
                     className="text-sm font-medium bg-brand text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
                   >
-                    Start Assessment
+                    Start →
                   </button>
                 </div>
               </div>

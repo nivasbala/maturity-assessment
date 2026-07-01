@@ -13,11 +13,16 @@ interface LocationState {
 }
 
 const MESSAGES = [
+  'AI is personalizing your questions…',
   'Analyzing your responses…',
   'Researching your company profile…',
+  'Identifying capability gaps…',
   'Generating your maturity assessment…',
-  'Building your personalized report…',
   'Calculating scores and recommendations…',
+  'Mapping strengths across pillars…',
+  'Building your personalized report…',
+  'Preparing prioritized next steps…',
+  'Almost there…',
 ]
 
 export default function SubmittingPage() {
@@ -128,11 +133,16 @@ export default function SubmittingPage() {
                 </div>
               </div>
 
-              {/* Cycling message */}
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 min-h-[1.25rem]">
-                {MESSAGES[msgIdx]}
-              </p>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              {/* Cycling message badge */}
+              <div className="flex justify-center mt-4">
+                <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    {MESSAGES[msgIdx]}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
                 This usually takes 15–45 seconds
               </p>
             </>
