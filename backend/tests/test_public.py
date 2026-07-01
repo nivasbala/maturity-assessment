@@ -399,3 +399,76 @@ async def test_register_rejects_invalid_persona():
     with pytest.raises(HTTPException) as exc_info:
         await register_prospect("sometoken", body, db)
     assert exc_info.value.status_code == 422
+
+
+# ── select_pillar uses pillar.question_count as target ────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_fallback_respects_pillar_question_count():
+    """_select_questions_fallback target parameter controls how many questions are returned."""
+    from app.services.public_service import _select_questions_fallback
+
+    pillar_id = uuid4()
+    persona = "devops_engineer"
+
+    def make_q(is_general: bool, order: int) -> MagicMock:
+        q = MagicMock()
+        q.id = uuid4()
+        q.is_general = is_general
+        q.display_order = order
+        q.answer_options = []
+        q.personas = []
+        return q
+
+    general_qs = [make_q(True, i + 1) for i in range(4)]
+    # Plenty of persona questions available
+    persona_qs = [make_q(False, i + 10) for i in range(20)]
+
+    db = AsyncMock()
+
+    def make_result(items):
+        r = MagicMock()
+        r.scalars.return_value.all.return_value = items
+        return r
+
+    # Only 2 execute calls — no backfill needed when persona pool is large enough
+    db.execute.side_effect = [make_result(general_qs), make_result(persona_qs)]
+
+    questions = await _select_questions_fallback(db, pillar_id, persona, target=16)
+
+    assert len(questions) == 16
+
+
+@pytest.mark.asyncio
+async def test_fallback_default_target_is_12():
+    """Without an explicit target, fallback returns 12 questions."""
+    from app.services.public_service import _select_questions_fallback
+
+    pillar_id = uuid4()
+    persona = "cto_executive"
+
+    def make_q(is_general: bool, order: int) -> MagicMock:
+        q = MagicMock()
+        q.id = uuid4()
+        q.is_general = is_general
+        q.display_order = order
+        q.answer_options = []
+        q.personas = []
+        return q
+
+    general_qs = [make_q(True, i + 1) for i in range(4)]
+    persona_qs = [make_q(False, i + 10) for i in range(8)]
+
+    db = AsyncMock()
+
+    def make_result(items):
+        r = MagicMock()
+        r.scalars.return_value.all.return_value = items
+        return r
+
+    db.execute.side_effect = [make_result(general_qs), make_result(persona_qs)]
+
+    questions = await _select_questions_fallback(db, pillar_id, persona)
+
+    assert len(questions) == 12
