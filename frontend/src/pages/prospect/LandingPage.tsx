@@ -1,29 +1,37 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { getAssessmentInfo, registerProspect } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
 import { PERSONAS } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
 
+const INPUT_CLS = 'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent'
+const TEXTAREA_CLS = `${INPUT_CLS} resize-none`
+
 export default function LandingPage() {
   const { token } = useParams<{ token: string }>()
+  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
   const [info, setInfo] = useState<AssessmentInfo | null>(null)
   const [loadError, setLoadError] = useState('')
 
+  // Seed from URL query params (?name=Jane+Smith&email=jane@co.com) first,
+  // then fall back to sessionStorage for returning visitors.
+  const urlName = searchParams.get('name') ?? ''
+  const urlEmail = searchParams.get('email') ?? ''
+  const urlParts = urlName.split(' ')
   const savedName = sessionStorage.getItem('prospect_name') ?? ''
   const savedParts = savedName.split(' ')
-  const [firstName, setFirstName] = useState(savedParts[0] ?? '')
-  const [lastName, setLastName] = useState(savedParts.slice(1).join(' ') ?? '')
-  const [email, setEmail] = useState(sessionStorage.getItem('prospect_email') ?? '')
+
+  const [firstName, setFirstName] = useState(urlParts[0] || savedParts[0] || '')
+  const [lastName, setLastName] = useState(urlParts.slice(1).join(' ') || savedParts.slice(1).join(' ') || '')
+  const [email, setEmail] = useState(urlEmail || sessionStorage.getItem('prospect_email') || '')
   const [role, setRole] = useState(sessionStorage.getItem('prospect_role') ?? '')
   const [gateAnswers, setGateAnswers] = useState<Record<string, boolean | null>>({})
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
-  // Optional context fields
-  const [contextExpanded, setContextExpanded] = useState(false)
   const [infrastructureLocation, setInfrastructureLocation] = useState('')
   const [techStackDescription, setTechStackDescription] = useState('')
   const [currentTools, setCurrentTools] = useState('')
@@ -64,7 +72,7 @@ export default function LandingPage() {
 
     setSubmitting(true)
     try {
-      // gatedPillars is ordered by display_order from the backend (P3 first, P4 second)
+      // gatedPillars ordered by display_order from backend (P3 first, P4 second)
       const gateByIndex = gatedPillars.map((gp) => gateAnswers[gp.id] ?? null)
       const p3GateFinal = gateByIndex[0] ?? null
       const p4GateFinal = gateByIndex[1] ?? null
@@ -119,151 +127,156 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <ProspectHeader />
-      <div className="flex-1 flex items-center justify-center py-12 px-4">
-      <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
-        {/* Header */}
-        <div className="mb-8">
-          <p className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
-            {info.company_name}
-          </p>
-          <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-3">Observability Maturity Assessment</h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
-            This assessment will evaluate your organization's technology maturity across key pillars.
-            Your answers will generate a personalized report with actionable recommendations.
-          </p>
-        </div>
+      <div className="flex-1 flex items-center justify-center py-6 px-4">
+        <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
 
-        {/* Form */}
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
-              <input
-                type="text"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-                placeholder="Jane"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
-              <input
-                type="text"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-                placeholder="Smith"
-              />
-            </div>
+          {/* Header */}
+          <div className="mb-5">
+            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
+              {info.company_name}
+            </p>
+            <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+              Observability Maturity Assessment
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed">
+              Answer a few questions to receive a personalized maturity report with actionable recommendations.
+            </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Work Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-              placeholder="jane@company.com"
-            />
-          </div>
+          {/* Two-column form */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent"
-            >
-              <option value="">Select your role…</option>
-              {PERSONAS.map((p) => (
-                <option key={p.value} value={p.value}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Optional context section */}
-          <div className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setContextExpanded((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-            >
-              <span>Add context to personalize your assessment <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span></span>
-              <svg
-                className={`w-4 h-4 transition-transform ${contextExpanded ? 'rotate-180' : ''}`}
-                fill="none" stroke="currentColor" viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {contextExpanded && (
-              <div className="px-4 pb-4 pt-3 space-y-3 bg-white dark:bg-gray-800">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Providing this helps us select the most relevant questions for your role and environment.
-                </p>
+            {/* Left: identity + gate questions */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Infrastructure &amp; deployment</label>
-                  <textarea
-                    rows={2}
-                    value={infrastructureLocation}
-                    onChange={(e) => setInfrastructureLocation(e.target.value)}
-                    placeholder="e.g. AWS us-east-1, on-premises database, GCP for ML workloads"
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">First Name</label>
+                  <input
+                    type="text"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className={INPUT_CLS}
+                    placeholder="Jane"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tech stack description</label>
-                  <textarea
-                    rows={2}
-                    value={techStackDescription}
-                    onChange={(e) => setTechStackDescription(e.target.value)}
-                    placeholder="e.g. Python microservices, Kubernetes, PostgreSQL, Redis, Kafka"
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current tools</label>
-                  <textarea
-                    rows={2}
-                    value={currentTools}
-                    onChange={(e) => setCurrentTools(e.target.value)}
-                    placeholder="e.g. Datadog, PagerDuty, GitHub Actions, Terraform, Jira"
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Last Name</label>
+                  <input
+                    type="text"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className={INPUT_CLS}
+                    placeholder="Smith"
                   />
                 </div>
               </div>
-            )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Work Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={INPUT_CLS}
+                  placeholder="jane@company.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Your Role</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  className={INPUT_CLS}
+                >
+                  <option value="">Select your role…</option>
+                  {PERSONAS.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Gate questions */}
+              {gatedPillars.map((gp) => (
+                <GateQuestion
+                  key={gp.id}
+                  pillar={gp}
+                  value={gateAnswers[gp.id] ?? null}
+                  onChange={(val) => handleGate(gp.id, val)}
+                />
+              ))}
+            </div>
+
+            {/* Right: optional context */}
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-0.5">
+                  Add context{' '}
+                  <span className="text-gray-400 dark:text-gray-500 font-normal text-xs">(optional)</span>
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  Helps us select the most relevant questions for your environment.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Infrastructure &amp; deployment
+                </label>
+                <textarea
+                  rows={2}
+                  value={infrastructureLocation}
+                  onChange={(e) => setInfrastructureLocation(e.target.value)}
+                  placeholder="e.g. AWS us-east-1, on-premises DB, GCP for ML"
+                  className={TEXTAREA_CLS}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Tech stack
+                </label>
+                <textarea
+                  rows={2}
+                  value={techStackDescription}
+                  onChange={(e) => setTechStackDescription(e.target.value)}
+                  placeholder="e.g. Python microservices, Kubernetes, PostgreSQL, Kafka"
+                  className={TEXTAREA_CLS}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Current tools
+                </label>
+                <textarea
+                  rows={2}
+                  value={currentTools}
+                  onChange={(e) => setCurrentTools(e.target.value)}
+                  placeholder="e.g. Datadog, PagerDuty, GitHub Actions, Terraform"
+                  className={TEXTAREA_CLS}
+                />
+              </div>
+            </div>
           </div>
 
-          {/* Gate questions */}
-          {gatedPillars.map((gp) => (
-            <GateQuestion
-              key={gp.id}
-              pillar={gp}
-              value={gateAnswers[gp.id] ?? null}
-              onChange={(val) => handleGate(gp.id, val)}
-            />
-          ))}
+          {/* Error + submit */}
+          <div className="mt-5 space-y-3">
+            {formError && (
+              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                {formError}
+              </p>
+            )}
+            <button
+              onClick={handleBegin}
+              disabled={submitting}
+              className="w-full bg-brand text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+            >
+              {submitting ? 'Starting…' : 'Begin Assessment'}
+            </button>
+          </div>
 
-          {formError && (
-            <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              {formError}
-            </p>
-          )}
-
-          <button
-            onClick={handleBegin}
-            disabled={submitting}
-            className="w-full bg-brand text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
-          >
-            {submitting ? 'Starting…' : 'Begin Assessment'}
-          </button>
         </div>
-      </div>
       </div>
     </div>
   )
@@ -279,8 +292,8 @@ function GateQuestion({
   onChange: (val: boolean) => void
 }) {
   return (
-    <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
-      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">{pillar.gate_question}</p>
+    <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700">
+      <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{pillar.gate_question}</p>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
           <input

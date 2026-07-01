@@ -11,9 +11,19 @@ function UrlModal({
   onClose: () => void
 }) {
   const [copied, setCopied] = useState(false)
+  const [prospectName, setProspectName] = useState('')
+  const [prospectEmail, setProspectEmail] = useState('')
+
+  const buildUrl = () => {
+    const params = new URLSearchParams()
+    if (prospectName.trim()) params.set('name', prospectName.trim())
+    if (prospectEmail.trim()) params.set('email', prospectEmail.trim())
+    const qs = params.toString()
+    return qs ? `${result.full_url}?${qs}` : result.full_url
+  }
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(result.full_url).then(() => {
+    navigator.clipboard.writeText(buildUrl()).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -23,10 +33,35 @@ function UrlModal({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6">
         <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Assessment URL Generated</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Share this URL with the prospect to begin their assessment.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Optionally enter the prospect's details to pre-fill their registration form.
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prospect name</label>
+            <input
+              type="text"
+              value={prospectName}
+              onChange={(e) => setProspectName(e.target.value)}
+              placeholder="Jane Smith"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prospect email</label>
+            <input
+              type="email"
+              value={prospectEmail}
+              onChange={(e) => setProspectEmail(e.target.value)}
+              placeholder="jane@company.com"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
+            />
+          </div>
+        </div>
 
         <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-3 flex items-center gap-2">
-          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 break-all font-mono">{result.full_url}</span>
+          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 break-all font-mono">{buildUrl()}</span>
           <button
             onClick={handleCopy}
             className="shrink-0 px-3 py-1 text-sm bg-brand text-white rounded hover:bg-blue-700 focus:outline-none"
@@ -158,8 +193,13 @@ export default function AccountDetailPage() {
     }
   }
 
-  const handleCopyUrl = (token: string) => {
-    const url = `${window.location.origin}/assess/${token}`
+  const handleCopyUrl = (token: string, prospectName?: string | null, prospectEmail?: string | null) => {
+    const base = `${window.location.origin}/assess/${token}`
+    const params = new URLSearchParams()
+    if (prospectName) params.set('name', prospectName)
+    if (prospectEmail) params.set('email', prospectEmail)
+    const qs = params.toString()
+    const url = qs ? `${base}?${qs}` : base
     navigator.clipboard.writeText(url).catch(() => {
       setActionError(`Failed to copy. URL: ${url}`)
     })
@@ -275,14 +315,14 @@ export default function AccountDetailPage() {
                       </button>
                     ) : row.status === 'pending' && row.short_url_token ? (
                       <button
-                        onClick={() => handleCopyUrl(row.short_url_token!)}
+                        onClick={() => handleCopyUrl(row.short_url_token!, row.prospect_name, row.prospect_email)}
                         className="text-sm text-brand hover:underline"
                       >
                         Copy URL
                       </button>
                     ) : row.status === 'in_progress' && row.short_url_token ? (
                       <button
-                        onClick={() => handleCopyUrl(row.short_url_token!)}
+                        onClick={() => handleCopyUrl(row.short_url_token!, row.prospect_name, row.prospect_email)}
                         className="text-sm text-brand hover:underline"
                       >
                         Copy URL
