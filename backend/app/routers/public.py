@@ -17,9 +17,12 @@ from app.core.database import get_db
 from app.core.security import decode_session_token
 from app.schemas.public import (
     AssessmentInfoOut,
+    ConfirmResearchOut,
+    ConfirmResearchRequest,
     RegisterOut,
     RegisterRequest,
     ReportPublicOut,
+    ResearchSummaryOut,
     SelectPillarOut,
     SelectPillarRequest,
     SubmitOut,
@@ -52,6 +55,25 @@ async def register_prospect(
     db: AsyncSession = Depends(get_db),
 ) -> RegisterOut:
     return await public_service.register_prospect(token, body, db)
+
+
+@router.get("/assess/{token}/research-summary", response_model=ResearchSummaryOut)
+async def get_research_summary(
+    token: str,
+    session: dict = Depends(_get_session),
+    db: AsyncSession = Depends(get_db),
+) -> ResearchSummaryOut:
+    return await public_service.get_research_summary(token, session, db)
+
+
+@router.post("/assess/{token}/confirm-research", response_model=ConfirmResearchOut)
+async def confirm_research(
+    token: str,
+    body: ConfirmResearchRequest,
+    session: dict = Depends(_get_session),
+    db: AsyncSession = Depends(get_db),
+) -> ConfirmResearchOut:
+    return await public_service.confirm_research(token, session, body, db)
 
 
 @router.post("/assess/{token}/select-pillar", response_model=SelectPillarOut)

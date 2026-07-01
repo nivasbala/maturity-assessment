@@ -53,6 +53,7 @@ class AssessmentReportState(TypedDict):
     pre_computed_maturity_level: int
     pre_computed_maturity_label: str
     assessment_id: str
+    prospect_corrections: str | None
 
     # ── Set by research_node ─────────────────────────────────────────────────
     company_profile: dict[str, Any]
@@ -148,6 +149,7 @@ def _build_graph(db: AsyncSession) -> Any:
                 maturity_label=state["maturity_label"],
                 persona=state["persona"],
                 company_name=state["company_name"],
+                prospect_corrections=state.get("prospect_corrections"),
             )
             return {
                 "executive_summary": narrative.get("executive_summary", ""),
@@ -195,6 +197,7 @@ async def run_assessment_orchestrator(
     pre_computed_maturity_level: int,
     pre_computed_maturity_label: str,
     company_profile: dict[str, Any] | None = None,
+    prospect_corrections: str | None = None,
 ) -> dict[str, Any]:
     """Run the report generation pipeline and return the narrative fields.
 
@@ -220,6 +223,7 @@ async def run_assessment_orchestrator(
         "strengths": [],
         "gap_analysis": [],
         "next_steps": [],
+        "prospect_corrections": prospect_corrections,
         "error": None,
     }
 

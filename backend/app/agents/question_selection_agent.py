@@ -47,35 +47,58 @@ You are a technical assessment expert helping to personalize a maturity assessme
 for a specific company and role.
 
 You will receive:
-1. Prospect role: {persona_label}
+1. Prospect role: {persona_label} — {persona_description}
 2. Assessment pillar: {pillar_name}
    Description: {pillar_description}
-3. Company research context:
+3. Company research profile (from Agent 1):
 {research_summary}
 
-4. Candidate questions (JSON):
+4. Prospect-provided context (direct input — treat as primary signal):
+   Infrastructure & deployment: {infrastructure_location}
+   Tech stack description:      {tech_stack_description}
+   Current tools:               {current_tools}
+   Research corrections:        {prospect_corrections}
+   (Empty fields above were not provided by the prospect)
+
+5. Candidate questions (JSON):
 {candidate_questions_json}
 
 Each question has: "id", "text", "is_general", "context_tags"
 
-Your task: Select exactly {question_count} questions that best assess this prospect's \
-maturity in {pillar_name}.
+Your task: Select exactly {question_count} questions that best assess this \
+prospect's maturity in {pillar_name}.
 
 MANDATORY RULES:
-- Include ALL questions where "is_general" is true — no exceptions
-- Select remaining questions ONLY from the provided list — never invent questions
-- Return exactly {question_count} question IDs total
+- Include ALL {general_count} questions where "is_general" is true — no exceptions
+- Select exactly {persona_count} remaining questions from persona-eligible candidates only
+- Total must be exactly {question_count} ({general_count} general + {persona_count} persona-specific)
+- ONLY select from the provided question IDs — never invent questions
 
-When research is available, prefer questions whose context_tags match the company's \
-technology stack, cloud providers, and industry. Prioritize questions that address \
-the specific challenges and business outcomes in the research.
-
-When research is empty, select the most broadly diagnostic questions for a \
-{persona_label} in this pillar.
+SELECTION GUIDANCE:
+Use the prospect's directly stated tech stack and tools (Input 4) as the \
+primary signal — these are more accurate than any inferred data.
+Match questions whose context_tags align with technologies explicitly mentioned \
+in tech_stack_description or current_tools.
+Use the research profile (Input 3) for business context: prioritize questions \
+that address key_challenges, operational_scale, and business_outcomes.
+If data_confidence is "low", weight the pillar and persona more than company context.
+If prospect_corrections are present, use them to override any conflicting research.
 
 Return ONLY a valid JSON array of exactly {question_count} question IDs in \
-presentation order. No explanation, no markdown, no preamble — just the array:
+presentation order. No explanation, no markdown, no preamble:
 ["uuid-1", "uuid-2", ...]"""
+
+
+_PERSONA_DESCRIPTIONS: dict[str, str] = {
+    "cto_executive": "Sets technology strategy and investment priorities",
+    "vp_engineering": "Leads engineering teams and delivery processes",
+    "ciso_vp_security": "Owns security posture and compliance",
+    "sre_platform_engineer": "Builds and operates production reliability infrastructure",
+    "devops_engineer": "Manages CI/CD pipelines and deployment automation",
+    "ml_ai_engineer": "Builds and deploys ML models and AI systems",
+    "security_engineer": "Implements application security controls",
+    "software_developer": "Writes and ships application code",
+}
 
 
 def _build_research_summary(research_cache: dict[str, Any] | None) -> str:
@@ -84,20 +107,26 @@ def _build_research_summary(research_cache: dict[str, Any] | None) -> str:
     parts: list[str] = []
     if research_cache.get("industry"):
         parts.append(f"Industry: {research_cache['industry']}")
+    if research_cache.get("company_size"):
+        parts.append(f"Company size: {research_cache['company_size']}")
     if research_cache.get("products_summary"):
         parts.append(f"Products: {research_cache['products_summary']}")
-    signals = research_cache.get("technology_signals") or []
-    if signals:
-        parts.append(f"Technology signals: {', '.join(signals)}")
+    if research_cache.get("target_customers"):
+        parts.append(f"Target customers: {research_cache['target_customers']}")
     clouds = research_cache.get("cloud_providers") or []
     if clouds:
         parts.append(f"Cloud providers: {', '.join(clouds)}")
     challenges = research_cache.get("key_challenges") or []
     if challenges:
-        parts.append(f"Key challenges: {', '.join(challenges)}")
+        parts.append(f"Key challenges: {'; '.join(challenges)}")
     outcomes = research_cache.get("business_outcomes") or []
     if outcomes:
-        parts.append(f"Business outcomes: {', '.join(outcomes)}")
+        parts.append(f"Business outcomes: {'; '.join(outcomes)}")
+    scale = research_cache.get("operational_scale") or []
+    if scale:
+        parts.append(f"Operational scale: {'; '.join(scale)}")
+    confidence = research_cache.get("data_confidence", "low")
+    parts.append(f"Data confidence: {confidence}")
     return "\n".join(parts) if parts else "No research data available."
 
 
@@ -106,6 +135,10 @@ async def select_questions(
     persona: str,
     research_cache: dict[str, Any] | None,
     db: AsyncSession,
+    infrastructure_location: str | None = None,
+    tech_stack_description: str | None = None,
+    current_tools: str | None = None,
+    prospect_corrections: str | None = None,
 ) -> list[Question]:
     """Return question_count questions for the given pillar and persona.
 
@@ -116,8 +149,12 @@ async def select_questions(
     Args:
         pillar_id: UUID of the selected pillar.
         persona: Prospect's role string (must match persona enum).
-        research_cache: Parsed accounts.research_cache JSONB, or None if not ready.
+        research_cache: Parsed accounts.research_cache JSONB (Input 1), or None.
         db: Async SQLAlchemy session.
+        infrastructure_location: Prospect-provided infra context (Input 2).
+        tech_stack_description: Prospect-provided tech stack description (Input 2).
+        current_tools: Prospect-provided current toolset (Input 2).
+        prospect_corrections: Corrections entered at research summary step (Input 2).
 
     Returns:
         Ordered list of Question ORM objects (eager-loaded with answer_options + personas).
@@ -184,7 +221,11 @@ async def select_questions(
         for q in all_candidates
     ]
 
+    general_count = len(general_qs)
+    persona_count = question_count - general_count
+
     persona_label = _PERSONA_LABELS.get(persona, persona)
+    persona_description = _PERSONA_DESCRIPTIONS.get(persona, "")
     research_summary = _build_research_summary(research_cache)
 
     prompt = ChatPromptTemplate.from_messages(
@@ -197,11 +238,18 @@ async def select_questions(
     raw = await chain.ainvoke(
         {
             "persona_label": persona_label,
+            "persona_description": persona_description,
             "pillar_name": pillar.name,
             "pillar_description": pillar.description,
             "research_summary": research_summary,
+            "infrastructure_location": infrastructure_location or "(not provided)",
+            "tech_stack_description": tech_stack_description or "(not provided)",
+            "current_tools": current_tools or "(not provided)",
+            "prospect_corrections": prospect_corrections or "(none)",
             "candidate_questions_json": json.dumps(candidate_list, indent=2),
             "question_count": question_count,
+            "general_count": general_count,
+            "persona_count": persona_count,
         }
     )
 

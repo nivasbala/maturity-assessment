@@ -8,6 +8,7 @@ import type {
   QuestionPublic,
   ReportPublic,
   RegisterRequest,
+  ResearchSummary,
   SelectPillarResponse,
 } from '../types'
 
@@ -22,6 +23,26 @@ export const registerProspect = (
 ) =>
   api
     .post<{ session_token: string }>(`/assess/${token}/register`, data)
+    .then((r) => r.data)
+
+export const getResearchSummary = (token: string, sessionToken: string) =>
+  api
+    .get<ResearchSummary>(`/assess/${token}/research-summary`, {
+      headers: { 'X-Session-Token': sessionToken },
+    })
+    .then((r) => r.data)
+
+export const confirmResearch = (
+  token: string,
+  sessionToken: string,
+  corrections: string | null,
+) =>
+  api
+    .post<{ confirmed: boolean }>(
+      `/assess/${token}/confirm-research`,
+      { corrections },
+      { headers: { 'X-Session-Token': sessionToken } },
+    )
     .then((r) => r.data)
 
 export const selectPillar = (

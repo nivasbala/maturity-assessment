@@ -22,6 +22,11 @@ export default function LandingPage() {
   const [gateAnswers, setGateAnswers] = useState<Record<string, boolean | null>>({})
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
+  // Optional context fields
+  const [contextExpanded, setContextExpanded] = useState(false)
+  const [infrastructureLocation, setInfrastructureLocation] = useState('')
+  const [techStackDescription, setTechStackDescription] = useState('')
+  const [currentTools, setCurrentTools] = useState('')
 
   useEffect(() => {
     if (!token) return
@@ -75,6 +80,9 @@ export default function LandingPage() {
         prospect_role: role,
         p3_gate_answered_yes: p3GateFinal,
         p4_gate_answered_yes: p4GateFinal,
+        infrastructure_location: infrastructureLocation.trim() || null,
+        tech_stack_description: techStackDescription.trim() || null,
+        current_tools: currentTools.trim() || null,
       })
 
       sessionStorage.setItem('session_token', result.session_token)
@@ -83,7 +91,7 @@ export default function LandingPage() {
       sessionStorage.setItem('prospect_name', `${firstName.trim()} ${lastName.trim()}`)
       sessionStorage.setItem('prospect_role', role)
       sessionStorage.setItem('prospect_email', email.trim())
-      navigate(`/assess/${token}/pillars`)
+      navigate(`/assess/${token}/research-summary`)
     } catch (e) {
       setFormError(extractApiError(e, 'Registration failed. Please try again.'))
     } finally {
@@ -180,6 +188,60 @@ export default function LandingPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Optional context section */}
+          <div className="border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setContextExpanded((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+            >
+              <span>Add context to personalize your assessment <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span></span>
+              <svg
+                className={`w-4 h-4 transition-transform ${contextExpanded ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {contextExpanded && (
+              <div className="px-4 pb-4 pt-3 space-y-3 bg-white dark:bg-gray-800">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Providing this helps us select the most relevant questions for your role and environment.
+                </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Infrastructure &amp; deployment</label>
+                  <textarea
+                    rows={2}
+                    value={infrastructureLocation}
+                    onChange={(e) => setInfrastructureLocation(e.target.value)}
+                    placeholder="e.g. AWS us-east-1, on-premises database, GCP for ML workloads"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tech stack description</label>
+                  <textarea
+                    rows={2}
+                    value={techStackDescription}
+                    onChange={(e) => setTechStackDescription(e.target.value)}
+                    placeholder="e.g. Python microservices, Kubernetes, PostgreSQL, Redis, Kafka"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current tools</label>
+                  <textarea
+                    rows={2}
+                    value={currentTools}
+                    onChange={(e) => setCurrentTools(e.target.value)}
+                    placeholder="e.g. Datadog, PagerDuty, GitHub Actions, Terraform, Jira"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Gate questions */}

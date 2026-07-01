@@ -40,10 +40,13 @@ from app.schemas.public import (
     AnswerOptionPublic,
     AssessmentInfoOut,
     AvailablePillar,
+    ConfirmResearchOut,
+    ConfirmResearchRequest,
     QuestionPublic,
     RegisterOut,
     RegisterRequest,
     ReportPublicOut,
+    ResearchSummaryOut,
     SelectPillarOut,
     SubmitOut,
     SubmitRequest,
@@ -94,14 +97,29 @@ async def _ensure_unique_token(db: AsyncSession) -> str:
     return token
 
 
-async def _run_agent1_background(account_id: UUID, company_name: str, company_website: str | None) -> None:
+async def _run_agent1_background(
+    account_id: UUID,
+    company_name: str,
+    company_website: str | None,
+    infrastructure_location: str | None = None,
+    tech_stack_description: str | None = None,
+    current_tools: str | None = None,
+) -> None:
     """Fire Agent 1 in a background coroutine with its own DB session."""
     async with AsyncSessionLocal() as db:
         try:
-            await run_research_agent(account_id, company_name, company_website, db)
+            await run_research_agent(
+                account_id,
+                company_name,
+                company_website,
+                db,
+                infrastructure_location=infrastructure_location,
+                tech_stack_description=tech_stack_description,
+                current_tools=current_tools,
+            )
             logger.info("Agent 1 completed for account_id=%s", account_id)
         except NotImplementedError:
-            logger.info("Agent 1 not yet implemented (Task 9) — skipping for account_id=%s", account_id)
+            logger.info("Agent 1 not yet implemented — skipping for account_id=%s", account_id)
         except Exception:
             logger.error("Agent 1 background task failed for account_id=%s", account_id, exc_info=True)
 
@@ -269,11 +287,18 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     assessment = await _get_assessment_by_token(token, db)
     account = assessment.account
 
-    # Update the original assessment with prospect info (persisted for internal user visibility)
+    # Update the original assessment with prospect info
     assessment.prospect_name = body.prospect_name
     assessment.prospect_email = body.prospect_email
     assessment.prospect_role = body.prospect_role
     await db.commit()
+
+    # Save optional prospect context onto the account
+    if any([body.infrastructure_location, body.tech_stack_description, body.current_tools]):
+        account.infrastructure_location = body.infrastructure_location or account.infrastructure_location
+        account.tech_stack_description = body.tech_stack_description or account.tech_stack_description
+        account.current_tools = body.current_tools or account.current_tools
+        await db.commit()
 
     # Build session token payload
     session_data: dict = {
@@ -287,13 +312,84 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     }
     session_token = create_session_token(session_data)
 
-    # Fire Agent 1 in background (non-blocking) — checks cache TTL internally
+    # Fire Agent 1 in background (non-blocking) with both web + prospect context
     asyncio.create_task(
-        _run_agent1_background(account.id, account.company_name, account.company_website)
+        _run_agent1_background(
+            account.id,
+            account.company_name,
+            account.company_website,
+            infrastructure_location=body.infrastructure_location,
+            tech_stack_description=body.tech_stack_description,
+            current_tools=body.current_tools,
+        )
     )
     logger.info("register_prospect: account_id=%s persona=%s — Agent 1 fired", account.id, body.prospect_role)
 
     return RegisterOut(session_token=session_token)
+
+
+async def get_research_summary(token: str, session: dict, db: AsyncSession) -> ResearchSummaryOut:
+    """GET /assess/{token}/research-summary — poll until Agent 1 completes."""
+    assessment = await _get_assessment_by_token(token, db)
+    account_id = UUID(session["account_id"])
+    if assessment.account_id != account_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+
+    if not account.research_cache:
+        logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
+        return ResearchSummaryOut(is_ready=False)
+
+    cache = account.research_cache
+    logger.info("get_research_summary: returning ready profile for account_id=%s", account_id)
+    return ResearchSummaryOut(
+        is_ready=True,
+        company_name=cache.get("company_name", account.company_name),
+        industry=cache.get("industry", ""),
+        company_size=cache.get("company_size", ""),
+        products_summary=cache.get("products_summary", ""),
+        target_customers=cache.get("target_customers", ""),
+        builds_ai_products=cache.get("builds_ai_products", False),
+        cloud_providers=cache.get("cloud_providers") or [],
+        key_challenges=cache.get("key_challenges") or [],
+        business_outcomes=cache.get("business_outcomes") or [],
+        operational_scale=cache.get("operational_scale") or [],
+        data_confidence=cache.get("data_confidence", "low"),
+        research_notes=cache.get("research_notes", ""),
+    )
+
+
+async def confirm_research(
+    token: str,
+    session: dict,
+    body: ConfirmResearchRequest,
+    db: AsyncSession,
+) -> ConfirmResearchOut:
+    """POST /assess/{token}/confirm-research — save corrections and timestamp."""
+    assessment = await _get_assessment_by_token(token, db)
+    account_id = UUID(session["account_id"])
+    if assessment.account_id != account_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+
+    account.research_confirmed_at = datetime.now(timezone.utc)
+    if body.corrections and body.corrections.strip():
+        account.prospect_corrections = body.corrections.strip()
+        logger.info("confirm_research: corrections saved for account_id=%s", account_id)
+    await db.commit()
+
+    logger.info("confirm_research: confirmed for account_id=%s", account_id)
+    return ConfirmResearchOut(confirmed=True)
 
 
 async def select_pillar(
@@ -366,7 +462,16 @@ async def select_pillar(
     research_cache = account.research_cache if account else None
 
     try:
-        questions = await select_questions(pillar_id, persona, research_cache, db)
+        questions = await select_questions(
+            pillar_id,
+            persona,
+            research_cache,
+            db,
+            infrastructure_location=account.infrastructure_location if account else None,
+            tech_stack_description=account.tech_stack_description if account else None,
+            current_tools=account.current_tools if account else None,
+            prospect_corrections=account.prospect_corrections if account else None,
+        )
         logger.info(
             "select_pillar: Agent 2 selected %d questions for assessment_id=%s",
             len(questions),
@@ -515,6 +620,7 @@ async def submit_assessment(
     acct_company_name = acct.company_name
     acct_company_website = acct.company_website
     acct_research_cache = acct.research_cache
+    acct_prospect_corrections = acct.prospect_corrections
 
     # Mark assessment complete
     assessment.status = "completed"
@@ -543,6 +649,7 @@ async def submit_assessment(
         pre_computed_maturity_level=maturity_level,
         pre_computed_maturity_label=maturity_label,
         company_profile=acct_research_cache,
+        prospect_corrections=acct_prospect_corrections,
     )
 
     # Update report with LLM narrative and research snapshot (score already committed above)

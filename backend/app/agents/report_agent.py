@@ -71,7 +71,10 @@ Constraints:
 - Keep language accessible to the persona level ({persona})"""
 
 
-def _format_company_context(company_profile: dict[str, Any]) -> str:
+def _format_company_context(
+    company_profile: dict[str, Any],
+    prospect_corrections: str | None = None,
+) -> str:
     if not company_profile:
         return "No company research available."
     parts: list[str] = []
@@ -81,12 +84,16 @@ def _format_company_context(company_profile: dict[str, Any]) -> str:
         parts.append(f"Size: {company_profile['company_size']}")
     if company_profile.get("products_summary"):
         parts.append(f"Products: {company_profile['products_summary']}")
-    signals = company_profile.get("technology_signals") or []
-    if signals:
-        parts.append(f"Technology signals: {', '.join(signals)}")
+    if company_profile.get("target_customers"):
+        parts.append(f"Target customers: {company_profile['target_customers']}")
     outcomes = company_profile.get("business_outcomes") or []
     if outcomes:
         parts.append(f"Business outcomes: {', '.join(outcomes)}")
+    scale = company_profile.get("operational_scale") or []
+    if scale:
+        parts.append(f"Operational scale: {', '.join(scale)}")
+    if prospect_corrections:
+        parts.append(f"Prospect corrections: {prospect_corrections}")
     return "\n".join(parts) if parts else "No company research available."
 
 
@@ -121,6 +128,7 @@ async def run_report_agent(
     maturity_label: str,
     persona: str,
     company_name: str,
+    prospect_corrections: str | None = None,
 ) -> dict[str, Any]:
     """Generate a maturity report narrative via LLM.
 
@@ -139,7 +147,7 @@ async def run_report_agent(
     Raises:
         Exception on LLM failure — caller (orchestrator) catches and logs.
     """
-    company_context = _format_company_context(company_profile)
+    company_context = _format_company_context(company_profile, prospect_corrections)
     formatted_answers = _format_answers(answers_with_context)
 
     prompt = ChatPromptTemplate.from_messages(

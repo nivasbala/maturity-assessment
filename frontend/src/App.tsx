@@ -5,6 +5,7 @@ import NavBar from './components/NavBar'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import LandingPage from './pages/prospect/LandingPage'
+import ResearchSummaryPage from './pages/prospect/ResearchSummaryPage'
 import PillarSelectPage from './pages/prospect/PillarSelectPage'
 import AssessmentPage from './pages/prospect/AssessmentPage'
 import ReportPage from './pages/prospect/ReportPage'
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
             {/* Prospect flow — no nav bar */}
             <Route path="/assess/:token" element={<LandingPage />} />
+            <Route path="/assess/:token/research-summary" element={<ResearchSummaryPage />} />
             <Route path="/assess/:token/pillars" element={<PillarSelectPage />} />
             <Route path="/assess/:token/assessment/:assessmentId" element={<AssessmentPage />} />
             <Route path="/assess/:token/submitting/:assessmentId" element={<SubmittingPage />} />

@@ -251,6 +251,25 @@ export interface RegisterRequest {
   prospect_role: string
   p3_gate_answered_yes?: boolean | null
   p4_gate_answered_yes?: boolean | null
+  infrastructure_location?: string | null
+  tech_stack_description?: string | null
+  current_tools?: string | null
+}
+
+export interface ResearchSummary {
+  is_ready: boolean
+  company_name: string
+  industry: string
+  company_size: string
+  products_summary: string
+  target_customers: string
+  builds_ai_products: boolean
+  cloud_providers: string[]
+  key_challenges: string[]
+  business_outcomes: string[]
+  operational_scale: string[]
+  data_confidence: 'high' | 'medium' | 'low'
+  research_notes: string
 }
 
 export interface AnswerOptionPublic {

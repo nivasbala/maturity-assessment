@@ -131,8 +131,9 @@ class TestResearchAgent:
         result = await run_research_agent(uuid.uuid4(), "Unknown Co", None, mock_db)
 
         assert result["company_name"] == "Unknown Co"
-        assert result["industry"] == "unknown"
-        assert result["technology_signals"] == []
+        assert result["industry"] == "technology"
+        assert result["data_confidence"] == "low"
+        assert "technology_signals" not in result
 
     def test_minimal_profile_structure(self):
         """Minimal profile has all required keys."""
@@ -141,11 +142,13 @@ class TestResearchAgent:
         profile = _build_minimal_profile("TestCorp")
         required_keys = {
             "company_name", "industry", "company_size", "products_summary",
-            "technology_signals", "builds_ai_products", "cloud_providers",
-            "key_challenges", "business_outcomes",
+            "target_customers", "builds_ai_products", "cloud_providers",
+            "key_challenges", "business_outcomes", "operational_scale",
+            "data_confidence", "research_notes",
         }
         assert required_keys == set(profile.keys())
         assert profile["company_name"] == "TestCorp"
+        assert "technology_signals" not in profile
 
     def test_strip_markdown_fences(self):
         """Markdown fences should be stripped from LLM output."""
@@ -173,16 +176,18 @@ class TestQuestionSelectionAgent:
         cache = {
             "industry": "SaaS",
             "products_summary": "Cloud monitoring platform",
-            "technology_signals": ["Python", "Kubernetes"],
             "cloud_providers": ["AWS"],
             "key_challenges": ["alert fatigue"],
             "business_outcomes": ["uptime SLA"],
+            "data_confidence": "medium",
         }
         summary = _build_research_summary(cache)
         assert "SaaS" in summary
-        assert "Kubernetes" in summary
         assert "AWS" in summary
         assert "alert fatigue" in summary
+        assert "medium" in summary
+        # technology_signals no longer in output (spec v1.6)
+        assert "technology_signals" not in summary
 
     def test_build_research_summary_empty(self):
         """Empty/None cache returns placeholder string."""
@@ -360,13 +365,16 @@ class TestReportAgent:
             "industry": "FinTech",
             "company_size": "mid-market",
             "products_summary": "Payment APIs",
-            "technology_signals": ["Go", "Kubernetes"],
+            "target_customers": "banks and fintechs",
             "business_outcomes": ["transaction reliability"],
+            "operational_scale": ["10M transactions/day"],
         }
         ctx = _format_company_context(profile)
         assert "FinTech" in ctx
-        assert "Go" in ctx
         assert "transaction reliability" in ctx
+        assert "10M transactions/day" in ctx
+        # technology_signals no longer rendered (spec v1.6)
+        assert "technology_signals" not in ctx
 
     def test_format_company_context_empty(self):
         """Empty profile returns placeholder."""
