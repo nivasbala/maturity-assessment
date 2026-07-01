@@ -123,7 +123,7 @@ export default function LandingPage() {
           <p className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
             {info.company_name}
           </p>
-          <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-3">Maturity Assessment</h1>
+          <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-3">Observability Maturity Assessment</h1>
           <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
             This assessment will evaluate your organization's technology maturity across key pillars.
             Your answers will generate a personalized report with actionable recommendations.

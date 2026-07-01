@@ -17,7 +17,7 @@ const MESSAGES = [
   'Analyzing your responses…',
   'Researching your company profile…',
   'Identifying capability gaps…',
-  'Generating your maturity assessment…',
+  'Generating your observability maturity assessment…',
   'Calculating scores and recommendations…',
   'Mapping strengths across pillars…',
   'Building your personalized report…',
