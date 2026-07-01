@@ -544,11 +544,12 @@ async def submit_assessment(
         company_profile=acct_research_cache,
     )
 
-    # Update report with LLM narrative (score record already committed above)
+    # Update report with LLM narrative and research snapshot (score already committed above)
     report.executive_summary = narrative.get("executive_summary", "")
     report.strengths = narrative.get("strengths", [])
     report.gap_analysis = narrative.get("gap_analysis", [])
     report.next_steps = narrative.get("next_steps", [])
+    report.research_data = acct_research_cache or {}
     await db.commit()
     await db.refresh(report)
 

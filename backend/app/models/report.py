@@ -20,6 +20,7 @@ class Report(Base):
     gap_analysis = Column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
     next_steps = Column(JSONB, nullable=False, server_default=text("'[]'::jsonb"))
     pillar_breakdown = Column(JSONB, nullable=False, server_default=text("'{}'::jsonb"))
+    research_data = Column(JSONB, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
     assessment = relationship("Assessment", back_populates="report")

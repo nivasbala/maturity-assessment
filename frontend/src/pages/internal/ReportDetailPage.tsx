@@ -5,6 +5,86 @@ import { useAuth } from '../../contexts/AuthContext'
 import type { AssessmentAnswers, Report } from '../../types'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 
+function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <section>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center justify-between text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3 text-left"
+      >
+        <span>Company Research</span>
+        <span className="text-sm font-normal text-gray-400 dark:text-gray-500">{open ? '▲ Hide' : '▼ Show'}</span>
+      </button>
+      {open && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Industry</p>
+              <p className="text-gray-900 dark:text-gray-100 font-medium">{data.industry || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Company Size</p>
+              <p className="text-gray-900 dark:text-gray-100 font-medium capitalize">{data.company_size || '—'}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Builds AI Products</p>
+              <p className="text-gray-900 dark:text-gray-100 font-medium">{data.builds_ai_products ? 'Yes' : 'No'}</p>
+            </div>
+          </div>
+
+          {data.products_summary && (
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Products / Summary</p>
+              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{data.products_summary}</p>
+            </div>
+          )}
+
+          {data.technology_signals.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Technology Signals</p>
+              <div className="flex flex-wrap gap-1.5">
+                {data.technology_signals.map((t, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">{t}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.cloud_providers.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Cloud Providers</p>
+              <div className="flex flex-wrap gap-1.5">
+                {data.cloud_providers.map((c, i) => (
+                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium">{c}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {data.key_challenges.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Key Challenges</p>
+              <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
+                {data.key_challenges.map((c, i) => <li key={i}>{c}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {data.business_outcomes.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Business Outcomes</p>
+              <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
+                {data.business_outcomes.map((o, i) => <li key={i}>{o}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
@@ -142,6 +222,11 @@ export default function ReportDetailPage() {
         {/* Report */}
         {report ? (
           <>
+            {/* Company Research */}
+            {report.research_data && (
+              <ResearchPanel data={report.research_data} />
+            )}
+
             {/* Executive Summary */}
             <section>
               <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">

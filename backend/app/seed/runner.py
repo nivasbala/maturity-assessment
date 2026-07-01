@@ -36,6 +36,45 @@ async def _seed_admin(db: AsyncSession) -> None:
     logger.info("Admin user created: email masked for security")
 
 
+async def _seed_pillar_questions(db: AsyncSession, pillar_id: int, questions: list) -> None:
+    for q_data in questions:
+        existing_q = (
+            await db.execute(
+                select(Question).where(
+                    Question.pillar_id == pillar_id,
+                    Question.display_order == q_data["display_order"],
+                )
+            )
+        ).scalar_one_or_none()
+        if existing_q:
+            continue
+        question = Question(
+            pillar_id=pillar_id,
+            text=q_data["text"],
+            question_weight=q_data["weight"],
+            is_general=q_data["general"],
+            display_order=q_data["display_order"],
+            context_tags=q_data.get("context_tags", []),
+        )
+        db.add(question)
+        await db.flush()
+        for maturity_level, option_text in q_data["options"]:
+            db.add(AnswerOption(
+                question_id=question.id,
+                text=option_text,
+                maturity_level=maturity_level,
+                display_order=maturity_level,
+            ))
+        for persona, persona_weight in q_data["personas"]:
+            db.add(QuestionPersona(
+                question_id=question.id,
+                persona=persona,
+                persona_weight=persona_weight,
+            ))
+        logger.info("Seeded question display_order=%s for pillar_id=%s", q_data["display_order"], pillar_id)
+    await db.flush()
+
+
 async def _seed_pillar(db: AsyncSession, pillar_data: dict) -> None:
     display_order = pillar_data["display_order"]
     name = pillar_data["name"]
@@ -49,7 +88,8 @@ async def _seed_pillar(db: AsyncSession, pillar_data: dict) -> None:
             logger.info("Pillar display_order=%s renamed: %r → %r", display_order, existing.name, name)
             existing.name = name
         else:
-            logger.info("Pillar already exists, skipping: %s", name)
+            logger.info("Pillar already exists, checking for new questions: %s", name)
+        await _seed_pillar_questions(db, existing.id, pillar_data["questions"])
         return
 
     pillar = Pillar(
@@ -64,34 +104,7 @@ async def _seed_pillar(db: AsyncSession, pillar_data: dict) -> None:
     db.add(pillar)
     await db.flush()
 
-    for q_data in pillar_data["questions"]:
-        question = Question(
-            pillar_id=pillar.id,
-            text=q_data["text"],
-            question_weight=q_data["weight"],
-            is_general=q_data["general"],
-            display_order=q_data["display_order"],
-            context_tags=q_data.get("context_tags", []),
-        )
-        db.add(question)
-        await db.flush()
-
-        for maturity_level, option_text in q_data["options"]:
-            db.add(AnswerOption(
-                question_id=question.id,
-                text=option_text,
-                maturity_level=maturity_level,
-                display_order=maturity_level,
-            ))
-
-        for persona, persona_weight in q_data["personas"]:
-            db.add(QuestionPersona(
-                question_id=question.id,
-                persona=persona,
-                persona_weight=persona_weight,
-            ))
-
-    await db.flush()
+    await _seed_pillar_questions(db, pillar.id, pillar_data["questions"])
     logger.info("Seeded pillar: %s", pillar.name)
 
 

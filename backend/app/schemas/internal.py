@@ -160,6 +160,7 @@ class ReportOut(BaseModel):
     gap_analysis: list[GapItem]
     next_steps: list[NextStepItem]
     pillar_breakdown: dict
+    research_data: dict | None = None
     created_at: datetime
 
 

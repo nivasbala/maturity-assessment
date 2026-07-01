@@ -394,6 +394,7 @@ async def get_assessment_report(
         gap_analysis=report.gap_analysis or [],
         next_steps=report.next_steps or [],
         pillar_breakdown=report.pillar_breakdown or {},
+        research_data=report.research_data,
         created_at=report.created_at,
     )
 

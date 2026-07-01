@@ -215,6 +215,17 @@ export interface Report {
     timeframe: string
   }[]
   pillar_breakdown: Record<string, unknown>
+  research_data: {
+    company_name: string
+    industry: string
+    company_size: string
+    products_summary: string
+    technology_signals: string[]
+    builds_ai_products: boolean
+    cloud_providers: string[]
+    key_challenges: string[]
+    business_outcomes: string[]
+  } | null
   created_at: string
 }
 
