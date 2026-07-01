@@ -49,8 +49,10 @@ async def update_setting(db: AsyncSession, key: str, value: str) -> SystemSettin
             int_val = int(value)
         except ValueError:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Value for '{key}' must be an integer")
-        if int_val < 1:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Value for '{key}' must be >= 1")
+        if key == "question_count_min" and int_val < 12:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="question_count_min cannot be set below 12")
+        elif key == "question_count_max" and int_val < 1:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Value for 'question_count_max' must be >= 1")
 
         # Enforce min <= max constraint
         if key == "question_count_min":

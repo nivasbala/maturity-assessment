@@ -791,6 +791,51 @@ def test_create_pillar_includes_question_count_in_response():
 
 
 @pytest.mark.asyncio
+async def test_settings_service_update_rejects_min_below_12():
+    """update_setting raises 400 when question_count_min is set below 12."""
+    from app.services.settings_service import update_setting
+    from fastapi import HTTPException
+
+    min_row = MagicMock()
+    min_row.value = "12"
+    min_row.key = "question_count_min"
+
+    db = AsyncMock()
+    with patch("app.services.settings_service.get_setting", AsyncMock(return_value=min_row)):
+        for bad_value in ("11", "1", "0"):
+            with pytest.raises(HTTPException) as exc_info:
+                await update_setting(db, "question_count_min", bad_value)
+            assert exc_info.value.status_code == 400
+            assert "12" in exc_info.value.detail
+
+
+@pytest.mark.asyncio
+async def test_settings_service_update_accepts_min_at_12():
+    """update_setting allows question_count_min = 12 (the hard floor)."""
+    from app.services.settings_service import update_setting
+
+    min_row = MagicMock()
+    min_row.value = "12"
+    min_row.key = "question_count_min"
+
+    max_row = MagicMock()
+    max_row.value = "25"
+    max_row.key = "question_count_max"
+
+    async def get_setting_side_effect(db, key):
+        return min_row if key == "question_count_min" else max_row
+
+    db = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    db.execute = AsyncMock(return_value=mock_result)
+
+    with patch("app.services.settings_service.get_setting", AsyncMock(side_effect=get_setting_side_effect)):
+        result = await update_setting(db, "question_count_min", "12")
+    assert result is not None
+
+
+@pytest.mark.asyncio
 async def test_admin_service_create_pillar_rejects_out_of_bounds_question_count():
     """create_pillar raises 400 when question_count is outside system bounds."""
     from app.schemas.admin import PillarCreate
