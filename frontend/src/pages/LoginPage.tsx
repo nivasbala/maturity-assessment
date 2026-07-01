@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { login } from '../api/auth'
 import { useAuth } from '../contexts/AuthContext'
 import FloatingThemeToggle from '../components/FloatingThemeToggle'
@@ -35,7 +35,7 @@ export default function LoginPage() {
       {/* Left branding panel — matches sidebar width and style */}
       <div className="w-56 shrink-0 bg-[#1B2B4B] flex flex-col">
         <div className="px-5 pt-6 pb-5 border-b border-white/10">
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
               <rect x="2" y="5" width="28" height="18" rx="2" stroke="#3B82F6" strokeWidth="1.8"/>
               <polyline points="6,14 10,14 12,8 16,20 19,10 22,14 26,14" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -46,7 +46,12 @@ export default function LoginPage() {
             <span className="text-white font-semibold text-sm tracking-tight leading-tight">
               Observability<br />Maturity<br />Assessment
             </span>
-          </div>
+          </Link>
+        </div>
+        <div className="px-5 pt-4">
+          <Link to="/" className="text-xs text-white/50 hover:text-white/80 transition-colors">
+            ← Back to home
+          </Link>
         </div>
       </div>
 
