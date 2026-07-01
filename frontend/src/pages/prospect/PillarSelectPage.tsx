@@ -110,11 +110,11 @@ export default function PillarSelectPage() {
               <div
                 key={pillar.id}
                 className={`relative bg-white dark:bg-gray-800 rounded-xl border p-5 flex flex-col ${
-                  isSuggested ? 'border-[#4F46E5]' : 'border-gray-200 dark:border-gray-700'
+                  isSuggested ? 'border-[#2563EB]' : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
                 {isSuggested && (
-                  <span className="absolute top-3 right-3 text-xs font-semibold text-[#4F46E5] bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
+                  <span className="absolute top-3 right-3 text-xs font-semibold text-[#2563EB] bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full">
                     Recommended
                   </span>
                 )}
@@ -125,7 +125,7 @@ export default function PillarSelectPage() {
                   <button
                     onClick={() => handleSelectPillar(pillar)}
                     disabled={isDisabled}
-                    className="text-sm font-medium bg-[#2563EB] text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1"
+                    className="text-sm font-medium bg-[#2563EB] text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1"
                   >
                     {isLoading ? 'Personalizing your questions…' : 'Start Assessment'}
                   </button>

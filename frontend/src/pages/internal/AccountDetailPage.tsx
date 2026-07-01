@@ -130,7 +130,7 @@ export default function AccountDetailPage() {
       <div className="max-w-6xl mx-auto px-4 py-8">
         <button
           onClick={() => navigate('/dashboard')}
-          className="text-sm text-[#4F46E5] hover:underline mb-4 flex items-center gap-1"
+          className="text-sm text-[#2563EB] hover:underline mb-4 flex items-center gap-1"
         >
           ← Accounts
         </button>
@@ -144,7 +144,7 @@ export default function AccountDetailPage() {
                   href={account.company_website}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-[#4F46E5] hover:underline mt-1 block"
+                  className="text-sm text-[#2563EB] hover:underline mt-1 block"
                 >
                   {account.company_website}
                 </a>
@@ -207,21 +207,21 @@ export default function AccountDetailPage() {
                     {row.status === 'completed' && row.assessment_id ? (
                       <button
                         onClick={() => navigate(`/dashboard/assessments/${row.assessment_id}`)}
-                        className="text-sm text-[#4F46E5] hover:underline"
+                        className="text-sm text-[#2563EB] hover:underline"
                       >
                         View Report
                       </button>
                     ) : row.status === 'pending' && row.short_url_token ? (
                       <button
                         onClick={() => handleCopyUrl(row.short_url_token!)}
-                        className="text-sm text-[#4F46E5] hover:underline"
+                        className="text-sm text-[#2563EB] hover:underline"
                       >
                         Copy URL
                       </button>
                     ) : row.status === 'in_progress' && row.short_url_token ? (
                       <button
                         onClick={() => handleCopyUrl(row.short_url_token!)}
-                        className="text-sm text-[#4F46E5] hover:underline"
+                        className="text-sm text-[#2563EB] hover:underline"
                       >
                         Copy URL
                       </button>
@@ -229,7 +229,7 @@ export default function AccountDetailPage() {
                       <button
                         onClick={() => handleGenerateUrl(row.pillar_id)}
                         disabled={generating === row.pillar_id}
-                        className="text-sm text-[#4F46E5] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="text-sm text-[#2563EB] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {generating === row.pillar_id ? 'Generating…' : 'Generate URL'}
                       </button>

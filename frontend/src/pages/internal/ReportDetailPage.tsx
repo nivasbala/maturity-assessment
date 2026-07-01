@@ -90,7 +90,7 @@ export default function ReportDetailPage() {
         {/* Back */}
         <button
           onClick={() => navigate(`/dashboard/accounts/${detail.account_id}`)}
-          className="text-sm text-[#4F46E5] hover:underline"
+          className="text-sm text-[#2563EB] hover:underline"
         >
           ← Back to {detail.company_name}
         </button>
