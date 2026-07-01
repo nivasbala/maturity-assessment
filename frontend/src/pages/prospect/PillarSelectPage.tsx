@@ -50,11 +50,34 @@ export default function PillarSelectPage() {
     return isPillarVisibleByOrder(pillar, gatedPillars)
   }
 
+  function getCacheKey(pillarId: string) {
+    return `pillar_questions_${token}_${pillarId}`
+  }
+
   async function handleSelectPillar(pillar: AvailablePillar) {
     setPillarError('')
+
+    const cacheKey = getCacheKey(pillar.id)
+    const cached = sessionStorage.getItem(cacheKey)
+    if (cached) {
+      // Cache hit — navigate immediately, no agent call, no loading screen
+      const result = JSON.parse(cached)
+      navigate(`/assess/${token}/assessment/${result.assessment_id}`, {
+        state: {
+          questions: result.questions,
+          companyName: info?.company_name,
+          pillarName: pillar.name,
+          prospectName,
+          prospectRole: roleLabel,
+        },
+      })
+      return
+    }
+
     setLoadingPillar(pillar)
     try {
       const result = await selectPillar(token!, sessionToken, pillar.id)
+      sessionStorage.setItem(cacheKey, JSON.stringify(result))
       navigate(`/assess/${token}/assessment/${result.assessment_id}`, {
         state: {
           questions: result.questions,
