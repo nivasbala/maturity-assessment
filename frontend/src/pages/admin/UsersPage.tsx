@@ -74,6 +74,7 @@ export default function UsersPage() {
         <div className="flex items-center gap-4 text-sm">
           <a href="/admin/users" className="text-blue-300 font-medium">Users</a>
           <a href="/admin/pillars" className="text-gray-300 hover:text-white">Pillars</a>
+          <a href="/admin/settings" className="text-gray-300 hover:text-white">Settings</a>
           <button onClick={() => clearAuth().then(() => navigate('/login'))} className="text-gray-400 hover:text-white">
             Sign out
           </button>

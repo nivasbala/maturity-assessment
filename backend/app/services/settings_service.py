@@ -1,10 +1,11 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.pillar import Pillar
 from app.models.system_settings import SystemSetting
 
 logger = logging.getLogger(__name__)
@@ -56,13 +57,24 @@ async def update_setting(db: AsyncSession, key: str, value: str) -> SystemSettin
             max_row = await get_setting(db, "question_count_max")
             if max_row and int_val > int(max_row.value):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="question_count_min cannot exceed question_count_max")
-        if key == "question_count_max":
+            # Reject if existing pillars would fall below the new floor
+            affected = (
+                await db.execute(select(Pillar).where(Pillar.question_count < int_val))
+            ).scalars().all()
+            if affected:
+                names = ", ".join(p.name for p in affected[:3])
+                suffix = f" (and {len(affected) - 3} more)" if len(affected) > 3 else ""
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"{len(affected)} pillar(s) have question_count below the new minimum: {names}{suffix}. Update those pillars first.",
+                )
+        elif key == "question_count_max":
             min_row = await get_setting(db, "question_count_min")
             if min_row and int_val < int(min_row.value):
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="question_count_max cannot be less than question_count_min")
 
     row.value = value
-    row.updated_at = datetime.utcnow()
+    row.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(row)
     logger.info("Admin: updated system_setting key=%s", key)

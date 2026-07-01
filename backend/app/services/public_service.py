@@ -131,8 +131,8 @@ async def _select_questions_fallback(
     """Rule-based question selection targeting `target` questions.
 
     Selection order:
-      1. All general questions (is_general=TRUE) — always included.
-      2. Persona-eligible questions (via question_personas) up to fill the target.
+      1. General questions (is_general=TRUE) up to target — highest priority.
+      2. Persona-eligible questions (via question_personas) up to fill remaining slots.
       3. If still short, backfill from any other active non-general questions for the pillar.
 
     This is the fallback used when Agent 2 is unavailable (Task 9 wires in the LLM agent).
@@ -174,9 +174,9 @@ async def _select_questions_fallback(
     general_ids = {q.id for q in general_qs}
     pure_persona = [q for q in persona_qs if q.id not in general_ids]
 
-    # Start with all general questions; fill remaining slots from persona questions
-    selected: list[Question] = list(general_qs)
-    selected_ids = set(general_ids)
+    # Start with general questions up to target; fill remaining slots from persona questions
+    selected: list[Question] = list(general_qs[:target])
+    selected_ids = {q.id for q in selected}
     slots_remaining = target - len(selected)
 
     for q in pure_persona:

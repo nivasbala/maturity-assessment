@@ -51,12 +51,18 @@ export default function PillarsPage() {
   useEffect(() => {
     if (!me) { navigate('/login'); return }
     if (me.role !== 'admin') { navigate('/dashboard'); return }
-    getSettings().then((rows) => {
-      const minRow = rows.find((r) => r.key === 'question_count_min')
-      const maxRow = rows.find((r) => r.key === 'question_count_max')
-      if (minRow) setQMin(parseInt(minRow.value))
-      if (maxRow) setQMax(parseInt(maxRow.value))
-    }).catch(() => {})
+    getSettings()
+      .then((rows) => {
+        const minRow = rows.find((r) => r.key === 'question_count_min')
+        const maxRow = rows.find((r) => r.key === 'question_count_max')
+        if (minRow) setQMin(parseInt(minRow.value, 10))
+        if (maxRow) setQMax(parseInt(maxRow.value, 10))
+      })
+      .catch(() => { setError('Failed to load system settings. Question count bounds may be inaccurate.') })
+  }, [])
+
+  useEffect(() => {
+    if (!me) return
     load()
   }, [page])
 
@@ -270,7 +276,7 @@ export default function PillarsPage() {
                   min={qMin}
                   max={qMax}
                   value={form.question_count}
-                  onChange={(e) => setForm({ ...form, question_count: parseInt(e.target.value) || qMin })}
+                  onChange={(e) => { const v = parseInt(e.target.value, 10); setForm({ ...form, question_count: isNaN(v) ? qMin : v }) }}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
                 />
               </div>
