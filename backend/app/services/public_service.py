@@ -104,7 +104,7 @@ async def _run_agent1_background(
     infrastructure_location: str | None = None,
     tech_stack_description: str | None = None,
     current_tools: str | None = None,
-    prospect_challenges: str | None = None,
+    key_challenges_input: str | None = None,
 ) -> None:
     """Fire Agent 1 in a background coroutine with its own DB session."""
     async with AsyncSessionLocal() as db:
@@ -117,7 +117,7 @@ async def _run_agent1_background(
                 infrastructure_location=infrastructure_location,
                 tech_stack_description=tech_stack_description,
                 current_tools=current_tools,
-                prospect_challenges=prospect_challenges,
+                key_challenges_input=key_challenges_input,
             )
             logger.info("Agent 1 completed for account_id=%s", account_id)
         except NotImplementedError:
@@ -296,7 +296,7 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     account.infrastructure_location = body.infrastructure_location or account.infrastructure_location
     account.tech_stack_description = body.tech_stack_description or account.tech_stack_description
     account.current_tools = body.current_tools or account.current_tools
-    account.prospect_challenges = body.prospect_challenges or account.prospect_challenges
+    account.key_challenges_input = body.key_challenges_input or account.key_challenges_input
     await db.commit()
 
     # Build session token payload
@@ -320,7 +320,7 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
             infrastructure_location=body.infrastructure_location,
             tech_stack_description=body.tech_stack_description,
             current_tools=body.current_tools,
-            prospect_challenges=body.prospect_challenges,
+            key_challenges_input=body.key_challenges_input,
         )
     )
     logger.info("register_prospect: account_id=%s persona=%s — Agent 1 fired", account.id, body.prospect_role)
@@ -468,7 +468,7 @@ async def select_pillar(
             tech_stack_description=account.tech_stack_description if account else None,
             current_tools=account.current_tools if account else None,
             prospect_corrections=account.prospect_corrections if account else None,
-            prospect_challenges=account.prospect_challenges if account else None,
+            key_challenges_input=account.key_challenges_input if account else None,
         )
         logger.info(
             "select_pillar: Agent 2 selected %d questions for assessment_id=%s",

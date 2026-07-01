@@ -722,13 +722,13 @@ PILLARS = [
         ],
     },
     {
-        "name": "AI System Observability",
+        "name": "AI Application Observability",
         "description": "Assess your organization's maturity in monitoring, evaluating, and governing AI systems and LLM-powered applications in production.",
         "overall_weight": 0.85,
         "display_order": 3,
         "is_active": True,
         "is_gated": True,
-        "gate_question": "Is your organization currently building, deploying, or operating AI-powered applications or services?",
+        "gate_question": "Is your organization currently building, deploying, or operating AI-powered applications or services (e.g., LLM applications, AI agents, RAG pipelines)?",
         "questions": [
             {
                 "text": "How do you currently monitor the behavior and performance of your LLM-powered applications in production?",

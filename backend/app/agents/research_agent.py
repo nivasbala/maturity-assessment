@@ -59,7 +59,7 @@ The following was stated directly by the prospect:
   Infrastructure & deployment:  {infrastructure_location}
   Tech stack description:       {tech_stack_description}
   Current tools:                {current_tools}
-  Key challenges they mentioned: {prospect_challenges}
+  Key challenges they stated:   {key_challenges_input}
 
 Empty fields above mean the prospect did not provide that information.
 
@@ -173,7 +173,7 @@ async def run_research_agent(
     infrastructure_location: str | None = None,
     tech_stack_description: str | None = None,
     current_tools: str | None = None,
-    prospect_challenges: str | None = None,
+    key_challenges_input: str | None = None,
 ) -> dict[str, Any]:
     """Research the company and store the result in accounts.research_cache.
 
@@ -190,7 +190,7 @@ async def run_research_agent(
             infrastructure_location,
             tech_stack_description,
             current_tools,
-            prospect_challenges,
+            key_challenges_input,
         )
 
 
@@ -202,7 +202,7 @@ async def _run_research_agent_locked(
     infrastructure_location: str | None,
     tech_stack_description: str | None,
     current_tools: str | None,
-    prospect_challenges: str | None = None,
+    key_challenges_input: str | None = None,
 ) -> dict[str, Any]:
     account = (
         await db.execute(select(Account).where(Account.id == account_id))
@@ -257,7 +257,7 @@ async def _run_research_agent_locked(
                 "infrastructure_location": infrastructure_location or "(not provided)",
                 "tech_stack_description": tech_stack_description or "(not provided)",
                 "current_tools": current_tools or "(not provided)",
-                "prospect_challenges": prospect_challenges or "(not provided)",
+                "key_challenges_input": key_challenges_input or "(not provided)",
                 "search_results": search_results or "No search results available.",
             }
         )

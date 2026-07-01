@@ -57,7 +57,7 @@ You will receive:
    Infrastructure & deployment: {infrastructure_location}
    Tech stack description:      {tech_stack_description}
    Current tools:               {current_tools}
-   Key challenges they mentioned: {prospect_challenges}
+   Key challenges they stated:  {key_challenges_input}
    Research corrections:        {prospect_corrections}
    (Empty fields above were not provided by the prospect)
 
@@ -140,7 +140,7 @@ async def select_questions(
     tech_stack_description: str | None = None,
     current_tools: str | None = None,
     prospect_corrections: str | None = None,
-    prospect_challenges: str | None = None,
+    key_challenges_input: str | None = None,
 ) -> list[Question]:
     """Return question_count questions for the given pillar and persona.
 
@@ -247,7 +247,7 @@ async def select_questions(
             "infrastructure_location": infrastructure_location or "(not provided)",
             "tech_stack_description": tech_stack_description or "(not provided)",
             "current_tools": current_tools or "(not provided)",
-            "prospect_challenges": prospect_challenges or "(not provided)",
+            "key_challenges_input": key_challenges_input or "(not provided)",
             "prospect_corrections": prospect_corrections or "(none)",
             "candidate_questions_json": json.dumps(candidate_list, indent=2),
             "question_count": question_count,

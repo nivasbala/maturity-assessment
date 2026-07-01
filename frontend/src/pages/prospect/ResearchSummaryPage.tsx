@@ -55,7 +55,7 @@ export default function ResearchSummaryPage() {
     infrastructure: sessionStorage.getItem('infrastructure_location') ?? '',
     techStack: sessionStorage.getItem('tech_stack_description') ?? '',
     tools: sessionStorage.getItem('current_tools') ?? '',
-    challenges: sessionStorage.getItem('prospect_challenges') ?? '',
+    challenges: sessionStorage.getItem('key_challenges_input') ?? '',
   }
   const hasProspectContext = Object.values(prospectContext).some((v) => v.trim() !== '')
 
