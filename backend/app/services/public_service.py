@@ -4,13 +4,13 @@ Public Assessment Service
 Handles the unauthenticated prospect flow:
   1. GET /assess/{token}     — assessment info + available pillars
   2. POST /register          — prospect registration + session token (fires Agent 1)
-  3. POST /select-pillar     — question selection (rule-based fallback; Agent 2 in Task 9)
-  4. POST /submit            — save answers, score, create report (Agent 3 in Task 9)
+  3. POST /select-pillar     — question selection (Agent 2 LLM, falls back to rule-based)
+  4. POST /submit            — save answers, score, create report (LangGraph orchestrator)
   5. GET /report/{id}        — fetch completed report
 
-Agent 1 is triggered non-blocking at /register time.
-Agent 2 will be wired in at /select-pillar in Task 9.
-Agent 3 will be wired in at /submit in Task 9.
+Agent 1 fires non-blocking at /register time.
+Agent 2 runs synchronously at /select-pillar time (~3-8s); falls back to rule-based on failure.
+LangGraph orchestrator (Agent 3) runs synchronously at /submit time.
 """
 from __future__ import annotations
 
@@ -26,6 +26,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.agents.orchestrator import run_assessment_orchestrator
+from app.agents.question_selection_agent import select_questions
 from app.agents.research_agent import run_research_agent
 from app.core.database import AsyncSessionLocal
 from app.core.security import create_session_token
@@ -357,8 +359,26 @@ async def select_pillar(
         await db.commit()
         await db.refresh(assessment)
 
-    # Question selection — rule-based fallback (Agent 2 wired in Task 9)
-    questions = await _select_questions_fallback(db, pillar_id, persona, target=pillar.question_count)
+    # Agent 2: LLM question selection — falls back to rule-based on any failure
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    research_cache = account.research_cache if account else None
+
+    try:
+        questions = await select_questions(pillar_id, persona, research_cache, db)
+        logger.info(
+            "select_pillar: Agent 2 selected %d questions for assessment_id=%s",
+            len(questions),
+            assessment.id,
+        )
+    except Exception:
+        logger.warning(
+            "select_pillar: Agent 2 failed — using rule-based fallback for pillar_id=%s",
+            pillar_id,
+            exc_info=True,
+        )
+        questions = await _select_questions_fallback(db, pillar_id, persona, target=pillar.question_count)
 
     logger.info(
         "select_pillar: assessment_id=%s pillar=%s persona=%s questions=%d",
@@ -494,15 +514,38 @@ async def submit_assessment(
     await db.refresh(report)
 
     logger.info(
-        "submit_assessment: assessment_id=%s score=%.2f level=%d — report_id=%s",
+        "submit_assessment: assessment_id=%s score=%.2f level=%d — report_id=%s — running Agent 3",
         body.assessment_id,
         pillar_score,
         maturity_level,
         report.id,
     )
 
-    # Agent 3 (LangGraph orchestrator) wired in Task 9 — stub here
-    # When Task 9 is implemented, call the orchestrator and update the report with narrative.
+    # LangGraph orchestrator: Agent 3 (Report Agent) — user waits ~15-45s
+    narrative = await run_assessment_orchestrator(
+        db=db,
+        account_id=account.id,
+        company_name=account.company_name,
+        company_website=account.company_website,
+        persona=persona,
+        pillar_name=pillar.name if pillar else "Assessment",
+        assessment_id=body.assessment_id,
+        pre_computed_score=pillar_score,
+        pre_computed_maturity_level=maturity_level,
+        pre_computed_maturity_label=maturity_label,
+    )
+
+    # Update report with LLM narrative (score record already committed above)
+    report.executive_summary = narrative.get("executive_summary", "")
+    report.strengths = narrative.get("strengths", [])
+    report.gap_analysis = narrative.get("gap_analysis", [])
+    report.next_steps = narrative.get("next_steps", [])
+    await db.commit()
+    await db.refresh(report)
+
+    logger.info(
+        "submit_assessment: report narrative saved for report_id=%s", report.id
+    )
 
     return SubmitOut(report_id=report.id)
 
