@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { createQuestion, deactivateQuestion, getQuestions, updateQuestion } from '../../api/admin'
 import { extractApiError } from '../../api'
@@ -14,6 +14,7 @@ const EMPTY_FORM = {
   question_weight: 1.0,
   is_general: false,
   is_active: true,
+  context_tags: [] as string[],
   answer_options: [
     { text: '', maturity_level: 1 },
     { text: '', maturity_level: 2 },
@@ -37,6 +38,8 @@ export default function QuestionsPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [tagInput, setTagInput] = useState('')
+  const tagInputRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
     if (!pillarId) return
@@ -62,6 +65,7 @@ export default function QuestionsPage() {
     setSelected(null)
     setIsEditing(true)
     setForm(EMPTY_FORM)
+    setTagInput('')
     setFormError(null)
   }
 
@@ -73,13 +77,26 @@ export default function QuestionsPage() {
       question_weight: Number(q.question_weight),
       is_general: q.is_general,
       is_active: q.is_active,
+      context_tags: q.context_tags || [],
       answer_options: [1, 2, 3, 4].map((level) => {
         const opt = q.answer_options.find((o) => o.maturity_level === level)
         return { text: opt?.text ?? '', maturity_level: level }
       }),
       personas: q.personas.map((p) => ({ persona: p.persona, persona_weight: Number(p.persona_weight) })),
     })
+    setTagInput('')
     setFormError(null)
+  }
+
+  const addTag = (raw: string) => {
+    const tag = raw.trim().toLowerCase().replace(/\s+/g, '_')
+    if (!tag || form.context_tags.includes(tag)) return
+    setForm((prev) => ({ ...prev, context_tags: [...prev.context_tags, tag] }))
+    setTagInput('')
+  }
+
+  const removeTag = (tag: string) => {
+    setForm((prev) => ({ ...prev, context_tags: prev.context_tags.filter((t) => t !== tag) }))
   }
 
   const handleSave = async () => {
@@ -285,6 +302,50 @@ export default function QuestionsPage() {
                     </div>
                   </div>
                 )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Context Tags
+                    <span className="ml-1 text-xs text-gray-400 dark:text-gray-500 font-normal">(hints for Agent 2 question selection)</span>
+                  </label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {form.context_tags.map((tag) => (
+                      <span key={tag} className="inline-flex items-center gap-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs px-2 py-0.5 rounded-full">
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => removeTag(tag)}
+                          className="text-blue-500 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 leading-none"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      ref={tagInputRef}
+                      type="text"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ',') {
+                          e.preventDefault()
+                          addTag(tagInput)
+                        }
+                      }}
+                      placeholder="e.g. kubernetes, aws (Enter to add)"
+                      className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => addTag(tagInput)}
+                      className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600"
+                    >
+                      Add
+                    </button>
+                  </div>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Answer Options</label>

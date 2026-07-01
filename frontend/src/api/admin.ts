@@ -69,6 +69,7 @@ export const createQuestion = (
     question_weight: number
     is_general: boolean
     is_active: boolean
+    context_tags: string[]
     answer_options: { text: string; maturity_level: number }[]
     personas: { persona: string; persona_weight: number }[]
   }

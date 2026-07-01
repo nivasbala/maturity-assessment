@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createUser, deactivateUser, getUsers } from '../../api/admin'
+import { createUser, deactivateUser, getUsers, updateUser } from '../../api/admin'
 import { extractApiError } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
 import type { User } from '../../types'
@@ -19,6 +19,12 @@ export default function UsersPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '' })
   const [formError, setFormError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editTarget, setEditTarget] = useState<User | null>(null)
+  const [editForm, setEditForm] = useState({ name: '', email: '' })
+  const [editError, setEditError] = useState<string | null>(null)
+  const [editSaving, setEditSaving] = useState(false)
 
   const load = async (p = page) => {
     setLoading(true)
@@ -62,6 +68,29 @@ export default function UsersPage() {
       load()
     } catch {
       alert('Failed to deactivate user.')
+    }
+  }
+
+  const openEdit = (u: User) => {
+    setEditTarget(u)
+    setEditForm({ name: u.name, email: u.email })
+    setEditError(null)
+    setShowEditModal(true)
+  }
+
+  const handleEditSave = async () => {
+    if (!editTarget) return
+    setEditError(null)
+    setEditSaving(true)
+    try {
+      await updateUser(editTarget.id, { name: editForm.name, email: editForm.email })
+      setShowEditModal(false)
+      setEditTarget(null)
+      load()
+    } catch (e: unknown) {
+      setEditError(extractApiError(e, 'Failed to update user.'))
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -121,14 +150,22 @@ export default function UsersPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right">
-                    {u.is_active && u.id !== me?.id && (
+                    <div className="flex items-center justify-end gap-3">
                       <button
-                        onClick={() => handleDeactivate(u.id)}
-                        className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+                        onClick={() => openEdit(u)}
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-200 font-medium"
                       >
-                        Deactivate
+                        Edit
                       </button>
-                    )}
+                      {u.is_active && u.id !== me?.id && (
+                        <button
+                          onClick={() => handleDeactivate(u.id)}
+                          className="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 font-medium"
+                        >
+                          Deactivate
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -156,6 +193,56 @@ export default function UsersPage() {
           </div>
         )}
       </div>
+
+      {showEditModal && editTarget && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+            <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-gray-100 mb-4">Edit User</h2>
+
+            {editError && (
+              <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded border border-red-200 dark:border-red-800">
+                {editError}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
+                <input
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowEditModal(false); setEditTarget(null) }}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditSave}
+                disabled={editSaving || !editForm.name || !editForm.email}
+                className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {editSaving ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

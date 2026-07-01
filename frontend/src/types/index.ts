@@ -48,6 +48,7 @@ export interface Question {
   is_general: boolean
   display_order: number
   is_active: boolean
+  context_tags: string[]
   answer_options: AnswerOption[]
   personas: QuestionPersona[]
 }

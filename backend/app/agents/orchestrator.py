@@ -57,7 +57,7 @@ class AssessmentReportState(TypedDict):
     prospect_corrections: str | None
 
     # ── Set by research_node ─────────────────────────────────────────────────
-    company_profile: dict[str, Any]
+    company_profile: dict[str, Any] | None
 
     # ── Set by compute_score_node ────────────────────────────────────────────
     pillar_score: float
@@ -78,8 +78,10 @@ def _build_graph(db: AsyncSession) -> Any:
     """Build and compile the LangGraph StateGraph with DB session captured."""
 
     async def research_node(state: AssessmentReportState) -> dict[str, Any]:
-        # company_profile is pre-populated in initial_state from submit_assessment
-        if state.get("company_profile"):
+        # company_profile is pre-populated from submit_assessment.
+        # None = research_cache was NULL (Agent 1 still running) → re-run.
+        # {} = Agent 1 ran but returned empty profile → skip re-run.
+        if state.get("company_profile") is not None:
             logger.info("orchestrator research_node: using pre-fetched profile")
             return {}
 
@@ -223,7 +225,8 @@ async def run_assessment_orchestrator(
         "pre_computed_maturity_level": pre_computed_maturity_level,
         "pre_computed_maturity_label": pre_computed_maturity_label,
         # Filled by nodes (or pre-populated from submit_assessment):
-        "company_profile": company_profile or {},
+        # None = research_cache was NULL; {} = cache exists but empty. research_node checks is not None.
+        "company_profile": company_profile,
         "pillar_score": pre_computed_score,
         "maturity_level": pre_computed_maturity_level,
         "maturity_label": pre_computed_maturity_label,

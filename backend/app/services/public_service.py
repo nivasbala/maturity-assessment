@@ -337,8 +337,32 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
 
     account = assessment.account
     if not account.research_cache:
-        logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
-        return ResearchSummaryOut(is_ready=False)
+        updated_at = account.updated_at
+        if updated_at.tzinfo is None:
+            updated_at = updated_at.replace(tzinfo=timezone.utc)
+        elapsed_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
+        if elapsed_seconds < 60:
+            logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
+            return ResearchSummaryOut(is_ready=False)
+        logger.warning(
+            "get_research_summary: 60s timeout reached for account_id=%s — returning empty profile",
+            account_id,
+        )
+        return ResearchSummaryOut(
+            is_ready=True,
+            company_name=account.company_name,
+            industry="",
+            company_size="",
+            products_summary="",
+            target_customers="",
+            builds_ai_products=False,
+            cloud_providers=[],
+            key_challenges=[],
+            business_outcomes=[],
+            operational_scale=[],
+            data_confidence="low",
+            research_notes="Research summary is not available. You can still proceed with your assessment.",
+        )
 
     cache = account.research_cache
     logger.info("get_research_summary: returning ready profile for account_id=%s", account_id)
@@ -450,13 +474,7 @@ async def select_pillar(
         await db.execute(select(Account).where(Account.id == account_id))
     ).scalar_one_or_none()
 
-    if not account or not account.research_confirmed_at:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Research summary must be confirmed before selecting a pillar",
-        )
-
-    research_cache = account.research_cache
+    research_cache = account.research_cache if account else None
 
     try:
         questions = await select_questions(

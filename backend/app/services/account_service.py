@@ -117,15 +117,10 @@ async def get_account_detail(
     ).scalars().all()
     assessment_map = {a.pillar_id: a for a in assessments}
 
-    # Include active pillars plus any deactivated pillars that already have an
-    # assessment for this account (so completed work is never silently dropped).
-    assessed_pillar_ids = list(assessment_map.keys())
-    pillar_filter = Pillar.is_active == True  # noqa: E712
-    if assessed_pillar_ids:
-        from sqlalchemy import or_
-        pillar_filter = or_(Pillar.is_active == True, Pillar.id.in_(assessed_pillar_ids))  # noqa: E712
+    # Show all pillars (active and inactive) so internal users can see P4's
+    # "Inactive" status and track completed work on deactivated pillars.
     pillars = (
-        await db.execute(select(Pillar).where(pillar_filter).order_by(Pillar.display_order))
+        await db.execute(select(Pillar).order_by(Pillar.display_order))
     ).scalars().all()
 
     pillar_statuses: list[PillarStatusRow] = []
