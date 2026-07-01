@@ -89,7 +89,7 @@ export default function AssessmentPage() {
           </div>
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#2563EB] rounded-full transition-all duration-300"
+              className="h-full bg-brand rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -108,9 +108,9 @@ export default function AssessmentPage() {
                 <button
                   key={option.id}
                   onClick={() => selectOption(option.id)}
-                  className={`w-full text-left border rounded-lg px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1 ${
+                  className={`w-full text-left border rounded-lg px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1 ${
                     isSelected
-                      ? 'border-[#2563EB] bg-blue-50 dark:bg-blue-900/20 text-[#1B2B4B] dark:text-gray-100 font-medium'
+                      ? 'border-brand bg-blue-50 dark:bg-blue-900/20 text-[#1B2B4B] dark:text-gray-100 font-medium'
                       : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
@@ -145,7 +145,7 @@ export default function AssessmentPage() {
             <button
               onClick={goNext}
               disabled={!selectedOptionId}
-              className="px-6 py-2 text-sm font-semibold bg-[#2563EB] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1"
+              className="px-6 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
             >
               Next
             </button>

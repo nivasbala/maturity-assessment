@@ -179,6 +179,11 @@ export interface AnswerRow {
 
 export interface AssessmentAnswers {
   assessment_id: string
+  account_id: string
+  pillar_id: string
+  pillar_name: string
+  company_name: string
+  status: string
   prospect_name: string | null
   prospect_email: string | null
   prospect_role: string | null

@@ -113,6 +113,11 @@ class AnswerRow(BaseModel):
 
 class AssessmentAnswersOut(BaseModel):
     assessment_id: UUID
+    account_id: UUID
+    pillar_id: UUID
+    pillar_name: str
+    company_name: str
+    status: str
     prospect_name: str | None
     prospect_email: str | None
     prospect_role: str | None

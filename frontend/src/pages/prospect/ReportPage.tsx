@@ -4,31 +4,7 @@ import { getReport } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ReportPublic } from '../../types'
 import FloatingThemeToggle from '../../components/FloatingThemeToggle'
-
-const MATURITY_COLORS: Record<string, string> = {
-  Reactive: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
-  Developing: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
-  Defined: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-  Optimized: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
-}
-
-const IMPACT_COLORS: Record<string, string> = {
-  high: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-  low: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-}
-
-const PRIORITY_LABELS: Record<string, string> = {
-  quick_win: 'Quick Win',
-  strategic: 'Strategic',
-  foundational: 'Foundational',
-}
-
-const PRIORITY_COLORS: Record<string, string> = {
-  quick_win: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-  strategic: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  foundational: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-}
+import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 
 const LOADING_MESSAGES = [
   'Researching your company…',
@@ -89,7 +65,7 @@ export default function ReportPage() {
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <button
             onClick={() => navigate(`/assess/${token}/pillars`)}
-            className="text-sm text-[#2563EB] hover:underline"
+            className="text-sm text-brand hover:underline"
           >
             Back to pillar selection
           </button>
@@ -102,7 +78,7 @@ export default function ReportPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
         <FloatingThemeToggle />
-        <div className="animate-spin h-10 w-10 border-4 border-[#2563EB] border-t-transparent rounded-full mb-6" />
+        <div className="animate-spin h-10 w-10 border-4 border-brand border-t-transparent rounded-full mb-6" />
         <p className="text-gray-600 dark:text-gray-400 font-medium text-lg">{LOADING_MESSAGES[loadingMsgIdx]}</p>
       </div>
     )
@@ -186,7 +162,7 @@ export default function ReportPage() {
                         </span>
                       </td>
                       <td className="py-3">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${IMPACT_COLORS[g.effort]}`}>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${EFFORT_COLORS[g.effort]}`}>
                           {g.effort}
                         </span>
                       </td>
@@ -227,7 +203,7 @@ export default function ReportPage() {
         <div className="flex items-center justify-between pb-8">
           <button
             onClick={() => navigate(`/assess/${token}/pillars`)}
-            className="text-sm font-medium text-[#2563EB] border border-[#2563EB] px-5 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-[#2563EB] focus:ring-offset-1"
+            className="text-sm font-medium text-brand border border-brand px-5 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
           >
             Take Another Pillar Assessment
           </button>

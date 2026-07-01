@@ -23,7 +23,7 @@ async def get_question_count_bounds(db: AsyncSession) -> tuple[int, int]:
     """Return (min, max) question count bounds from system_settings."""
     min_row = await get_setting(db, "question_count_min")
     max_row = await get_setting(db, "question_count_max")
-    q_min = int(min_row.value) if min_row else 12
+    q_min = max(int(min_row.value), 12) if min_row else 12
     q_max = int(max_row.value) if max_row else 25
     return q_min, q_max
 

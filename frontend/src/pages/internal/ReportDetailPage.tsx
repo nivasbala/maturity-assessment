@@ -1,47 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getAssessmentAnswers, getAssessmentDetail, getAssessmentReport } from '../../api/internal'
+import { getAssessmentAnswers, getAssessmentReport } from '../../api/internal'
 import { useAuth } from '../../contexts/AuthContext'
-import type { AssessmentAnswers, AssessmentDetail, Report } from '../../types'
-
-const MATURITY_COLORS: Record<string, string> = {
-  Reactive: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800',
-  Developing: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
-  Defined: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800',
-  Optimized: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800',
-}
-
-const IMPACT_COLORS: Record<string, string> = {
-  high: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  medium: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-  low: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-}
-
-const PRIORITY_LABELS: Record<string, string> = {
-  quick_win: 'Quick Win',
-  strategic: 'Strategic',
-  foundational: 'Foundational',
-}
-
-const PRIORITY_COLORS: Record<string, string> = {
-  quick_win: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-  strategic: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  foundational: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
-}
-
-const LEVEL_COLORS: Record<number, string> = {
-  1: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  2: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
-  3: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
-  4: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
-}
+import type { AssessmentAnswers, Report } from '../../types'
+import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const [detail, setDetail] = useState<AssessmentDetail | null>(null)
   const [answers, setAnswers] = useState<AssessmentAnswers | null>(null)
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(true)
@@ -52,12 +20,10 @@ export default function ReportDetailPage() {
     if (!id) return
 
     Promise.all([
-      getAssessmentDetail(id),
       getAssessmentAnswers(id),
       getAssessmentReport(id).catch(() => null),
     ])
-      .then(([det, ans, rep]) => {
-        setDetail(det)
+      .then(([ans, rep]) => {
         setAnswers(ans)
         setReport(rep)
       })
@@ -73,7 +39,7 @@ export default function ReportDetailPage() {
     )
   }
 
-  if (error || !detail || !answers) {
+  if (error || !answers) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <p className="text-red-600 dark:text-red-400">{error ?? 'Assessment not found.'}</p>
@@ -89,10 +55,10 @@ export default function ReportDetailPage() {
 
         {/* Back */}
         <button
-          onClick={() => navigate(`/dashboard/accounts/${detail.account_id}`)}
-          className="text-sm text-[#2563EB] hover:underline"
+          onClick={() => navigate(`/dashboard/accounts/${answers.account_id}`)}
+          className="text-sm text-brand hover:underline"
         >
-          ← Back to {detail.company_name}
+          ← Back to {answers.company_name}
         </button>
 
         {/* Header */}
@@ -100,9 +66,9 @@ export default function ReportDetailPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100">
-                {detail.pillar_name}
+                {answers.pillar_name}
               </h1>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{detail.company_name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{answers.company_name}</p>
             </div>
             {answers.maturity_label && answers.pillar_score != null && (
               <div className="text-right shrink-0">
@@ -229,7 +195,7 @@ export default function ReportDetailPage() {
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${IMPACT_COLORS[g.impact] ?? ''}`}>
                             {g.impact} impact
                           </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${IMPACT_COLORS[g.effort] ?? ''}`}>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${EFFORT_COLORS[g.effort] ?? ''}`}>
                             {g.effort} effort
                           </span>
                         </div>

@@ -96,7 +96,7 @@ export default function SettingsPage() {
                     <span className="text-lg font-bold text-[#1B2B4B] dark:text-gray-100">{s.value}</span>
                     <button
                       onClick={() => startEdit(s)}
-                      className="text-xs text-[#2563EB] hover:underline"
+                      className="text-xs text-brand hover:underline"
                     >
                       Edit
                     </button>
@@ -111,12 +111,12 @@ export default function SettingsPage() {
                     min={s.key === 'question_count_min' ? 12 : 1}
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                    className="w-24 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                   <button
                     onClick={() => handleSave(s.key)}
-                    disabled={saving || !editValue || (s.key === 'question_count_min' && parseInt(editValue, 10) < 12)}
-                    className="px-3 py-1.5 bg-[#2563EB] text-white text-xs rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                    disabled={saving || !editValue || isNaN(parseInt(editValue, 10)) || (s.key === 'question_count_min' && parseInt(editValue, 10) < 12)}
+                    className="px-3 py-1.5 bg-brand text-white text-xs rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Save'}
                   </button>

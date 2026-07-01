@@ -143,12 +143,12 @@ export default function QuestionsPage() {
         <div className="w-96 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>
-              <a href="/admin/pillars" className="text-xs text-[#2563EB] hover:underline">← Pillars</a>
+              <a href="/admin/pillars" className="text-xs text-brand hover:underline">← Pillars</a>
               <h2 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100 mt-0.5">Questions</h2>
             </div>
             <button
               onClick={startCreate}
-              className="text-xs bg-[#2563EB] text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700"
+              className="text-xs bg-brand text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700"
             >
               + New
             </button>
@@ -169,7 +169,7 @@ export default function QuestionsPage() {
               <button
                 key={q.id}
                 onClick={() => startEdit(q)}
-                className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${selected?.id === q.id ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-l-[#2563EB]' : ''}`}
+                className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${selected?.id === q.id ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-l-brand' : ''}`}
               >
                 <div className="flex items-start gap-2">
                   <span className={`mt-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${q.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>
@@ -216,7 +216,7 @@ export default function QuestionsPage() {
                     value={form.text}
                     onChange={(e) => setForm({ ...form, text: e.target.value })}
                     rows={3}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                   />
                 </div>
 
@@ -226,7 +226,7 @@ export default function QuestionsPage() {
                     <select
                       value={form.question_weight}
                       onChange={(e) => setForm({ ...form, question_weight: parseFloat(e.target.value) })}
-                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                      className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                     >
                       {WEIGHT_OPTIONS.map((w) => <option key={w} value={w}>{w}</option>)}
                     </select>
@@ -300,7 +300,7 @@ export default function QuestionsPage() {
                             setForm({ ...form, answer_options: updated })
                           }}
                           rows={2}
-                          className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#2563EB]"
+                          className="flex-1 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
                         />
                       </div>
                     ))}
@@ -311,7 +311,7 @@ export default function QuestionsPage() {
                   <button
                     onClick={handleSave}
                     disabled={saving || !form.text || form.answer_options.some((o) => !o.text)}
-                    className="px-4 py-2 bg-[#2563EB] text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {saving ? 'Saving…' : (selected ? 'Save Changes' : 'Create Question')}
                   </button>

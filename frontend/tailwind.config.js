@@ -14,8 +14,8 @@ export default {
           100: '#C5D0E4',
           900: '#1B2B4B',
         },
-        accent: {
-          DEFAULT: '#0066FF',
+        brand: {
+          DEFAULT: '#2563EB',
         },
       },
       fontFamily: {

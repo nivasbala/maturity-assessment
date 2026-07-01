@@ -660,7 +660,7 @@ async def test_settings_service_get_question_count_bounds_reads_db():
         return row
 
     db = AsyncMock()
-    results = [make_row("10"), make_row("30")]
+    results = [make_row("15"), make_row("30")]
     call_count = 0
 
     async def side_effect(stmt):
@@ -673,7 +673,7 @@ async def test_settings_service_get_question_count_bounds_reads_db():
     db.execute = AsyncMock(side_effect=side_effect)
 
     q_min, q_max = await get_question_count_bounds(db)
-    assert q_min == 10
+    assert q_min == 15
     assert q_max == 30
 
 

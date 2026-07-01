@@ -324,6 +324,7 @@ async def get_assessment_answers(
             select(Assessment)
             .options(
                 selectinload(Assessment.account),
+                selectinload(Assessment.pillar),
                 selectinload(Assessment.report),
                 selectinload(Assessment.answers).selectinload(AssessmentAnswer.question),
                 selectinload(Assessment.answers).selectinload(AssessmentAnswer.answer_option),
@@ -347,6 +348,11 @@ async def get_assessment_answers(
 
     return AssessmentAnswersOut(
         assessment_id=assessment.id,
+        account_id=assessment.account_id,
+        pillar_id=assessment.pillar_id,
+        pillar_name=assessment.pillar.name,
+        company_name=assessment.account.company_name,
+        status=assessment.status,
         prospect_name=assessment.prospect_name,
         prospect_email=assessment.prospect_email,
         prospect_role=assessment.prospect_role,
