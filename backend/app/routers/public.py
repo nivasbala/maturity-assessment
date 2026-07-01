@@ -71,11 +71,6 @@ async def submit_assessment(
     session: dict = Depends(_get_session),
     db: AsyncSession = Depends(get_db),
 ) -> SubmitOut:
-    if len(body.answers) != 12:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Exactly 12 answers required",
-        )
     return await public_service.submit_assessment(token, session, body, db)
 
 

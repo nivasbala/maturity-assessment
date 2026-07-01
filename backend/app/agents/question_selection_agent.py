@@ -209,7 +209,7 @@ async def select_questions(
     raw = raw.strip()
     if raw.startswith("```"):
         lines = raw.split("\n")
-        raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:]).strip()
+        raw = "\n".join(lines[1:-1] if lines[-1].strip().startswith("```") else lines[1:]).strip()
 
     selected_ids: list[str] = json.loads(raw)
     if not isinstance(selected_ids, list):
@@ -228,9 +228,8 @@ async def select_questions(
     ordered = [id_to_question[qid] for qid in filtered_ids]
 
     logger.info(
-        "select_questions: pillar=%s persona=%s selected=%d via LLM",
+        "select_questions: pillar=%s selected=%d via LLM",
         pillar_id,
-        persona,
         len(ordered),
     )
     return ordered

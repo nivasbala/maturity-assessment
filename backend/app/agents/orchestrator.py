@@ -35,7 +35,7 @@ from typing_extensions import TypedDict
 
 from app.agents.report_agent import run_report_agent
 from app.agents.research_agent import run_research_agent
-from app.models.account import Account
+from app.core.database import AsyncSessionLocal
 from app.models.assessment import AssessmentAnswer
 from app.models.question import AnswerOption, Question
 
@@ -76,35 +76,31 @@ def _build_graph(db: AsyncSession) -> Any:
     """Build and compile the LangGraph StateGraph with DB session captured."""
 
     async def research_node(state: AssessmentReportState) -> dict[str, Any]:
+        # company_profile is pre-populated in initial_state from submit_assessment
+        if state.get("company_profile"):
+            logger.info("orchestrator research_node: using pre-fetched profile")
+            return {}
+
+        # Edge case: prospect submitted before Agent 1 background task completed.
+        # Re-run Agent 1 using a fresh session — must NOT commit on the orchestrator's
+        # shared db session since generate_report_node still needs to read from it.
         account_id = UUID(state["account_id"])
+        logger.warning(
+            "orchestrator research_node: no cached profile for account_id=%s — re-running Agent 1",
+            account_id,
+        )
         try:
-            account = (
-                await db.execute(select(Account).where(Account.id == account_id))
-            ).scalar_one_or_none()
-
-            if account and account.research_cache:
-                logger.info(
-                    "orchestrator research_node: using cached profile for account_id=%s",
+            async with AsyncSessionLocal() as fresh_db:
+                profile = await run_research_agent(
                     account_id,
+                    state["company_name"],
+                    state.get("company_website"),
+                    fresh_db,
                 )
-                return {"company_profile": account.research_cache}
-
-            # Cache is NULL — re-run Agent 1 (edge case)
-            logger.warning(
-                "orchestrator research_node: cache NULL for account_id=%s — re-running Agent 1",
-                account_id,
-            )
-            profile = await run_research_agent(
-                account_id,
-                state["company_name"],
-                state.get("company_website"),
-                db,
-            )
             return {"company_profile": profile}
-
         except Exception:
             logger.error(
-                "orchestrator research_node: failed for account_id=%s — continuing with empty profile",
+                "orchestrator research_node: Agent 1 re-run failed for account_id=%s — continuing with empty profile",
                 account_id,
                 exc_info=True,
             )
@@ -198,6 +194,7 @@ async def run_assessment_orchestrator(
     pre_computed_score: float,
     pre_computed_maturity_level: int,
     pre_computed_maturity_label: str,
+    company_profile: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Run the report generation pipeline and return the narrative fields.
 
@@ -214,8 +211,8 @@ async def run_assessment_orchestrator(
         "pre_computed_score": pre_computed_score,
         "pre_computed_maturity_level": pre_computed_maturity_level,
         "pre_computed_maturity_label": pre_computed_maturity_label,
-        # Filled by nodes:
-        "company_profile": {},
+        # Filled by nodes (or pre-populated from submit_assessment):
+        "company_profile": company_profile or {},
         "pillar_score": pre_computed_score,
         "maturity_level": pre_computed_maturity_level,
         "maturity_label": pre_computed_maturity_label,

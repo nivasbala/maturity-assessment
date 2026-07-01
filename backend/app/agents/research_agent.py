@@ -30,6 +30,10 @@ from app.models.account import Account
 
 logger = logging.getLogger(__name__)
 
+# Per-account lock prevents concurrent Agent 1 runs for the same account (e.g. background
+# task from /register racing with orchestrator re-run when cache is NULL at /submit time).
+_research_locks: dict[str, asyncio.Lock] = {}
+
 _SYSTEM_PROMPT = """You are a technology analyst researching companies for a maturity assessment.
 Given a company name, website, and search results, return a structured JSON company profile.
 Focus on:
@@ -90,6 +94,17 @@ async def run_research_agent(
     Returns the cache dict so the caller can use it immediately if needed.
     Raises no exceptions — failures are logged and a minimal profile returned.
     """
+    lock = _research_locks.setdefault(str(account_id), asyncio.Lock())
+    async with lock:
+        return await _run_research_agent_locked(account_id, company_name, company_website, db)
+
+
+async def _run_research_agent_locked(
+    account_id: UUID,
+    company_name: str,
+    company_website: str | None,
+    db: AsyncSession,
+) -> dict[str, Any]:
     account = (
         await db.execute(select(Account).where(Account.id == account_id))
     ).scalar_one_or_none()
@@ -114,7 +129,7 @@ async def run_research_agent(
         search_results = await asyncio.to_thread(tool.run, query)
         logger.info("run_research_agent: search complete for company=%s", company_name)
     except Exception:
-        logger.warning(
+        logger.error(
             "run_research_agent: search failed for company=%s — proceeding without results",
             company_name,
             exc_info=True,

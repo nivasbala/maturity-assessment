@@ -507,6 +507,14 @@ async def submit_assessment(
         )
         db.add(report)
 
+    # Capture account fields before commit — db.commit() expires all ORM objects, so
+    # accessing assessment.account.* after the commit raises MissingGreenlet in async SA.
+    acct = assessment.account
+    acct_id = acct.id
+    acct_company_name = acct.company_name
+    acct_company_website = acct.company_website
+    acct_research_cache = acct.research_cache
+
     # Mark assessment complete
     assessment.status = "completed"
     assessment.completed_at = datetime.now(timezone.utc)
@@ -524,15 +532,16 @@ async def submit_assessment(
     # LangGraph orchestrator: Agent 3 (Report Agent) — user waits ~15-45s
     narrative = await run_assessment_orchestrator(
         db=db,
-        account_id=account.id,
-        company_name=account.company_name,
-        company_website=account.company_website,
+        account_id=acct_id,
+        company_name=acct_company_name,
+        company_website=acct_company_website,
         persona=persona,
         pillar_name=pillar.name if pillar else "Assessment",
         assessment_id=body.assessment_id,
         pre_computed_score=pillar_score,
         pre_computed_maturity_level=maturity_level,
         pre_computed_maturity_label=maturity_label,
+        company_profile=acct_research_cache,
     )
 
     # Update report with LLM narrative (score record already committed above)
