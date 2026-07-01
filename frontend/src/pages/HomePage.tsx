@@ -1,3 +1,4 @@
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import DarkModeToggle from '../components/DarkModeToggle'
@@ -84,46 +85,37 @@ const REPORT_BENEFITS = [
   },
 ]
 
-const REPORT_SLIDES = [
-  {
-    heading: 'Executive Summary',
-    lines: [
-      { w: '90%', dark: false },
-      { w: '75%', dark: false },
-      { w: '85%', dark: false },
-      { w: '60%', dark: false },
-    ],
-    badge: { label: 'Overall Score', value: '2.8 / 4.0', color: '#f59e0b' },
-  },
-  {
-    heading: 'Strengths',
-    lines: [
-      { w: '80%', dark: false },
-      { w: '65%', dark: false },
-      { w: '70%', dark: false },
-    ],
-    badge: { label: 'Pillar', value: 'Full-Stack Observability', color: '#22c55e' },
-  },
-  {
-    heading: 'Key Gaps',
-    lines: [
-      { w: '85%', dark: false },
-      { w: '70%', dark: false },
-      { w: '75%', dark: false },
-    ],
-    badge: { label: 'Priority', value: 'High', color: '#ef4444' },
-  },
-  {
-    heading: 'Next Steps',
-    lines: [
-      { w: '80%', dark: false },
-      { w: '90%', dark: false },
-      { w: '65%', dark: false },
-      { w: '75%', dark: false },
-    ],
-    badge: { label: 'Action Items', value: '5 recommended', color: '#3b82f6' },
-  },
-]
+/* ── Reusable horizontal mockup shell ────────────────────────────────────── */
+function HorizontalMockup({ animName, children }: { animName: string; children: React.ReactNode }) {
+  return (
+    <div className="relative w-full overflow-hidden rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 h-56">
+      {/* sliding track — 4 slides wide */}
+      <div
+        className="absolute inset-0 flex flex-row"
+        style={{
+          width: '400%',
+          animation: `${animName} 15s ease-in-out infinite`,
+        }}
+      >
+        {children}
+      </div>
+      {/* right-edge fade */}
+      <div className="absolute top-0 right-0 bottom-0 w-12 pointer-events-none bg-gradient-to-l from-white to-transparent dark:from-gray-900" />
+      {/* dot indicators */}
+      <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none" style={{ animation: `${animName}Dots 15s ease-in-out infinite` }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={`w-1.5 h-1.5 rounded-full bg-brand/30`} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* each slide takes 25% of the 400%-wide track = 100% of visible container */
+const SLIDE = 'w-1/4 shrink-0 h-56 px-5 py-4 flex flex-col gap-2 overflow-hidden'
+const LABEL = 'text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider'
+const HEADING = 'text-[13px] font-bold text-[#1B2B4B] dark:text-gray-100'
+const SKEL = 'h-2 rounded-full bg-gray-200 dark:bg-gray-700'
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -140,11 +132,11 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 font-sans">
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
-      <header className="bg-[#1B2B4B] px-8 h-14 flex items-center justify-between">
-        <span className="text-white font-semibold text-base tracking-tight">
+      <header className="bg-[#1B2B4B] px-8 h-14 relative flex items-center">
+        <span className="absolute left-1/2 -translate-x-1/2 text-white font-bold text-xl tracking-tight">
           Maturity Assessment
         </span>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-auto">
           <DarkModeToggle />
           <button
             onClick={handleCta}
@@ -156,24 +148,24 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-[#1B2B4B] text-white pb-24 pt-20 px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1 rounded-full mb-6 tracking-wide uppercase">
+      <section className="bg-[#1B2B4B] text-white pt-12 pb-14 px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1 rounded-full mb-5 tracking-wide uppercase">
             AI-Powered Assessment
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-5">
+          <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-4">
             Know exactly where you stand.
             <br />
             <span className="text-brand">Know exactly what to do next.</span>
           </h1>
-          <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-xl mx-auto">
+          <p className="text-white/70 text-base leading-relaxed mb-6 max-w-lg mx-auto">
             A personalised observability maturity assessment that benchmarks your
             organisation across five critical pillars and delivers a prioritised
             action plan — in under 10 minutes.
           </p>
           <button
             onClick={handleCta}
-            className="bg-brand hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base shadow-lg"
+            className="bg-brand hover:bg-blue-600 text-white font-semibold px-7 py-2.5 rounded-lg transition-colors text-sm shadow-lg"
           >
             {user ? 'Go to dashboard' : 'Log in to get started'}
           </button>
@@ -181,24 +173,24 @@ export default function HomePage() {
       </section>
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-gray-50 dark:bg-gray-800">
+      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-2">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             How it works
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-14">
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10">
             From link to report in three steps.
           </p>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left half: steps */}
-            <div className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            {/* Left: steps */}
+            <div className="space-y-5">
               {STEPS.map((step) => (
                 <div key={step.number} className="flex items-start gap-4">
                   <div className="text-2xl font-black text-brand w-10 shrink-0 leading-none pt-0.5">
                     {step.number}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
+                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-0.5">
                       {step.title}
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -209,135 +201,145 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Right half: animated flow mockup */}
-            <div className="flex justify-center">
-              <div className="relative w-72 h-96 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-600 shadow-xl bg-white dark:bg-gray-900">
-                <div
-                  className="absolute inset-0 flex flex-col"
-                  style={{ animation: 'flowScroll 12s ease-in-out infinite' }}
-                >
-                  {/* Slide 1: personalised link */}
-                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 rounded-full bg-brand" />
-                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 01</span>
-                    </div>
-                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Your personalised link</h4>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">Your account team sends a link scoped to your company and role.</p>
-                    <div className="mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-brand/30 shrink-0" />
-                      <div className="flex flex-col gap-1 flex-1">
-                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-4/5" />
-                        <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full w-3/5" />
-                      </div>
-                    </div>
-                    <div className="mt-auto bg-brand rounded-lg px-4 py-2 text-center">
-                      <span className="text-white text-xs font-semibold">Start Assessment →</span>
-                    </div>
-                  </div>
-
-                  {/* Slide 2: answering a question */}
-                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 rounded-full bg-brand" />
-                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 02</span>
-                    </div>
-                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Answer targeted questions</h4>
-                    <div className="flex flex-col gap-2 flex-1">
-                      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
-                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-full mb-1.5" />
-                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-4/5" />
-                      </div>
-                      {[['Level 1 – Ad hoc', false], ['Level 2 – Developing', true], ['Level 3 – Defined', false], ['Level 4 – Optimised', false]].map(([label, selected]) => (
-                        <div
-                          key={String(label)}
-                          className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-[11px] ${
-                            selected
-                              ? 'border-brand bg-brand/5 dark:bg-brand/10 text-brand font-medium'
-                              : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
-                          }`}
-                        >
-                          <div className={`w-3 h-3 rounded-full border shrink-0 ${selected ? 'border-brand bg-brand' : 'border-gray-300 dark:border-gray-600'}`} />
-                          {String(label)}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Slide 3: report ready */}
-                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 rounded-full bg-brand" />
-                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 03</span>
-                    </div>
-                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Your report is ready</h4>
-                    <div
-                      className="self-start text-white text-[10px] font-semibold px-2.5 py-1 rounded-full"
-                      style={{ backgroundColor: '#f59e0b' }}
-                    >
-                      Overall Score: 2.8 / 4.0
-                    </div>
-                    <div className="flex flex-col gap-2 mt-1">
-                      {[['Full-Stack Observability', '3.4', '#22c55e'], ['AIOps & Intelligent Obs.', '2.1', '#f59e0b'], ['Security & DevSecOps', '3.1', '#22c55e']].map(([name, score, color]) => (
-                        <div key={String(name)} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
-                          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate flex-1 mr-2">{String(name)}</span>
-                          <span className="text-[11px] font-bold shrink-0" style={{ color }}>{String(score)}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="mt-auto bg-brand/10 dark:bg-brand/20 rounded-lg px-3 py-2 text-center border border-brand/20">
-                      <span className="text-brand text-[11px] font-semibold">Download PDF Report</span>
-                    </div>
-                  </div>
-
-                  {/* Repeat slide 1 for seamless loop */}
-                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 rounded-full bg-brand" />
-                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 01</span>
-                    </div>
-                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Your personalised link</h4>
-                    <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">Your account team sends a link scoped to your company and role.</p>
-                    <div className="mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-brand/30 shrink-0" />
-                      <div className="flex flex-col gap-1 flex-1">
-                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-4/5" />
-                        <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full w-3/5" />
-                      </div>
-                    </div>
-                    <div className="mt-auto bg-brand rounded-lg px-4 py-2 text-center">
-                      <span className="text-white text-xs font-semibold">Start Assessment →</span>
-                    </div>
-                  </div>
+            {/* Right: horizontal flow mockup */}
+            <HorizontalMockup animName="flowH">
+              {/* Slide 1: prospect registration */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Step 01 · Registration</span>
                 </div>
-
-                {/* Fade overlay at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none bg-gradient-to-t from-white to-transparent dark:from-gray-900" />
+                <p className={HEADING}>Tell us about yourself</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">Personalise your assessment</p>
+                <div className="flex flex-col gap-2 mt-1">
+                  {['Your name', 'Company', 'Job title'].map((placeholder) => (
+                    <div
+                      key={placeholder}
+                      className="border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-1.5 text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800"
+                    >
+                      {placeholder}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto bg-brand rounded-lg py-1.5 text-center">
+                  <span className="text-white text-[11px] font-semibold">Start Assessment →</span>
+                </div>
               </div>
-            </div>
+
+              {/* Slide 2: question screen */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Step 02 · Question 3 of 8</span>
+                </div>
+                <div className="h-1 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div className="h-full bg-brand rounded-full" style={{ width: '37.5%' }} />
+                </div>
+                <p className={HEADING}>Full-Stack Observability</p>
+                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg px-2.5 py-2">
+                  <div className={`${SKEL} w-full mb-1`} />
+                  <div className={`${SKEL} w-4/5`} />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    ['Ad hoc, no standard practice', false],
+                    ['Basic tooling, limited coverage', true],
+                    ['Consistent, team-wide adoption', false],
+                    ['Automated & continuously improved', false],
+                  ].map(([label, sel]) => (
+                    <div
+                      key={String(label)}
+                      className={`flex items-center gap-1.5 rounded px-2 py-1 border text-[10px] ${
+                        sel
+                          ? 'border-brand bg-brand/5 dark:bg-brand/10 text-brand font-medium'
+                          : 'border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400'
+                      }`}
+                    >
+                      <div className={`w-2.5 h-2.5 rounded-full border shrink-0 ${sel ? 'border-brand bg-brand' : 'border-gray-300 dark:border-gray-600'}`} />
+                      {String(label)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Slide 3: report ready */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Step 03 · Your Report</span>
+                </div>
+                <p className={HEADING}>Assessment complete</p>
+                <div className="inline-flex self-start text-white text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#f59e0b' }}>
+                  Overall: 2.8 / 4.0
+                </div>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  {[
+                    ['Full-Stack Observability', 85, '#22c55e', '3.4'],
+                    ['AIOps & Intelligent Obs.', 52, '#f59e0b', '2.1'],
+                    ['Security & DevSecOps', 77, '#22c55e', '3.1'],
+                  ].map(([name, pct, color, score]) => (
+                    <div key={String(name)}>
+                      <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mb-0.5">
+                        <span className="truncate mr-1">{String(name)}</span>
+                        <span className="font-semibold shrink-0" style={{ color }}>{String(score)}</span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto border border-brand/30 bg-brand/5 dark:bg-brand/10 rounded-lg py-1.5 text-center">
+                  <span className="text-brand text-[11px] font-semibold">Download PDF Report</span>
+                </div>
+              </div>
+
+              {/* Slide 4: repeat slide 1 for seamless loop */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Step 01 · Registration</span>
+                </div>
+                <p className={HEADING}>Tell us about yourself</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">Personalise your assessment</p>
+                <div className="flex flex-col gap-2 mt-1">
+                  {['Your name', 'Company', 'Job title'].map((placeholder) => (
+                    <div
+                      key={placeholder}
+                      className="border border-gray-300 dark:border-gray-600 rounded-lg px-2.5 py-1.5 text-[10px] text-gray-400 dark:text-gray-500 bg-white dark:bg-gray-800"
+                    >
+                      {placeholder}
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto bg-brand rounded-lg py-1.5 text-center">
+                  <span className="text-white text-[11px] font-semibold">Start Assessment →</span>
+                </div>
+              </div>
+            </HorizontalMockup>
           </div>
         </div>
       </section>
 
       {/* ── Pillars ──────────────────────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-white dark:bg-gray-900">
+      <section className="py-12 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-2">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             Five pillars. One clear picture.
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-12 max-w-lg mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-8 max-w-lg mx-auto">
             Each assessment is scored from 1.0 (Initial) to 4.0 (Optimised),
             giving you a precise, actionable maturity level per pillar.
           </p>
           {/* First row: 3 cards */}
-          <div className="grid sm:grid-cols-3 gap-5 mb-5">
+          <div className="grid sm:grid-cols-3 gap-4 mb-4">
             {PILLARS.slice(0, 3).map((p) => (
               <div
                 key={p.title}
-                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-5 hover:shadow-md transition-shadow"
+                className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-4 hover:shadow-md transition-shadow"
               >
-                <div className="text-2xl mb-3">{p.icon}</div>
-                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1.5">
+                <div className="text-xl mb-2">{p.icon}</div>
+                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
                   {p.title}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -347,14 +349,14 @@ export default function HomePage() {
             ))}
           </div>
           {/* Second row: 2 cards centered */}
-          <div className="flex justify-center gap-5">
+          <div className="flex justify-center gap-4">
             {PILLARS.slice(3).map((p) => (
               <div
                 key={p.title}
-                className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-5 hover:shadow-md transition-shadow w-full sm:max-w-[calc(33.333%-10px)]"
+                className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-4 hover:shadow-md transition-shadow w-full sm:max-w-[calc(33.333%-8px)]"
               >
-                <div className="text-2xl mb-3">{p.icon}</div>
-                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1.5">
+                <div className="text-xl mb-2">{p.icon}</div>
+                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
                   {p.title}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -366,23 +368,23 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── Report Preview ───────────────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-gray-50 dark:bg-gray-800">
+      {/* ── What you'll get ──────────────────────────────────────────────── */}
+      <section className="py-12 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-2">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
             What you'll get
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-14 max-w-lg mx-auto">
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10 max-w-lg mx-auto">
             A comprehensive, AI-generated report tailored to your organisation — ready in minutes.
           </p>
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left half: benefits */}
-            <div className="space-y-6">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            {/* Left: benefits */}
+            <div className="space-y-4">
               {REPORT_BENEFITS.map((b) => (
-                <div key={b.title} className="flex items-start gap-4">
-                  <div className="text-xl w-8 shrink-0">{b.icon}</div>
+                <div key={b.title} className="flex items-start gap-3">
+                  <div className="text-lg w-7 shrink-0">{b.icon}</div>
                   <div>
-                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
+                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-0.5">
                       {b.title}
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -393,92 +395,121 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Right half: animated report mockup */}
-            <div className="flex justify-center">
-              <div className="relative w-72 h-96 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-600 shadow-xl bg-white dark:bg-gray-900">
-                {/* Scrolling slides container */}
-                <div
-                  className="absolute inset-0 flex flex-col"
-                  style={{
-                    animation: 'reportScroll 12s ease-in-out infinite',
-                  }}
-                >
-                  {[...REPORT_SLIDES, REPORT_SLIDES[0]].map((slide, idx) => (
-                    <div
-                      key={idx}
-                      className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3"
-                    >
-                      {/* Header bar */}
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center gap-2">
-                          <div className="w-2 h-2 rounded-full bg-brand" />
-                          <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                            Maturity Report
-                          </span>
-                        </div>
-                        <span className="text-[9px] text-gray-300 dark:text-gray-600">
-                          {idx + 1} / {REPORT_SLIDES.length}
-                        </span>
+            {/* Right: horizontal report mockup */}
+            <HorizontalMockup animName="reportH">
+              {/* Slide 1: executive summary + overall score */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Maturity Report</span>
+                </div>
+                <p className={HEADING}>Executive Summary</p>
+                <div className="inline-flex self-start text-white text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#f59e0b' }}>
+                  Overall: 2.8 / 4.0 · Developing
+                </div>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  {['95%', '80%', '88%', '70%'].map((w, i) => (
+                    <div key={i} className={`${SKEL}`} style={{ width: w }} />
+                  ))}
+                </div>
+                <div className="mt-auto">
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-400 rounded-full" style={{ width: '70%' }} />
+                  </div>
+                  <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    <span>Initial</span><span>Optimised</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Slide 2: pillar scores */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Pillar Scores</span>
+                </div>
+                <p className={HEADING}>How you scored</p>
+                <div className="flex flex-col gap-2 mt-1">
+                  {[
+                    ['Full-Stack Obs.', 85, '#22c55e', '3.4'],
+                    ['AIOps', 52, '#f59e0b', '2.1'],
+                    ['AI System Obs.', 45, '#ef4444', '1.8'],
+                    ['Security', 77, '#22c55e', '3.1'],
+                  ].map(([name, pct, color, score]) => (
+                    <div key={String(name)}>
+                      <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mb-0.5">
+                        <span>{String(name)}</span>
+                        <span className="font-semibold" style={{ color }}>{String(score)}</span>
                       </div>
-
-                      {/* Badge */}
-                      <div
-                        className="self-start text-white text-[10px] font-semibold px-2.5 py-1 rounded-full"
-                        style={{ backgroundColor: slide.badge.color }}
-                      >
-                        {slide.badge.label}: {slide.badge.value}
+                      <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
                       </div>
-
-                      {/* Section heading */}
-                      <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">
-                        {slide.heading}
-                      </h4>
-
-                      {/* Skeleton lines */}
-                      <div className="flex flex-col gap-2 mt-1">
-                        {slide.lines.map((line, li) => (
-                          <div
-                            key={li}
-                            className="h-2.5 rounded-full bg-gray-100 dark:bg-gray-700"
-                            style={{ width: line.w }}
-                          />
-                        ))}
-                      </div>
-
-                      {/* Score bar (first slide) */}
-                      {idx % REPORT_SLIDES.length === 0 && (
-                        <div className="mt-auto">
-                          <div className="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 mb-1">
-                            <span>Score</span>
-                            <span>2.8 / 4.0</span>
-                          </div>
-                          <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full"
-                              style={{ width: '70%', backgroundColor: '#f59e0b' }}
-                            />
-                          </div>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
-
-                {/* Fade overlay at bottom */}
-                <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none bg-gradient-to-t from-white to-transparent dark:from-gray-900" />
               </div>
-            </div>
+
+              {/* Slide 3: strengths & next steps */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Next Steps</span>
+                </div>
+                <p className={HEADING}>Prioritised actions</p>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  {[
+                    ['1', 'Centralise log aggregation across all services', '#3b82f6'],
+                    ['2', 'Implement distributed tracing end-to-end', '#3b82f6'],
+                    ['3', 'Enable AIOps anomaly detection baselines', '#f59e0b'],
+                    ['4', 'Shift security scanning left into CI pipeline', '#f59e0b'],
+                  ].map(([num, text, color]) => (
+                    <div key={String(num)} className="flex items-start gap-1.5">
+                      <span className="text-[10px] font-bold shrink-0 w-3" style={{ color }}>{String(num)}.</span>
+                      <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">{String(text)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-auto border border-brand/30 bg-brand/5 dark:bg-brand/10 rounded-lg py-1.5 text-center">
+                  <span className="text-brand text-[11px] font-semibold">Download PDF</span>
+                </div>
+              </div>
+
+              {/* Slide 4: repeat slide 1 */}
+              <div className={SLIDE}>
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                  <span className={LABEL}>Maturity Report</span>
+                </div>
+                <p className={HEADING}>Executive Summary</p>
+                <div className="inline-flex self-start text-white text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#f59e0b' }}>
+                  Overall: 2.8 / 4.0 · Developing
+                </div>
+                <div className="flex flex-col gap-1.5 mt-1">
+                  {['95%', '80%', '88%', '70%'].map((w, i) => (
+                    <div key={i} className={`${SKEL}`} style={{ width: w }} />
+                  ))}
+                </div>
+                <div className="mt-auto">
+                  <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-400 rounded-full" style={{ width: '70%' }} />
+                  </div>
+                  <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mt-0.5">
+                    <span>Initial</span><span>Optimised</span>
+                  </div>
+                </div>
+              </div>
+            </HorizontalMockup>
           </div>
         </div>
       </section>
 
       {/* ── Maturity levels ──────────────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-white dark:bg-gray-900">
+      <section className="py-12 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-12">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-8">
             Four maturity levels
           </h2>
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {[
               ['1.0 – 1.9', 'Initial', 'Ad-hoc processes, reactive operations, limited visibility.', '#ef4444'],
               ['2.0 – 2.9', 'Developing', 'Foundational tooling in place; gaps in coverage and automation.', '#f59e0b'],
@@ -487,12 +518,9 @@ export default function HomePage() {
             ].map(([range, label, desc, color]) => (
               <div
                 key={label}
-                className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700 rounded-lg px-5 py-4 border border-gray-200 dark:border-gray-600"
+                className="flex items-start gap-4 bg-gray-50 dark:bg-gray-700 rounded-lg px-4 py-3 border border-gray-300 dark:border-gray-600"
               >
-                <div
-                  className="w-1.5 self-stretch rounded-full shrink-0 mt-0.5"
-                  style={{ backgroundColor: color }}
-                />
+                <div className="w-1.5 self-stretch rounded-full shrink-0" style={{ backgroundColor: color }} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2 mb-0.5">
                     <span className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm">{label}</span>
@@ -507,24 +535,24 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="bg-[#1B2B4B] py-20 px-6 text-center">
-        <h2 className="text-2xl font-bold text-white mb-3">
+      <section className="bg-[#1B2B4B] py-12 px-6 text-center">
+        <h2 className="text-2xl font-bold text-white mb-2">
           Ready to assess your maturity?
         </h2>
-        <p className="text-white/60 text-sm mb-8 max-w-sm mx-auto">
+        <p className="text-white/60 text-sm mb-6 max-w-sm mx-auto">
           Contact your account team to get your personalised assessment link, or log
           in if you already have access.
         </p>
         <button
           onClick={handleCta}
-          className="bg-brand hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base"
+          className="bg-brand hover:bg-blue-600 text-white font-semibold px-7 py-2.5 rounded-lg transition-colors text-sm"
         >
           {user ? 'Go to dashboard' : 'Log in'}
         </button>
       </section>
 
       {/* ── Footer ───────────────────────────────────────────────────────── */}
-      <footer className="bg-[#111827] py-6 px-8 text-center">
+      <footer className="bg-[#111827] py-5 px-8 text-center">
         <p className="text-gray-500 text-xs">
           Maturity Assessment Platform · Powered by AI
         </p>
@@ -532,25 +560,24 @@ export default function HomePage() {
 
       {/* ── Animation keyframes ──────────────────────────────────────────── */}
       <style>{`
-        @keyframes reportScroll {
-          0%   { transform: translateY(0); }
-          20%  { transform: translateY(0); }
-          28%  { transform: translateY(-384px); }
-          45%  { transform: translateY(-384px); }
-          53%  { transform: translateY(-768px); }
-          70%  { transform: translateY(-768px); }
-          78%  { transform: translateY(-1152px); }
-          95%  { transform: translateY(-1152px); }
-          100% { transform: translateY(-1536px); }
+        /* Both gifs use the same 4-slide timing; translateX % is relative to the 400%-wide track */
+        @keyframes flowH {
+          0%     { transform: translateX(0); }
+          26.7%  { transform: translateX(0); }
+          33.3%  { transform: translateX(-25%); }
+          60%    { transform: translateX(-25%); }
+          66.7%  { transform: translateX(-50%); }
+          93.3%  { transform: translateX(-50%); }
+          100%   { transform: translateX(-75%); }
         }
-        @keyframes flowScroll {
-          0%   { transform: translateY(0); }
-          25%  { transform: translateY(0); }
-          33%  { transform: translateY(-384px); }
-          58%  { transform: translateY(-384px); }
-          66%  { transform: translateY(-768px); }
-          91%  { transform: translateY(-768px); }
-          100% { transform: translateY(-1152px); }
+        @keyframes reportH {
+          0%     { transform: translateX(0); }
+          26.7%  { transform: translateX(0); }
+          33.3%  { transform: translateX(-25%); }
+          60%    { transform: translateX(-25%); }
+          66.7%  { transform: translateX(-50%); }
+          93.3%  { transform: translateX(-50%); }
+          100%   { transform: translateX(-75%); }
         }
       `}</style>
     </div>
