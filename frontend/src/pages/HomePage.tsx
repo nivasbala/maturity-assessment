@@ -326,9 +326,9 @@ export default function HomePage() {
           <DarkModeToggle />
           <button
             onClick={handleCta}
-            className="text-sm text-white/80 hover:text-white transition-colors"
+            className="text-sm bg-brand text-white font-medium px-4 py-1.5 rounded-lg hover:bg-blue-600 transition-colors"
           >
-            {user ? 'Go to dashboard →' : 'Log in →'}
+            {user ? 'Dashboard' : 'Log in'}
           </button>
         </div>
       </header>
