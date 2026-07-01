@@ -54,7 +54,7 @@ software_developer     → Software Developer, Software Engineer, Full Stack Dev
 
 Not all personas carry equal weight across all pillars. This is reflected in `question_personas.persona_weight` in the data model. The table below is a guide for content and scoring interpretation — it is not enforced as a hard filter in the UI. All personas may take any non-gated pillar.
 
-| Persona | P1: Observability | P2: AIOps | P3: AI Systems | P4: ML & Foundation Models | P5: Security |
+| Persona | P1: Observability | P2: AIOps | P3: AI Applications | P4: ML & Foundation Models | P5: Security |
 |---|---|---|---|---|---|
 | CTO / C-Suite | Strategic | Strategic | Strategic | Strategic | Strategic |
 | VP Engineering | Deep | Deep | Moderate | Deep | Moderate |
@@ -107,9 +107,9 @@ Adding a new pillar requires only a new row in the `pillars` database table and 
 
 ---
 
-### P3: AI System Observability
+### P3: AI Application Observability
 
-**Narrative:** "Can you observe the AI you're building?"
+**Narrative:** "Can you observe the AI Applications you're building?"
 
 **Covers:** LLM/Agent observability, LLMOps, prompt tracing, token cost tracking, quality evaluation, drift detection, AI governance
 
