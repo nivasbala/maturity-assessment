@@ -73,10 +73,10 @@ Before opening a PR for any task, run the applicable criteria from `specs/01-mis
 
 Key areas to verify:
 - **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
-- **Question Selection:** Agent 2 (LLM) runs synchronously at /select-pillar time; selects 12 questions using research context + persona; includes all general questions; falls back to rule-based if Agent 2 fails — assessment always proceeds
+- **Question Selection:** Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect's raw tech context (infrastructure_location, tech_stack_description, current_tools, prospect_corrections); selects `pillar.question_count` questions using both; falls back to rule-based if Agent 2 fails
 - **Gated Pillars (P3 & P4):** P3 hidden when gate answered No; P4 hidden when gate answered No OR when is_active=FALSE
-- **Scoring:** All Level 1 → 1.0, all Level 4 → 4.0, mixed produces value between 1.00–4.00
-- **Agent Behavior:** Agent 1 fires at `/register` (non-blocking); Agent 2 (Question Selection) runs synchronously at `/select-pillar` (~3–8s); LangGraph orchestrator at submit covers Agent 3 (Report) only — does NOT re-fire Agent 1 or Agent 2; all three agents use the same LLM factory and switch via LLM_PROVIDER env var
+- **Research Summary:** prospect reviews Agent 1 output before pillar selection; optional corrections saved; data_confidence badge shown; GET /research-summary polls until is_ready=true
+- **Agent Behavior:** Agent 1 fires at `/register` (non-blocking, dual inputs: web + prospect context); Agent 2 runs synchronously at `/select-pillar`; LangGraph orchestrator at submit covers Agent 3 only; all agents use same LLM factory
 - **Report Completeness:** executive_summary, 2–4 strengths, 3–6 gaps, 4–6 next steps; no vendor names
 - **Infrastructure:** `docker compose up` runs without manual steps; migrations run automatically
 
@@ -154,16 +154,17 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 
 - Three user roles: Prospect (unauthenticated), Internal User, Admin
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive — activates via admin panel), P5 Security & DevSecOps
-- 50-question bank per pillar; 12 shown per session (LLM-selected by Agent 2)
-- Three-agent architecture: Agent 1 (Research, fires at /register), Agent 2 (Question Selection, fires at /select-pillar), Agent 3 (Report Generation, fires at /submit)
-- Agent 2 uses research context + persona to select the 12 most diagnostic questions; falls back to rule-based if LLM fails
+- 50-question bank per pillar; session question count admin-configurable per pillar (default 12); bounds controlled by system_settings (question_count_min default 12 hard floor, question_count_max default 25, both admin-editable via System Settings page)
+- Prospect context collection at registration: optional infrastructure location, tech stack description, and current tools — stored on account, passed to Agent 1 as primary input
+- Research summary validation step between registration and pillar selection: prospect reviews Agent 1 output, optionally corrects it, then confirms before proceeding
+- Three-agent architecture: Agent 1 (Research, dual-input: web + prospect context), Agent 2 (Question Selection, dual-input: research profile + prospect context), Agent 3 (Report Generation)
+- Agent 2 uses prospect's raw tech descriptions as primary selection signal; falls back to rule-based if LLM fails
 - Short URL generation and prospect landing flow
-- Multi-agent report generation (Agent 1: Company Research, Agent 2: Report Generation)
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregate view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
 - Internal users can only see assessments and reports they created
-- Admin CRUD: pillars, questions (with persona tagging, weighting, and context_tags as hints for Agent 2 question selection), internal users
+- Admin CRUD: pillars (including question count per pillar), questions (with persona tagging, weighting, and context_tags as hints for Agent 2), internal users, system settings (question count bounds: min/max)
 - Local JWT authentication (bcrypt passwords)
 - Docker Compose single-machine deployment
 - Nginx reverse proxy
