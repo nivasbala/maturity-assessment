@@ -79,6 +79,7 @@ Key areas to verify:
 - **Agent Behavior:** Agent 1 fires at `/register` (non-blocking, dual inputs: web + prospect context); Agent 2 runs synchronously at `/select-pillar`; LangGraph orchestrator at submit covers Agent 3 only; all agents use same LLM factory
 - **Report Completeness:** executive_summary, 2–4 strengths, 3–6 gaps, 4–6 next steps; no vendor names
 - **Infrastructure:** `docker compose up` runs without manual steps; migrations run automatically
+- **UI Consistency (any task touching frontend):** back navigation on every prospect page except LandingPage; form state persists when navigating back/forward; blue buttons and links throughout; no `text-black` in dark mode; prospect pages never link to admin/login routes; session expiry shows inline error only
 
 ---
 
@@ -249,3 +250,47 @@ Arrows also need: `startBinding: null`, `endBinding: null`, `startArrowhead: nul
 ### Wrap arrow bounding box
 
 `width`/`height` must span all points, not be 0. Example: points `[[0,0],[0,45],[-800,45]]` → `width: 800, height: 45`
+
+---
+
+## SECTION 10: UI CONSISTENCY & IMPLEMENTATION RULES
+
+Apply to every task that produces or modifies a frontend component (Tasks 5, 6, 7, 10, 11). Authoritative detail in `specs/05-architecture-api.md` Section 3.2. Verify against `specs/01-mission-outcomes-verification.md` Section 3.11 before opening any UI task PR.
+
+### Navigation
+
+The **Landing Page is the main URL sent to the prospect** — it has no back navigation. Every other page in the prospect flow has a back link to the immediately preceding page. Forward navigation is always via an explicit user action (button/card), never the browser forward button.
+
+| Page | Back | Forward |
+|---|---|---|
+| LandingPage | None (entry point) | "Begin Assessment" |
+| ResearchSummaryPage | "← Back" → LandingPage | "Confirm & Continue" |
+| PillarSelectPage | "← Back" → ResearchSummaryPage | Select pillar card |
+| AssessmentPage | "← Back" → PillarSelectPage; prev/next within questions | "Submit" on last question |
+| ReportPage | "← Back" → PillarSelectPage | "Take another pillar" |
+
+Internal user flow: AccountDetailPage has back to AccountsListPage; ReportDetailPage has back to AccountDetailPage.
+
+### Session-Persistent Form State
+
+When a user navigates between pages using the back/forward navigation above, all previously entered values on each page must still be populated. This is the rule — the mechanism is a `SessionContext` backed by `sessionStorage` (not component-local state, which is lost on unmount).
+
+Fields to persist: all LandingPage fields, `prospect_corrections`, and AssessmentPage question answers (keyed by `question_id`).
+
+### Button and Link Color — Blue Throughout
+
+| Element | Classes |
+|---|---|
+| Primary button | `bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600` |
+| Back / nav link | `text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300` |
+| Ghost button | `border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400` |
+| Disabled | `bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400` |
+| Destructive only | `bg-red-600 hover:bg-red-700 text-white dark:bg-red-500` |
+
+### Dark Mode — No Black Text
+
+`text-black` and `dark:text-black` are forbidden. Every text element uses a paired light/dark class: `text-gray-900 dark:text-white` (primary), `text-gray-600 dark:text-gray-400` (secondary), `bg-white dark:bg-gray-900` (page), `bg-gray-50 dark:bg-gray-800` (card).
+
+### Prospect Flow Isolation
+
+Pages under `/assess/:token/*` must never link to `/login`, `/admin`, `/dashboard`, or any internal route. Prospect headers contain only assessment branding. Session expiry shows an inline error — never redirects to `/login`.

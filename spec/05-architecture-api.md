@@ -723,7 +723,103 @@ GET    /api/public/assess/{token}/report/{assessment_id}
 - Error states must explain what went wrong and what action to take
 - Responsive: minimum 1024px desktop; tablet-friendly at 768px
 
-### 3.2 Prospect Flow — Page Specifications
+### 3.2 UI Consistency & Implementation Rules
+
+These rules apply to every task that produces or modifies a frontend component. Verify each rule before opening a PR for any task that touches the UI.
+
+---
+
+#### 3.2.1 Navigation — Flows and Back Links
+
+Every page in a sequential flow must show the user's current position (step indicator or breadcrumb). **The Landing Page is the main URL sent to the prospect and has no back navigation — it is the entry point.** Every other page in the prospect flow must provide a back link to the immediately preceding page. Forward navigation is always driven by a user action (button click, card selection) — never by the browser forward button.
+
+**Prospect flow navigation:**
+
+| Page | Back navigation | Forward navigation (action) |
+|---|---|---|
+| LandingPage | None — this is the main URL (entry point) | "Begin Assessment" → ResearchSummaryPage |
+| ResearchSummaryPage | "← Back" → LandingPage | "Confirm & Continue" → PillarSelectPage |
+| PillarSelectPage | "← Back" → ResearchSummaryPage | Select a pillar card → AssessmentPage |
+| AssessmentPage | "← Back" → PillarSelectPage; prev/next between questions within session | "Submit" on last question → ReportPage |
+| ReportPage | "← Back" → PillarSelectPage | "Take another pillar" → PillarSelectPage |
+
+**Internal user flow navigation:**
+
+| Page | Back navigation | Forward navigation (action) |
+|---|---|---|
+| AccountsListPage | None — root page | Account row → AccountDetailPage |
+| AccountDetailPage | "← Back to accounts" | Pillar row → ReportDetailPage |
+| ReportDetailPage | "← Back to account" | None |
+
+The Admin panel uses standard CRUD navigation; breadcrumbs required on all non-list views.
+
+---
+
+#### 3.2.2 Session-Persistent Form State
+
+When a user navigates between pages using the back and forward navigation defined in Section 3.2.1, all previously entered form values on each page must still be populated exactly as left. This applies for the entire duration of the browser session.
+
+Examples:
+- Prospect fills in name, email, role, and optional context on LandingPage → proceeds forward → clicks "← Back" → all LandingPage fields are still populated
+- Prospect types corrections on ResearchSummaryPage → proceeds forward → clicks "← Back" → the corrections textarea still contains their text
+- Prospect answers questions 1–5 on AssessmentPage → clicks "← Prev" to review question 3 → question 3 shows their previously selected answer
+
+**Implementation requirement:** Store all form state in a `SessionContext` backed by `sessionStorage`. Never store persistent fields in component-local state — components unmount on navigation and local state is lost. Session data clears when the browser tab closes.
+
+Fields that must be persisted per page:
+
+| Page | Fields to persist |
+|---|---|
+| LandingPage | `prospect_name`, `prospect_email`, `prospect_role`, `p3_gate_answered_yes`, `p4_gate_answered_yes`, `infrastructure_location`, `tech_stack_description`, `current_tools`, `key_challenges_input` |
+| ResearchSummaryPage | `prospect_corrections` |
+| AssessmentPage | Selected answer option per question, keyed `question_id → answer_option_id` |
+
+---
+
+#### 3.2.3 Button and Link Color — Blue Throughout
+
+All interactive elements use blue. This must be consistent across all pages in all three user flows (prospect, internal user, admin).
+
+| Element | Light mode | Dark mode |
+|---|---|---|
+| Primary action button | `bg-blue-600 hover:bg-blue-700 text-white` | `dark:bg-blue-500 dark:hover:bg-blue-600` |
+| Navigation link / back link | `text-blue-600 hover:text-blue-700 underline-offset-2` | `dark:text-blue-400 dark:hover:text-blue-300` |
+| Ghost / outline button | `border border-blue-600 text-blue-600 hover:bg-blue-50` | `dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950` |
+| Disabled button | `bg-gray-300 text-gray-500 cursor-not-allowed` | `dark:bg-gray-600 dark:text-gray-400` |
+| **Destructive action only** | `bg-red-600 hover:bg-red-700 text-white` | `dark:bg-red-500 dark:hover:bg-red-600` |
+
+The destructive red is the **only** permitted exception to the blue rule. It applies only to delete/remove actions in the Admin panel. No other colors are permitted for primary interactive elements.
+
+---
+
+#### 3.2.4 Dark Mode — No Black Text
+
+`text-black` and hardcoded `#000000` are forbidden in all component files — they are invisible in dark mode. Every text element must use the paired light/dark pattern:
+
+| Usage | Required classes |
+|---|---|
+| Primary body text | `text-gray-900 dark:text-white` |
+| Secondary / muted text | `text-gray-600 dark:text-gray-400` |
+| Placeholder text | `placeholder-gray-400 dark:placeholder-gray-500` |
+| Page background | `bg-white dark:bg-gray-900` |
+| Card / panel background | `bg-gray-50 dark:bg-gray-800` |
+| Border | `border-gray-200 dark:border-gray-700` |
+
+The class `dark:text-black` is explicitly forbidden.
+
+---
+
+#### 3.2.5 Prospect Flow Isolation
+
+Pages under the `/assess/:token/*` route prefix must **never** contain a link, button, or redirect to `/login`, `/admin`, `/dashboard`, or any non-prospect route.
+
+- Prospect page headers contain only assessment branding (logo, company name, assessment title) — no authentication links
+- On session expiry within the prospect flow: show an inline error message, never redirect to `/login`
+- Applies to all five prospect pages: LandingPage, ResearchSummaryPage, PillarSelectPage, AssessmentPage, ReportPage
+
+---
+
+### 3.3 Prospect Flow — Page Specifications
 
 **Landing Page (`/assess/:token`)**
 - Company name displayed prominently (pulled from account via token)
@@ -813,7 +909,7 @@ PDF download:
 - Navigates back to pillar selection page (`/assess/:token/pillars`)
 - Completed pillar shown as disabled on return
 
-### 3.3 Internal User Dashboard — Page Specifications
+### 3.4 Internal User Dashboard — Page Specifications
 
 **Accounts List (`/dashboard`)**
 - Table columns: Company Name, Website, Pillars Sent, Pillars Completed, Date Created, Actions
@@ -861,7 +957,7 @@ Two tabs:
 - Prospect details shown above table: name, email, role, date completed
 - Pillar score and maturity label shown as summary below table
 
-### 3.4 Admin Panel — Page Specifications
+### 3.5 Admin Panel — Page Specifications
 
 **Users (`/admin/users`)**
 - Table: Name, Email, Role, Status, Date Created, Actions (Edit, Deactivate)

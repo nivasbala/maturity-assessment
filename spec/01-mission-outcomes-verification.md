@@ -132,3 +132,18 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Database migrations run automatically on backend container startup
 - [ ] Seed data loads automatically if pillars table is empty
 - [ ] Application accessible at `http://localhost` via Nginx
+
+### 3.11 UI Consistency
+- [ ] LandingPage shows no back navigation — it is the entry point URL sent to the prospect
+- [ ] ResearchSummaryPage shows a back link to LandingPage
+- [ ] PillarSelectPage shows a back link to ResearchSummaryPage
+- [ ] AssessmentPage shows a back link to PillarSelectPage, plus prev/next question buttons within the session
+- [ ] ReportPage shows a back link to PillarSelectPage
+- [ ] Navigating back to any page within the prospect flow restores all previously entered form values on that page (LandingPage fields, ResearchSummaryPage corrections, AssessmentPage question answers)
+- [ ] AccountDetailPage shows a back link to AccountsListPage; ReportDetailPage shows a back link to AccountDetailPage
+- [ ] All primary action buttons use `bg-blue-600` (light) / `dark:bg-blue-500` (dark) — no other button colors except `bg-red-600` for destructive (delete/remove) actions in the Admin panel
+- [ ] All navigation and back links use `text-blue-600` (light) / `dark:text-blue-400` (dark)
+- [ ] Dark mode renders no black text — every text element uses a paired `text-*` / `dark:text-*` Tailwind class; `text-black` and `dark:text-black` do not appear in any component file
+- [ ] No page under `/assess/:token/*` contains a link, button, or redirect to `/login`, `/admin`, `/dashboard`, or any internal user route
+- [ ] The prospect header on all five prospect pages contains only assessment branding — no authentication or internal navigation links
+- [ ] Session expiry within the prospect flow shows an inline error message — does not redirect to `/login`
