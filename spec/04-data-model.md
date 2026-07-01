@@ -72,8 +72,7 @@ CREATE TABLE pillars (
 -- Questions: Belong to a pillar.
 -- is_general = TRUE means shown to all personas regardless of question_personas entries.
 -- Target: 50 questions per pillar in the bank; 12 selected per session.
--- context_tags are passed to Agent 2 (Question Selection Agent) as structured metadata
--- to help the LLM understand when each question is most relevant. Not algorithmic inputs.
+-- context_tags: metadata hints passed to Agent 2 for question relevance — see Section 8.
 CREATE TABLE questions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pillar_id       UUID NOT NULL REFERENCES pillars(id),
@@ -293,7 +292,7 @@ If `should_refresh_research` returns `False`, skip Agent 1 and use `account.rese
 
 ## 8. QUESTION SELECTION — AGENT 2 INPUT PREPARATION
 
-Question selection is performed by Agent 2 (Question Selection Agent — see `05-architecture-api.md` Section 1.3). This section defines what the calling service fetches from the DB and passes to Agent 2.
+Question selection is performed by Agent 2 — see `05-architecture-api.md` Section 1.3 for the full agent specification.
 
 ### Question count resolution (Option B)
 
@@ -322,7 +321,7 @@ all_candidates = general_questions + persona_questions
 
 ### What context_tags provide to Agent 2
 
-`context_tags` are lowercase technology signal strings stored on each question (e.g. `["kubernetes", "aws", "microservices"]`). They are passed to Agent 2 as structured metadata to help the LLM understand what technology context makes each question most diagnostic — not as inputs to an algorithm.
+`context_tags` are passed to Agent 2 as structured metadata — the LLM uses them to identify when each question is most diagnostic for a given tech stack. Not algorithmic inputs.
 
 The research cache provides the company's signals for the LLM to reason against:
 ```python

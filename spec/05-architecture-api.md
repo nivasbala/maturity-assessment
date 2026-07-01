@@ -163,7 +163,7 @@ Prospect answers question_count questions → submits
    │    (company profile  │    (always ready
    │     + business       │     by now)
    │     outcomes)        │
-   │  - answers (12 Qs)   │
+   │  - assessment answers  │
    │  - pillar context    │
    │  - maturity score    │
    │    (pre-computed)    │
@@ -399,9 +399,7 @@ No explanation, no markdown, no preamble — just the array:
 ```
 
 **Fallback (if Agent 2 fails or times out):**
-The calling service catches all exceptions and falls back to rule-based selection:
-all general questions + first (question_count − general_count) persona-eligible questions by `display_order`.
-The assessment always proceeds — Agent 2 is an enhancement, not a dependency.
+Falls back to all general + first (question_count − general_count) persona-eligible questions by `display_order`. Assessment always proceeds — Agent 2 is an enhancement, not a dependency.
 
 **Output parsing:**
 ```python
@@ -672,7 +670,7 @@ POST   /api/public/assess/{token}/select-pillar
        prospect_corrections), and candidate question list
     3. Agent 2 returns {question_count} ordered question IDs
     4. If Agent 2 fails: fallback to all general + (question_count − general_count) persona by display_order
-    5. Fetch full question objects (text + answer_options) for the 12 IDs
+    5. Fetch full question objects (text + answer_options) for the selected question IDs
     6. Return questions in Agent 2's selected order
 
 POST   /api/public/assess/{token}/submit
@@ -761,7 +759,6 @@ When a user navigates between pages using the back and forward navigation define
 
 Examples:
 - Prospect fills in name, email, role, and optional context on LandingPage → proceeds forward → clicks "← Back" → all LandingPage fields are still populated
-- Prospect types corrections on ResearchSummaryPage → proceeds forward → clicks "← Back" → the corrections textarea still contains their text
 - Prospect answers questions 1–5 on AssessmentPage → clicks "← Prev" to review question 3 → question 3 shows their previously selected answer
 
 **Implementation requirement:** Store all form state in a `SessionContext` backed by `sessionStorage`. Never store persistent fields in component-local state — components unmount on navigation and local state is lost. Session data clears when the browser tab closes.
@@ -788,7 +785,7 @@ All interactive elements use blue. This must be consistent across all pages in a
 | Disabled button | `bg-gray-300 text-gray-500 cursor-not-allowed` | `dark:bg-gray-600 dark:text-gray-400` |
 | **Destructive action only** | `bg-red-600 hover:bg-red-700 text-white` | `dark:bg-red-500 dark:hover:bg-red-600` |
 
-The destructive red is the **only** permitted exception to the blue rule. It applies only to delete/remove actions in the Admin panel. No other colors are permitted for primary interactive elements.
+Red is the only exception — Admin panel destructive actions (delete/remove) only.
 
 ---
 
@@ -880,7 +877,7 @@ Pages under the `/assess/:token/*` route prefix must **never** contain a link, b
 - "Back" and "Next" navigation buttons
 - "Submit" button appears only on the last question (replaces "Next")
 - No ability to skip questions — "Next" disabled until a radio option is selected
-- All answers stored in local React state until Submit — not saved to DB until submission
+- All answers stored in SessionContext (sessionStorage) until Submit — not saved to DB until submission
 
 **Report Page (`/assess/:token/report/:assessmentId`)**
 

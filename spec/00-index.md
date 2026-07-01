@@ -18,16 +18,16 @@ This directory contains the complete specification for the Maturity Assessment P
 
 ## File Directory
 
-| File | Purpose | Primary Reader |
-|------|---------|----------------|
-| `00-index.md` | This file. Directory, context map, bootstrap prompt | Agent (every session) |
-| `01-mission-outcomes-verification.md` | Why this app exists, what done looks like, verification checklist | Agent (task start + task end) |
-| `02-domain-model.md` | User roles, permissions, personas, pillar definitions | Agent (any task touching users, personas, or pillars) |
-| `03-tech-stack-constraints.md` | Tech stack, hard constraints, LLM abstraction, directory structure, environment variables | Agent (scaffolding, any architectural decision) |
-| `04-data-model.md` | Database schema, scoring formula, maturity level reference | Agent (any task touching data) |
-| `05-architecture-api.md` | Multi-agent LLM architecture, API endpoints, UI specifications | Agent (any task building API routes or UI pages) |
-| `06-question-bank.md` | All seed questions for all pillars with answer options and persona tags. P4 questions seeded but pillar inactive until enabled via admin. | Agent (seed data task and prospect flow task only) |
-| `07-build-plan.md` | MVP scope boundaries, git workflow, ordered task breakdown, Phase 2 roadmap | Agent (task sequencing and git operations) |
+| File | Purpose |
+|------|---------|
+| `00-index.md` | This file. Directory, context map, bootstrap prompt |
+| `01-mission-outcomes-verification.md` | Why this app exists, what done looks like, verification checklist |
+| `02-domain-model.md` | User roles, permissions, personas, pillar definitions |
+| `03-tech-stack-constraints.md` | Tech stack, hard constraints, LLM abstraction, directory structure, environment variables |
+| `04-data-model.md` | Database schema, scoring formula, maturity level reference |
+| `05-architecture-api.md` | Multi-agent LLM architecture, API endpoints, UI specifications |
+| `06-question-bank.md` | All seed questions for all pillars with answer options and persona tags. P4 questions seeded but pillar inactive until enabled via admin. |
+| `07-build-plan.md` | MVP scope boundaries, git workflow, ordered task breakdown, Phase 2 roadmap |
 
 ---
 
@@ -64,124 +64,16 @@ These rules apply to every agent session:
 
 ---
 
-## Bootstrap Prompt (For CLAUDE.md Generation)
+## Bootstrap Prompt (For CLAUDE.md Regeneration)
 
-Use this prompt once, after the specs directory is in place but before any coding begins. Run it in the coding agent (Claude Code or equivalent) from the project root:
+CLAUDE.md was generated from this spec directory and is maintained independently in the project root. Re-run the following only if CLAUDE.md is lost or needs to be fully regenerated from scratch:
 
 ```
-Read all files in the specs/ directory in this order:
-  specs/00-index.md
-  specs/01-mission-outcomes-verification.md
-  specs/02-domain-model.md
-  specs/03-tech-stack-constraints.md
-  specs/04-data-model.md
-  specs/05-architecture-api.md
-  specs/06-question-bank.md
-  specs/07-build-plan.md
-
-After reading all files, generate a CLAUDE.md file in the project root.
-CLAUDE.md is the operating manual for every coding session. It must cover
-all of the following sections, pulling content directly from the spec files
-referenced — do not paraphrase where the spec is explicit:
-
----
-
-SECTION 1: SPEC USAGE RULES
-Pull from: specs/00-index.md (Spec File Rules section)
-
-Include all 5 rules verbatim:
-- Never modify spec files
-- Spec wins over inference
-- Load spec files at the start of each task before writing any code
-- Verify against 01-mission-outcomes-verification.md before merging
-- Follow 07-build-plan.md Section 2 for git workflow
-
-Also include the Agent Context Map table from specs/00-index.md so the
-agent knows exactly which spec files to load for each task number.
-
----
-
-SECTION 2: GIT WORKFLOW
-Pull from: specs/07-build-plan.md (Section 2 in full)
-
-Include:
-- The one-time setup block (done manually by human, not the agent)
-- The per-task workflow with exact shell commands
-- The branch naming table (Task 1 → task/01-project-scaffolding etc.)
-- Commit message format: "Task NN: <task name>"
-- The task failure rule: fix on same branch, never open a new branch
-- The gh CLI commands: gh pr create then gh pr merge --squash --auto
-
----
-
-SECTION 3: VERIFICATION GATE
-Pull from: specs/01-mission-outcomes-verification.md
-
-Before opening a PR for any task:
-- Run the verification criteria that apply to the completed task
-- Do not open a PR if any criterion fails
-- Fix failures on the same task branch before merging
-
----
-
-SECTION 4: ENVIRONMENT SETUP
-Pull from: specs/03-tech-stack-constraints.md (Section 4)
-
-Include:
-- How to start the stack: docker compose up
-- Location of .env file (project root, copy from .env.example)
-- Health check confirmation: GET /api/health must return 200 before coding
-- Note: gh CLI must be configured and authenticated before Task 1 begins
-
----
-
-SECTION 5: CODING CONVENTIONS
-Pull from: specs/03-tech-stack-constraints.md (Section 5)
-
-Include all rules exactly as written:
-Python:
-  - Black formatter enforced
-  - Type hints required on all function signatures
-  - Async throughout — all DB calls and external API calls must be async
-  - No synchronous blocking calls in route handlers
-
-TypeScript:
-  - ESLint enforced
-  - No `any` types — use proper interfaces from src/types/
-  - Functional components only, no class components
-  - All API calls go through src/api/ — no inline fetch or axios in components
-
-General:
-  - No secrets in code, ever — only via .env
-  - No hard-coded pillar IDs, question IDs, or persona strings in business
-    logic — always reference via DB query or enum
-  - No HTML <form> tags in React — use controlled components with
-    onClick/onChange handlers
-
----
-
-SECTION 6: LLM SWITCHING RULE
-Pull from: specs/03-tech-stack-constraints.md (Section 2)
-
-Never change the LLM provider in code. Switch providers only by changing
-the LLM_PROVIDER variable in .env and restarting. The llm_factory.py
-abstraction handles all provider logic. No other file should reference
-a specific LLM provider directly.
-
----
-
-SECTION 7: SCOPE BOUNDARY
-Pull from: specs/07-build-plan.md (Section 1.2)
-
-Include the full "Explicitly Out of Scope" list. If a feature is not in
-the MVP scope (Section 1.1 of 07-build-plan.md), do not build it.
-When in doubt, check 07-build-plan.md before starting any new work.
-Phase 2 items are documented in Section 4 of 07-build-plan.md —
-they are informational only and must not be built during MVP.
-
----
-
-Ask me any clarifying questions before generating the file.
+Read all files in specs/ (00-index through 07-build-plan), then generate CLAUDE.md
+covering: Spec Usage Rules, Git Workflow, Verification Gate, Environment Setup,
+Coding Conventions, LLM Switching Rule, Scope Boundary, Logging and Testing,
+Excalidraw Diagram Files, and UI Consistency Rules. Pull each section directly
+from the corresponding spec file. Do not paraphrase where the spec is explicit.
 ```
 
 ---

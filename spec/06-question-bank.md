@@ -12,30 +12,13 @@ last_updated: 2026-06-28
 
 ## 1. QUESTION SELECTION — HOW IT WORKS
 
-Question selection is performed by **Agent 2 (Question Selection Agent)** — an LLM that selects the 12 most diagnostic questions for this prospect and company. See `05-architecture-api.md` Section 1.3 for the full agent specification.
+Agent 2 selects `pillar.question_count` questions per session from the candidate pool for the given pillar + persona. All general questions (`is_general = TRUE`) are always included; Agent 2 fills the remainder using research cache and prospect context signals.
 
-### What Agent 2 receives from the DB
+Full agent specification: `05-architecture-api.md` Section 1.3. DB input preparation: `04-data-model.md` Section 8.
 
-For a given pillar + persona, the service fetches:
-- All **general questions** (`is_general = TRUE`, `is_active = TRUE`) — Agent 2 MUST include all of these
-- All **persona-eligible questions** for this role (via `question_personas`, `is_active = TRUE`)
-- Each question carries: `id`, `text`, `is_general`, `question_weight`, `context_tags`
+**All questions must be seeded with `is_active = TRUE`.**
 
-### What Agent 2 decides
-
-Agent 2 uses the research cache (from Agent 1) + the prospect's persona to select the most diagnostic questions up to `pillar.question_count`:
-- When research is available: Agent 2 prioritizes questions whose `context_tags` match the company's technology stack, cloud providers, industry, and business outcomes
-- When research is empty: Agent 2 selects based on what matters most to this persona in this pillar
-- Result: exactly `pillar.question_count` question IDs in presentation order
-
-### Fallback (if Agent 2 fails)
-
-If Agent 2 raises an exception, times out, or returns invalid output, the service falls back to:
-1. All general questions (target: 4)
-2. First `(question_count − general_count)` persona-eligible questions by `display_order`
-3. Backfill from general pool if persona pool < 8
-
-The assessment always proceeds — Agent 2 is an enhancement, not a dependency. All questions must be `is_active = TRUE`.
+**Fallback** (if Agent 2 fails): all general questions + first `(question_count − general_count)` persona-eligible questions by `display_order`. Backfill from general pool if persona pool is smaller than required.
 
 ---
 

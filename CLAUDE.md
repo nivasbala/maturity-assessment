@@ -73,7 +73,7 @@ Before opening a PR for any task, run the applicable criteria from `specs/01-mis
 
 Key areas to verify:
 - **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
-- **Question Selection:** Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect's raw tech context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections); selects `pillar.question_count` questions using both; falls back to rule-based if Agent 2 fails
+- **Question Selection:** Agent 2 dual inputs — (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections); returns pillar.question_count IDs; falls back to rule-based if LLM fails
 - **Gated Pillars (P3 & P4):** P3 hidden when gate answered No; P4 hidden when gate answered No OR when is_active=FALSE
 - **Research Summary:** prospect reviews Agent 1 output before pillar selection; optional corrections saved; data_confidence badge shown; GET /research-summary polls until is_ready=true
 - **Agent Behavior:** Agent 1 fires at `/register` (non-blocking, dual inputs: web + prospect context); Agent 2 runs synchronously at `/select-pillar`; LangGraph orchestrator at submit covers Agent 3 only; all agents use same LLM factory
@@ -259,17 +259,17 @@ Apply to every task that produces or modifies a frontend component (Tasks 5, 6, 
 
 ### Navigation
 
-The **Landing Page is the main URL sent to the prospect** — it has no back navigation. Every other page in the prospect flow has a back link to the immediately preceding page. Forward navigation is always via an explicit user action (button/card), never the browser forward button.
+**Landing Page is the entry point** — no back navigation. Every other prospect page has a back link to the immediately preceding page. Forward is always via explicit user action (button/card).
 
-| Page | Back | Forward |
-|---|---|---|
-| LandingPage | None (entry point) | "Begin Assessment" |
-| ResearchSummaryPage | "← Back" → LandingPage | "Confirm & Continue" |
-| PillarSelectPage | "← Back" → ResearchSummaryPage | Select pillar card |
-| AssessmentPage | "← Back" → PillarSelectPage; prev/next within questions | "Submit" on last question |
-| ReportPage | "← Back" → PillarSelectPage | "Take another pillar" |
+| Page | Back navigation |
+|---|---|
+| LandingPage | None (entry point) |
+| ResearchSummaryPage | "← Back" → LandingPage |
+| PillarSelectPage | "← Back" → ResearchSummaryPage |
+| AssessmentPage | "← Back" → PillarSelectPage; prev/next within questions |
+| ReportPage | "← Back" → PillarSelectPage |
 
-Internal user flow: AccountDetailPage has back to AccountsListPage; ReportDetailPage has back to AccountDetailPage.
+Internal user flow: AccountDetailPage ← AccountsListPage; ReportDetailPage ← AccountDetailPage.
 
 ### Session-Persistent Form State
 

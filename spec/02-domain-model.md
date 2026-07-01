@@ -143,7 +143,7 @@ Adding a new pillar requires only a new row in the `pillars` database table and 
 
 **Display Order:** 4
 
-**Is Active:** FALSE — seeded as inactive. Activate by setting `is_active = TRUE` in the pillars table via the admin panel once questions are added to `06-question-bank.md`. No code changes required.
+**Is Active:** FALSE — seeded as inactive. Activate by setting `is_active = TRUE` in the pillars table via the admin panel once questions are added to `06-question-bank.md`.
 
 ---
 

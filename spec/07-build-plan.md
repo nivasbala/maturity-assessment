@@ -133,13 +133,6 @@ During development on a task branch, use descriptive commit messages. The squash
 Task NN: <task name>
 ```
 
-Examples:
-```
-Task 01: Project scaffolding
-Task 07: Prospect landing flow
-Task 12: End-to-end verification
-```
-
 ---
 
 ## 3. TASK BREAKDOWN (Execute in Order)
@@ -424,7 +417,7 @@ Run the complete user journey and verify every item in `01-mission-outcomes-veri
 9. Internal User opens P1 report → views report tab + raw answers tab
 10. Internal User opens aggregate view (2 pillars complete)
 11. Verify all 15 outcome criteria in Section 2 of `01-mission-outcomes-verification.md`
-12. Verify all 30+ verification criteria in Section 3 of `01-mission-outcomes-verification.md`
+12. Verify all verification criteria in Section 3 of `01-mission-outcomes-verification.md`
 
 **This task is complete only when all criteria are checked off.**
 
