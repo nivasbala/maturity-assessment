@@ -3,7 +3,9 @@ import type {
   AccountDetail,
   AccountListItem,
   AggregateView,
+  AssessmentAnswers,
   AssessmentCreated,
+  AssessmentDetail,
   AssessmentListItem,
   Paginated,
   Pillar,
@@ -36,6 +38,12 @@ export const createAssessment = (accountId: string, pillarId: string) =>
     .then((r) => r.data)
 
 // ── Assessments ───────────────────────────────────────────────────────────────
+
+export const getAssessmentDetail = (assessmentId: string) =>
+  api.get<AssessmentDetail>(`/assessments/${assessmentId}`).then((r) => r.data)
+
+export const getAssessmentAnswers = (assessmentId: string) =>
+  api.get<AssessmentAnswers>(`/assessments/${assessmentId}/answers`).then((r) => r.data)
 
 export const getAssessmentReport = (assessmentId: string) =>
   api.get<Report>(`/assessments/${assessmentId}/report`).then((r) => r.data)

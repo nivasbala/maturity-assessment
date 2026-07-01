@@ -156,6 +156,38 @@ export interface AggregateView {
   scores: AggregateScoreItem[]
 }
 
+export interface AssessmentDetail {
+  id: string
+  account_id: string
+  pillar_id: string
+  pillar_name: string
+  company_name: string
+  short_url_token: string
+  prospect_name: string | null
+  prospect_email: string | null
+  prospect_role: string | null
+  status: 'pending' | 'in_progress' | 'completed'
+  created_at: string
+  completed_at: string | null
+}
+
+export interface AnswerRow {
+  question_text: string
+  selected_option_text: string
+  maturity_level: number
+}
+
+export interface AssessmentAnswers {
+  assessment_id: string
+  prospect_name: string | null
+  prospect_email: string | null
+  prospect_role: string | null
+  completed_at: string | null
+  pillar_score: number | null
+  maturity_label: string | null
+  answers: AnswerRow[]
+}
+
 export interface Report {
   id: string
   assessment_id: string

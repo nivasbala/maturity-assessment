@@ -36,6 +36,9 @@ export default function NavBar() {
             <NavLink to="/dashboard" className={navLinkClass}>
               Accounts
             </NavLink>
+            <NavLink to="/admin/settings" className={navLinkClass}>
+              Settings
+            </NavLink>
           </>
         ) : (
           <NavLink to="/dashboard" className={navLinkClass}>
