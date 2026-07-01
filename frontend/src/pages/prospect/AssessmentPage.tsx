@@ -66,7 +66,7 @@ export default function AssessmentPage() {
         answer_option_id: answers[q.id],
       }))
       const result = await submitAssessment(token!, sessionToken, assessmentId!, answerList)
-      navigate(`/assess/${token}/report/${result.report_id}`)
+      navigate(`/assess/${token}/report/${assessmentId}`)
     } catch (e) {
       setSubmitError(extractApiError(e, 'Submission failed. Please try again.'))
       setSubmitting(false)
