@@ -44,7 +44,7 @@ export default function LoginPage() {
               <line x1="11" y1="28" x2="21" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
             </svg>
             <span className="text-white font-semibold text-sm tracking-tight leading-tight">
-              Maturity<br />Assessment
+              Observability<br />Maturity<br />Assessment
             </span>
           </div>
         </div>
