@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { createPillar, deactivatePillar, getPillars, getSettings, updatePillar } from '../../api/admin'
 import { extractApiError } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
@@ -170,9 +170,9 @@ export default function PillarsPage() {
                 <tr key={p.id} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                     {p.name}
-                    <a href={`/admin/pillars/${p.id}/questions`} className="ml-2 text-xs text-brand hover:underline">
+                    <Link to={`/admin/pillars/${p.id}/questions`} className="ml-2 text-xs text-brand hover:underline">
                       Questions →
-                    </a>
+                    </Link>
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.display_order}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.overall_weight}</td>

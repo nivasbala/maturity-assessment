@@ -66,8 +66,41 @@ async def list_accounts(
         await db.execute(q.order_by(Account.created_at.desc()).offset(offset).limit(size))
     ).scalars().all()
     logger.info("list_accounts: user_id=%s count=%d", current_user.id, total)
+
+    # Compute pillar counts per account in two bulk queries
+    account_ids = [a.id for a in rows]
+    sent_map: dict = {}
+    completed_map: dict = {}
+    if account_ids:
+        sent_rows = (
+            await db.execute(
+                select(Assessment.account_id, func.count().label("cnt"))
+                .where(Assessment.account_id.in_(account_ids))
+                .group_by(Assessment.account_id)
+            )
+        ).all()
+        done_rows = (
+            await db.execute(
+                select(Assessment.account_id, func.count().label("cnt"))
+                .where(
+                    Assessment.account_id.in_(account_ids),
+                    Assessment.status == "completed",
+                )
+                .group_by(Assessment.account_id)
+            )
+        ).all()
+        sent_map = {r.account_id: r.cnt for r in sent_rows}
+        completed_map = {r.account_id: r.cnt for r in done_rows}
+
+    items = []
+    for a in rows:
+        item = AccountListOut.model_validate(a)
+        item.pillars_sent = sent_map.get(a.id, 0)
+        item.pillars_completed = completed_map.get(a.id, 0)
+        items.append(item)
+
     return Paginated(
-        items=[AccountListOut.model_validate(a) for a in rows],
+        items=items,
         total=total,
         page=page,
         size=size,

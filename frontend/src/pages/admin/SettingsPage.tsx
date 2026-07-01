@@ -131,7 +131,7 @@ export default function SettingsPage() {
         </div>
 
         <p className="mt-6 text-xs text-gray-400 dark:text-gray-500">
-          Changes take effect on the next assessment session — existing in-progress assessments are not affected.
+          Changes apply to new and pending assessments. In-progress and completed assessments are not affected.
         </p>
       </div>
     </div>

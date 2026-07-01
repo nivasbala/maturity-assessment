@@ -194,13 +194,15 @@ export default function AccountsListPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Company</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Website</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Suggested Pillars</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillars Sent</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillars Completed</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Date Created</th>
               </tr>
             </thead>
             <tbody>
               {accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
                     No accounts yet. Click "New Account" to get started.
                   </td>
                 </tr>
@@ -230,6 +232,8 @@ export default function AccountsListPage() {
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {a.suggested_pillars.length > 0 ? a.suggested_pillars.length : '—'}
                     </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.pillars_sent}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.pillars_completed}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(a.created_at).toLocaleDateString()}
                     </td>

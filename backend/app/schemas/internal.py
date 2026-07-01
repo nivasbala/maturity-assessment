@@ -23,6 +23,8 @@ class AccountListOut(BaseModel):
     internal_user_id: UUID
     suggested_pillars: list[UUID]
     created_at: datetime
+    pillars_sent: int = 0
+    pillars_completed: int = 0
 
 
 class PillarStatusRow(BaseModel):

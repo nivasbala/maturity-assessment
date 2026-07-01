@@ -23,6 +23,7 @@ Error handling: each node catches exceptions, logs, and returns partial state.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 from uuid import UUID
@@ -240,7 +241,7 @@ async def run_assessment_orchestrator(
 
     try:
         compiled = _build_graph(db)
-        final_state = await compiled.ainvoke(initial_state)
+        final_state = await asyncio.wait_for(compiled.ainvoke(initial_state), timeout=120.0)
         logger.info(
             "run_assessment_orchestrator: completed for assessment_id=%s", assessment_id
         )

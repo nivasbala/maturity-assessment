@@ -24,7 +24,14 @@ export default function AssessmentPage() {
   const prospectRole = state?.prospectRole ?? ''
 
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [answers, setAnswers] = useState<Record<string, string>>(() => {
+    try {
+      const stored = sessionStorage.getItem(`assessment_answers_${assessmentId}`)
+      return stored ? (JSON.parse(stored) as Record<string, string>) : {}
+    } catch {
+      return {}
+    }
+  })
 
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
 
@@ -45,7 +52,15 @@ export default function AssessmentPage() {
   const allAnswered = questions.every((q) => answers[q.id])
 
   function selectOption(optionId: string) {
-    setAnswers((prev) => ({ ...prev, [currentQuestion.id]: optionId }))
+    setAnswers((prev) => {
+      const next = { ...prev, [currentQuestion.id]: optionId }
+      try {
+        sessionStorage.setItem(`assessment_answers_${assessmentId}`, JSON.stringify(next))
+      } catch {
+        // storage full or unavailable — answers still work in memory
+      }
+      return next
+    })
   }
 
   function goNext() {
@@ -173,7 +188,7 @@ export default function AssessmentPage() {
               <button
                 onClick={handleSubmit}
                 disabled={!selectedOptionId}
-                className="px-5 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-1"
+                className="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
               >
                 Submit Assessment
               </button>

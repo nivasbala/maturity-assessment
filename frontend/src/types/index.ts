@@ -90,6 +90,8 @@ export interface AccountListItem {
   internal_user_id: string
   suggested_pillars: string[]
   created_at: string
+  pillars_sent: number
+  pillars_completed: number
 }
 
 export interface PillarStatusRow {

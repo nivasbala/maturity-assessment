@@ -132,6 +132,12 @@ export default function ResearchSummaryPage() {
       <ProspectHeader />
       <div className="flex-1 flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-2xl">
+          <button
+            onClick={() => navigate(`/assess/${token}`)}
+            className="mb-4 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          >
+            ← Back
+          </button>
 
           {/* Loading state */}
           {(!summary || !summary.is_ready) && (

@@ -216,20 +216,39 @@ async def _run_research_agent_locked(
         logger.info("run_research_agent: cache hit for account_id=%s", account_id)
         return account.research_cache  # type: ignore[return-value]
 
-    # DuckDuckGo web search
+    # DuckDuckGo web search — 2-3 queries for richer coverage
     search_results = ""
     try:
         from ddgs import DDGS  # noqa: PLC0415
 
-        query = f"{company_name} company products customers"
+        queries = [
+            f"{company_name} company products customers overview",
+            f"{company_name} engineering technology stack infrastructure",
+        ]
         if company_website:
-            query = f"{company_name} {company_website} about funding size"
+            queries.append(f"{company_name} {company_website} funding size employees")
+
+        all_results: list[dict] = []
+        seen_urls: set[str] = set()
         with DDGS() as ddgs:
-            results = list(ddgs.text(query, max_results=5))
+            for q in queries:
+                try:
+                    for r in ddgs.text(q, max_results=4):
+                        url = r.get("href", "")
+                        if url not in seen_urls:
+                            seen_urls.add(url)
+                            all_results.append(r)
+                except Exception:
+                    pass  # partial failure is acceptable — other queries may succeed
+
         search_results = "\n\n".join(
-            f"{r.get('title', '')}: {r.get('body', '')}" for r in results
+            f"{r.get('title', '')}: {r.get('body', '')}" for r in all_results
         )
-        logger.info("run_research_agent: search complete for company=%s", company_name)
+        logger.info(
+            "run_research_agent: search complete for company=%s results=%d",
+            company_name,
+            len(all_results),
+        )
     except Exception:
         logger.error(
             "run_research_agent: search failed for company=%s — proceeding without results",
