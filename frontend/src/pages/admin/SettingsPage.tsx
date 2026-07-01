@@ -96,7 +96,7 @@ export default function SettingsPage() {
                     <span className="text-lg font-bold text-[#1B2B4B] dark:text-gray-100">{s.value}</span>
                     <button
                       onClick={() => startEdit(s)}
-                      className="text-xs text-[#0066FF] hover:underline"
+                      className="text-xs text-[#4F46E5] hover:underline"
                     >
                       Edit
                     </button>
@@ -111,12 +111,12 @@ export default function SettingsPage() {
                     min="1"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-24 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    className="w-24 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                   />
                   <button
                     onClick={() => handleSave(s.key)}
                     disabled={saving || !editValue}
-                    className="px-3 py-1.5 bg-[#0066FF] text-white text-xs rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-[#4F46E5] text-white text-xs rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Save'}
                   </button>

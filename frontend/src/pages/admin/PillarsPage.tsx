@@ -134,7 +134,7 @@ export default function PillarsPage() {
           <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100">Pillars</h1>
           <button
             onClick={openCreate}
-            className="bg-[#0066FF] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="bg-[#4F46E5] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
           >
             + New Pillar
           </button>
@@ -170,7 +170,7 @@ export default function PillarsPage() {
                 <tr key={p.id} className="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <td className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">
                     {p.name}
-                    <a href={`/admin/pillars/${p.id}/questions`} className="ml-2 text-xs text-[#0066FF] hover:underline">
+                    <a href={`/admin/pillars/${p.id}/questions`} className="ml-2 text-xs text-[#4F46E5] hover:underline">
                       Questions →
                     </a>
                   </td>
@@ -189,7 +189,7 @@ export default function PillarsPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      <button onClick={() => openEdit(p)} className="text-xs text-[#0066FF] hover:underline">Edit</button>
+                      <button onClick={() => openEdit(p)} className="text-xs text-[#4F46E5] hover:underline">Edit</button>
                       <button onClick={() => handleToggleActive(p)} className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
                         {p.is_active ? 'Deactivate' : 'Activate'}
                       </button>
@@ -239,7 +239,7 @@ export default function PillarsPage() {
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                 />
               </div>
               <div>
@@ -248,7 +248,7 @@ export default function PillarsPage() {
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={3}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -260,7 +260,7 @@ export default function PillarsPage() {
                     min="0.1"
                     value={form.overall_weight}
                     onChange={(e) => setForm({ ...form, overall_weight: parseFloat(e.target.value) })}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                   />
                 </div>
                 <div>
@@ -270,7 +270,7 @@ export default function PillarsPage() {
                     min="1"
                     value={form.display_order}
                     onChange={(e) => setForm({ ...form, display_order: parseInt(e.target.value) })}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                   />
                 </div>
               </div>
@@ -285,7 +285,7 @@ export default function PillarsPage() {
                   max={qMax}
                   value={form.question_count}
                   onChange={(e) => { const v = parseInt(e.target.value, 10); setForm({ ...form, question_count: isNaN(v) ? qMin : v }) }}
-                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                 />
               </div>
               <div className="flex items-center gap-2">
@@ -305,7 +305,7 @@ export default function PillarsPage() {
                     value={form.gate_question}
                     onChange={(e) => setForm({ ...form, gate_question: e.target.value })}
                     rows={2}
-                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                   />
                 </div>
               )}
@@ -321,7 +321,7 @@ export default function PillarsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !form.name || !form.description}
-                className="px-4 py-2 bg-[#0066FF] text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[#4F46E5] text-white text-sm rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Saving…' : (editing ? 'Save Changes' : 'Create Pillar')}
               </button>

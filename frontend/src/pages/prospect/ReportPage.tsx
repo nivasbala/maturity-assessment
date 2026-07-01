@@ -89,7 +89,7 @@ export default function ReportPage() {
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
           <button
             onClick={() => navigate(`/assess/${token}/pillars`)}
-            className="text-sm text-[#0066FF] hover:underline"
+            className="text-sm text-[#4F46E5] hover:underline"
           >
             Back to pillar selection
           </button>
@@ -102,7 +102,7 @@ export default function ReportPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
         <FloatingThemeToggle />
-        <div className="animate-spin h-10 w-10 border-4 border-[#0066FF] border-t-transparent rounded-full mb-6" />
+        <div className="animate-spin h-10 w-10 border-4 border-[#4F46E5] border-t-transparent rounded-full mb-6" />
         <p className="text-gray-600 dark:text-gray-400 font-medium text-lg">{LOADING_MESSAGES[loadingMsgIdx]}</p>
       </div>
     )
@@ -227,7 +227,7 @@ export default function ReportPage() {
         <div className="flex items-center justify-between pb-8">
           <button
             onClick={() => navigate(`/assess/${token}/pillars`)}
-            className="text-sm font-medium text-[#0066FF] border border-[#0066FF] px-5 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:ring-offset-1"
+            className="text-sm font-medium text-[#4F46E5] border border-[#4F46E5] px-5 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1"
           >
             Take Another Pillar Assessment
           </button>

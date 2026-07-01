@@ -131,7 +131,7 @@ export default function LandingPage() {
                 type="text"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 placeholder="Jane"
               />
             </div>
@@ -141,7 +141,7 @@ export default function LandingPage() {
                 type="text"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
-                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
                 placeholder="Smith"
               />
             </div>
@@ -153,7 +153,7 @@ export default function LandingPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
               placeholder="jane@company.com"
             />
           </div>
@@ -163,7 +163,7 @@ export default function LandingPage() {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:border-transparent"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:border-transparent"
             >
               <option value="">Select your role…</option>
               {PERSONAS.map((p) => (
@@ -193,7 +193,7 @@ export default function LandingPage() {
           <button
             onClick={handleBegin}
             disabled={submitting}
-            className="w-full bg-[#0066FF] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:ring-offset-2"
+            className="w-full bg-[#4F46E5] text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2"
           >
             {submitting ? 'Starting…' : 'Begin Assessment'}
           </button>
@@ -222,7 +222,7 @@ function GateQuestion({
             name={`gate-${pillar.id}`}
             checked={value === true}
             onChange={() => onChange(true)}
-            className="accent-[#0066FF]"
+            className="accent-[#4F46E5]"
           />
           <span className="text-sm text-gray-700 dark:text-gray-300">Yes</span>
         </label>
@@ -232,7 +232,7 @@ function GateQuestion({
             name={`gate-${pillar.id}`}
             checked={value === false}
             onChange={() => onChange(false)}
-            className="accent-[#0066FF]"
+            className="accent-[#4F46E5]"
           />
           <span className="text-sm text-gray-700 dark:text-gray-300">No</span>
         </label>

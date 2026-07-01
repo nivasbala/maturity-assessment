@@ -89,7 +89,7 @@ export default function AssessmentPage() {
           </div>
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#0066FF] rounded-full transition-all duration-300"
+              className="h-full bg-[#4F46E5] rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -108,15 +108,15 @@ export default function AssessmentPage() {
                 <button
                   key={option.id}
                   onClick={() => selectOption(option.id)}
-                  className={`w-full text-left border rounded-lg px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:ring-offset-1 ${
+                  className={`w-full text-left border rounded-lg px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1 ${
                     isSelected
-                      ? 'border-[#0066FF] bg-blue-50 dark:bg-blue-900/20 text-[#1B2B4B] dark:text-gray-100 font-medium'
+                      ? 'border-[#4F46E5] bg-blue-50 dark:bg-blue-900/20 text-[#1B2B4B] dark:text-gray-100 font-medium'
                       : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   <span className="inline-block w-5 h-5 rounded-full border-2 mr-3 align-middle flex-shrink-0 transition-colors" style={{
-                    borderColor: isSelected ? '#0066FF' : '#d1d5db',
-                    backgroundColor: isSelected ? '#0066FF' : 'transparent',
+                    borderColor: isSelected ? '#4F46E5' : '#d1d5db',
+                    backgroundColor: isSelected ? '#4F46E5' : 'transparent',
                   }} />
                   {option.text}
                 </button>
@@ -145,7 +145,7 @@ export default function AssessmentPage() {
             <button
               onClick={goNext}
               disabled={!selectedOptionId}
-              className="px-6 py-2 text-sm font-semibold bg-[#0066FF] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:ring-offset-1"
+              className="px-6 py-2 text-sm font-semibold bg-[#4F46E5] text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1"
             >
               Next
             </button>

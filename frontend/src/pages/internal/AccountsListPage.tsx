@@ -65,7 +65,7 @@ function NewAccountModal({
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
               placeholder="Acme Corp"
             />
           </div>
@@ -78,7 +78,7 @@ function NewAccountModal({
               type="text"
               value={companyWebsite}
               onChange={(e) => setCompanyWebsite(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#0066FF]"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
               placeholder="https://acmecorp.com"
             />
           </div>
@@ -95,7 +95,7 @@ function NewAccountModal({
                       type="checkbox"
                       checked={selectedPillars.includes(p.id)}
                       onChange={() => togglePillar(p.id)}
-                      className="rounded border-gray-300 text-[#0066FF] focus:ring-[#0066FF]"
+                      className="rounded border-gray-300 text-[#4F46E5] focus:ring-[#4F46E5]"
                     />
                     <span className="text-sm text-gray-700 dark:text-gray-300">{p.name}</span>
                   </label>
@@ -115,7 +115,7 @@ function NewAccountModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 text-sm text-white bg-[#0066FF] rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm text-white bg-[#4F46E5] rounded hover:bg-indigo-700 disabled:opacity-50"
           >
             {loading ? 'Creating…' : 'Create Account'}
           </button>
@@ -174,7 +174,7 @@ export default function AccountsListPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-[#0066FF] text-white text-sm font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#0066FF] focus:ring-offset-2"
+            className="px-4 py-2 bg-[#4F46E5] text-white text-sm font-medium rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2"
           >
             New Account
           </button>
@@ -219,7 +219,7 @@ export default function AccountsListPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="text-[#0066FF] hover:underline"
+                          className="text-[#4F46E5] hover:underline"
                         >
                           {a.company_website.replace(/^https?:\/\//, '')}
                         </a>

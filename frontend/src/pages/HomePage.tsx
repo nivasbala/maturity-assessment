@@ -95,7 +95,7 @@ export default function HomePage() {
           <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-5">
             Know exactly where you stand.
             <br />
-            <span className="text-[#0066FF]">Know exactly what to do next.</span>
+            <span className="text-[#4F46E5]">Know exactly what to do next.</span>
           </h1>
           <p className="text-white/70 text-lg leading-relaxed mb-8 max-w-xl mx-auto">
             A personalised observability maturity assessment that benchmarks your
@@ -104,7 +104,7 @@ export default function HomePage() {
           </p>
           <button
             onClick={handleCta}
-            className="bg-[#0066FF] hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base shadow-lg"
+            className="bg-[#4F46E5] hover:bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base shadow-lg"
           >
             {user ? 'Go to dashboard' : 'Log in to get started'}
           </button>
@@ -145,7 +145,7 @@ export default function HomePage() {
           <div className="grid sm:grid-cols-3 gap-8">
             {STEPS.map((step) => (
               <div key={step.number} className="relative">
-                <div className="text-5xl font-black text-[#0066FF]/10 mb-2 leading-none">
+                <div className="text-5xl font-black text-[#4F46E5]/10 mb-2 leading-none">
                   {step.number}
                 </div>
                 <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-base mb-2">
@@ -240,7 +240,7 @@ export default function HomePage() {
         </p>
         <button
           onClick={handleCta}
-          className="bg-[#0066FF] hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base"
+          className="bg-[#4F46E5] hover:bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base"
         >
           {user ? 'Go to dashboard' : 'Log in'}
         </button>
