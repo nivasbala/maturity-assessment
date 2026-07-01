@@ -182,30 +182,139 @@ export default function HomePage() {
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
       <section className="py-20 px-6 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-2">
             How it works
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-12">
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-14">
             From link to report in three steps.
           </p>
-          <div className="grid sm:grid-cols-3 gap-8">
-            {STEPS.map((step) => (
-              <div
-                key={step.number}
-                className="relative bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6"
-              >
-                <div className="text-5xl font-black text-brand mb-2 leading-none">
-                  {step.number}
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            {/* Left half: steps */}
+            <div className="space-y-6">
+              {STEPS.map((step) => (
+                <div key={step.number} className="flex items-start gap-4">
+                  <div className="text-2xl font-black text-brand w-10 shrink-0 leading-none pt-0.5">
+                    {step.number}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
+                      {step.title}
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+                      {step.description}
+                    </p>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-base mb-2">
-                  {step.title}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-                  {step.description}
-                </p>
+              ))}
+            </div>
+
+            {/* Right half: animated flow mockup */}
+            <div className="flex justify-center">
+              <div className="relative w-72 h-96 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-600 shadow-xl bg-white dark:bg-gray-900">
+                <div
+                  className="absolute inset-0 flex flex-col"
+                  style={{ animation: 'flowScroll 12s ease-in-out infinite' }}
+                >
+                  {/* Slide 1: personalised link */}
+                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-brand" />
+                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 01</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Your personalised link</h4>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">Your account team sends a link scoped to your company and role.</p>
+                    <div className="mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-brand/30 shrink-0" />
+                      <div className="flex flex-col gap-1 flex-1">
+                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-4/5" />
+                        <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full w-3/5" />
+                      </div>
+                    </div>
+                    <div className="mt-auto bg-brand rounded-lg px-4 py-2 text-center">
+                      <span className="text-white text-xs font-semibold">Start Assessment →</span>
+                    </div>
+                  </div>
+
+                  {/* Slide 2: answering a question */}
+                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-brand" />
+                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 02</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Answer targeted questions</h4>
+                    <div className="flex flex-col gap-2 flex-1">
+                      <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5">
+                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-full mb-1.5" />
+                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-4/5" />
+                      </div>
+                      {[['Level 1 – Ad hoc', false], ['Level 2 – Developing', true], ['Level 3 – Defined', false], ['Level 4 – Optimised', false]].map(([label, selected]) => (
+                        <div
+                          key={String(label)}
+                          className={`flex items-center gap-2 rounded-lg px-3 py-2 border text-[11px] ${
+                            selected
+                              ? 'border-brand bg-brand/5 dark:bg-brand/10 text-brand font-medium'
+                              : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
+                          <div className={`w-3 h-3 rounded-full border shrink-0 ${selected ? 'border-brand bg-brand' : 'border-gray-300 dark:border-gray-600'}`} />
+                          {String(label)}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Slide 3: report ready */}
+                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-brand" />
+                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 03</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Your report is ready</h4>
+                    <div
+                      className="self-start text-white text-[10px] font-semibold px-2.5 py-1 rounded-full"
+                      style={{ backgroundColor: '#f59e0b' }}
+                    >
+                      Overall Score: 2.8 / 4.0
+                    </div>
+                    <div className="flex flex-col gap-2 mt-1">
+                      {[['Full-Stack Observability', '3.4', '#22c55e'], ['AIOps & Intelligent Obs.', '2.1', '#f59e0b'], ['Security & DevSecOps', '3.1', '#22c55e']].map(([name, score, color]) => (
+                        <div key={String(name)} className="flex items-center justify-between bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
+                          <span className="text-[10px] text-gray-500 dark:text-gray-400 truncate flex-1 mr-2">{String(name)}</span>
+                          <span className="text-[11px] font-bold shrink-0" style={{ color }}>{String(score)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-auto bg-brand/10 dark:bg-brand/20 rounded-lg px-3 py-2 text-center border border-brand/20">
+                      <span className="text-brand text-[11px] font-semibold">Download PDF Report</span>
+                    </div>
+                  </div>
+
+                  {/* Repeat slide 1 for seamless loop */}
+                  <div className="w-full shrink-0 h-96 px-5 py-5 flex flex-col gap-3">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 rounded-full bg-brand" />
+                      <span className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Step 01</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100">Your personalised link</h4>
+                    <p className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed">Your account team sends a link scoped to your company and role.</p>
+                    <div className="mt-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2.5 flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-brand/30 shrink-0" />
+                      <div className="flex flex-col gap-1 flex-1">
+                        <div className="h-2 bg-gray-200 dark:bg-gray-600 rounded-full w-4/5" />
+                        <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full w-3/5" />
+                      </div>
+                    </div>
+                    <div className="mt-auto bg-brand rounded-lg px-4 py-2 text-center">
+                      <span className="text-white text-xs font-semibold">Start Assessment →</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Fade overlay at bottom */}
+                <div className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none bg-gradient-to-t from-white to-transparent dark:from-gray-900" />
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </section>
@@ -433,6 +542,15 @@ export default function HomePage() {
           78%  { transform: translateY(-1152px); }
           95%  { transform: translateY(-1152px); }
           100% { transform: translateY(-1536px); }
+        }
+        @keyframes flowScroll {
+          0%   { transform: translateY(0); }
+          25%  { transform: translateY(0); }
+          33%  { transform: translateY(-384px); }
+          58%  { transform: translateY(-384px); }
+          66%  { transform: translateY(-768px); }
+          91%  { transform: translateY(-768px); }
+          100% { transform: translateY(-1152px); }
         }
       `}</style>
     </div>
