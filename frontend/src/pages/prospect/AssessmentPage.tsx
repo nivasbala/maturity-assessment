@@ -89,7 +89,7 @@ export default function AssessmentPage() {
           </div>
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#4F46E5] rounded-full transition-all duration-300"
+              className="h-full bg-[#2563EB] rounded-full transition-all duration-300"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -145,7 +145,7 @@ export default function AssessmentPage() {
             <button
               onClick={goNext}
               disabled={!selectedOptionId}
-              className="px-6 py-2 text-sm font-semibold bg-[#4F46E5] text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1"
+              className="px-6 py-2 text-sm font-semibold bg-[#2563EB] text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1"
             >
               Next
             </button>

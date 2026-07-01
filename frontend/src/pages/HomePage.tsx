@@ -104,7 +104,7 @@ export default function HomePage() {
           </p>
           <button
             onClick={handleCta}
-            className="bg-[#4F46E5] hover:bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base shadow-lg"
+            className="bg-[#2563EB] hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base shadow-lg"
           >
             {user ? 'Go to dashboard' : 'Log in to get started'}
           </button>
@@ -240,7 +240,7 @@ export default function HomePage() {
         </p>
         <button
           onClick={handleCta}
-          className="bg-[#4F46E5] hover:bg-indigo-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base"
+          className="bg-[#2563EB] hover:bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg transition-colors text-base"
         >
           {user ? 'Go to dashboard' : 'Log in'}
         </button>

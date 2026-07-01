@@ -125,7 +125,7 @@ export default function PillarSelectPage() {
                   <button
                     onClick={() => handleSelectPillar(pillar)}
                     disabled={isDisabled}
-                    className="text-sm font-medium bg-[#4F46E5] text-white px-4 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1"
+                    className="text-sm font-medium bg-[#2563EB] text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-1"
                   >
                     {isLoading ? 'Personalizing your questions…' : 'Start Assessment'}
                   </button>

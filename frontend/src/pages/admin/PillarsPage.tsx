@@ -134,7 +134,7 @@ export default function PillarsPage() {
           <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100">Pillars</h1>
           <button
             onClick={openCreate}
-            className="bg-[#4F46E5] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+            className="bg-[#2563EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             + New Pillar
           </button>
@@ -321,7 +321,7 @@ export default function PillarsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving || !form.name || !form.description}
-                className="px-4 py-2 bg-[#4F46E5] text-white text-sm rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[#2563EB] text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Saving…' : (editing ? 'Save Changes' : 'Create Pillar')}
               </button>

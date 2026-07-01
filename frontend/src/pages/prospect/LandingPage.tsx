@@ -193,7 +193,7 @@ export default function LandingPage() {
           <button
             onClick={handleBegin}
             disabled={submitting}
-            className="w-full bg-[#4F46E5] text-white font-semibold py-3 rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2"
+            className="w-full bg-[#2563EB] text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2"
           >
             {submitting ? 'Starting…' : 'Begin Assessment'}
           </button>

@@ -74,7 +74,7 @@ export default function UsersPage() {
           <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100">Internal Users</h1>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-[#4F46E5] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+            className="bg-[#2563EB] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
           >
             + New User
           </button>
@@ -207,7 +207,7 @@ export default function UsersPage() {
               <button
                 onClick={handleCreate}
                 disabled={saving || !form.name || !form.email || !form.password}
-                className="px-4 py-2 bg-[#4F46E5] text-white text-sm rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-[#2563EB] text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {saving ? 'Creating…' : 'Create User'}
               </button>

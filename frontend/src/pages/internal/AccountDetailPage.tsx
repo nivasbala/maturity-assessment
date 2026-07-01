@@ -29,7 +29,7 @@ function UrlModal({
           <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 break-all font-mono">{result.full_url}</span>
           <button
             onClick={handleCopy}
-            className="shrink-0 px-3 py-1 text-sm bg-[#4F46E5] text-white rounded hover:bg-indigo-700 focus:outline-none"
+            className="shrink-0 px-3 py-1 text-sm bg-[#2563EB] text-white rounded hover:bg-blue-700 focus:outline-none"
           >
             {copied ? '✓ Copied' : 'Copy'}
           </button>

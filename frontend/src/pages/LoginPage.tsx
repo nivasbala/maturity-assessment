@@ -68,7 +68,7 @@ export default function LoginPage() {
           <button
             onClick={handleLogin}
             disabled={loading || !email || !password}
-            className="w-full bg-[#4F46E5] text-white rounded-lg py-2 text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full bg-[#2563EB] text-white rounded-lg py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

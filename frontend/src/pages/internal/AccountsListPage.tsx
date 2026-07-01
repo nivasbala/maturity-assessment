@@ -115,7 +115,7 @@ function NewAccountModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 text-sm text-white bg-[#4F46E5] rounded hover:bg-indigo-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm text-white bg-[#2563EB] rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? 'Creating…' : 'Create Account'}
           </button>
@@ -174,7 +174,7 @@ export default function AccountsListPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-[#4F46E5] text-white text-sm font-medium rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2"
+            className="px-4 py-2 bg-[#2563EB] text-white text-sm font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-[#4F46E5] focus:ring-offset-2"
           >
             New Account
           </button>

@@ -148,7 +148,7 @@ export default function QuestionsPage() {
             </div>
             <button
               onClick={startCreate}
-              className="text-xs bg-[#4F46E5] text-white px-3 py-1.5 rounded-lg font-medium hover:bg-indigo-700"
+              className="text-xs bg-[#2563EB] text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700"
             >
               + New
             </button>
@@ -311,7 +311,7 @@ export default function QuestionsPage() {
                   <button
                     onClick={handleSave}
                     disabled={saving || !form.text || form.answer_options.some((o) => !o.text)}
-                    className="px-4 py-2 bg-[#4F46E5] text-white text-sm rounded-lg font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-[#2563EB] text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {saving ? 'Saving…' : (selected ? 'Save Changes' : 'Create Question')}
                   </button>
