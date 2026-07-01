@@ -223,7 +223,7 @@ export default function AccountDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="px-6 py-8">
         <button
           onClick={() => navigate('/dashboard')}
           className="text-sm text-brand hover:underline mb-4 flex items-center gap-1"
