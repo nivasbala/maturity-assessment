@@ -219,13 +219,16 @@ async def _run_research_agent_locked(
     # DuckDuckGo web search
     search_results = ""
     try:
-        from langchain_community.tools import DuckDuckGoSearchRun  # noqa: PLC0415
+        from ddgs import DDGS  # noqa: PLC0415
 
-        tool = DuckDuckGoSearchRun()
         query = f"{company_name} company products customers"
         if company_website:
             query = f"{company_name} {company_website} about funding size"
-        search_results = await asyncio.to_thread(tool.run, query)
+        with DDGS() as ddgs:
+            results = list(ddgs.text(query, max_results=5))
+        search_results = "\n\n".join(
+            f"{r.get('title', '')}: {r.get('body', '')}" for r in results
+        )
         logger.info("run_research_agent: search complete for company=%s", company_name)
     except Exception:
         logger.error(
