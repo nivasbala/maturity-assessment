@@ -334,10 +334,10 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-[#1B2B4B] text-white pt-12 pb-14 px-6">
+      <section className="bg-[#1B2B4B] text-white pt-8 pb-10 px-6">
         <div className="max-w-3xl mx-auto text-center">
           {/* Icon + Main title lockup */}
-          <div className="flex items-center justify-center gap-4 mb-5 flex-wrap">
+          <div className="flex items-center justify-center gap-4 mb-3 flex-wrap">
             <div className="shrink-0 w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center">
               <svg width="36" height="36" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                 <rect x="2" y="5" width="28" height="18" rx="2" stroke="white" strokeWidth="1.5"/>
@@ -354,13 +354,13 @@ export default function HomePage() {
           </div>
 
           {/* Tagline — smaller than title */}
-          <p className="text-lg sm:text-xl font-semibold text-brand leading-snug mb-3">
+          <p className="text-lg sm:text-xl font-semibold text-brand leading-snug mb-2">
             Know exactly where you stand.{' '}
             <span className="text-white/80">Know exactly what to do next.</span>
           </p>
 
           {/* Description — smallest */}
-          <p className="text-white/55 text-sm leading-relaxed mb-8 max-w-lg mx-auto">
+          <p className="text-white/55 text-sm leading-relaxed mb-6 max-w-lg mx-auto">
             Benchmark your observability posture across five critical pillars
             and get a prioritised action plan — in under 10 minutes.
           </p>

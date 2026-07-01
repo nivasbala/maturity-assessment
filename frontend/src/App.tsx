@@ -8,6 +8,7 @@ import LandingPage from './pages/prospect/LandingPage'
 import PillarSelectPage from './pages/prospect/PillarSelectPage'
 import AssessmentPage from './pages/prospect/AssessmentPage'
 import ReportPage from './pages/prospect/ReportPage'
+import SubmittingPage from './pages/prospect/SubmittingPage'
 import AccountsListPage from './pages/internal/AccountsListPage'
 import AccountDetailPage from './pages/internal/AccountDetailPage'
 import ReportDetailPage from './pages/internal/ReportDetailPage'
@@ -39,6 +40,7 @@ export default function App() {
             <Route path="/assess/:token" element={<LandingPage />} />
             <Route path="/assess/:token/pillars" element={<PillarSelectPage />} />
             <Route path="/assess/:token/assessment/:assessmentId" element={<AssessmentPage />} />
+            <Route path="/assess/:token/submitting/:assessmentId" element={<SubmittingPage />} />
             <Route path="/assess/:token/report/:assessmentId" element={<ReportPage />} />
             {/* Authenticated pages — nav bar shown */}
             <Route element={<AuthenticatedLayout />}>

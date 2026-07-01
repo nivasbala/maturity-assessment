@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { submitAssessment } from '../../api/public'
-import { extractApiError } from '../../api'
 import type { QuestionPublic } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
 
@@ -27,8 +25,6 @@ export default function AssessmentPage() {
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
-  const [submitting, setSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState('')
 
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
 
@@ -64,21 +60,15 @@ export default function AssessmentPage() {
     }
   }
 
-  async function handleSubmit() {
+  function handleSubmit() {
     if (!allAnswered) return
-    setSubmitError('')
-    setSubmitting(true)
-    try {
-      const answerList = questions.map((q) => ({
-        question_id: q.id,
-        answer_option_id: answers[q.id],
-      }))
-      await submitAssessment(token!, sessionToken, assessmentId!, answerList)
-      navigate(`/assess/${token}/report/${assessmentId}`)
-    } catch (e) {
-      setSubmitError(extractApiError(e, 'Submission failed. Please try again.'))
-      setSubmitting(false)
-    }
+    const answerList = questions.map((q) => ({
+      question_id: q.id,
+      answer_option_id: answers[q.id],
+    }))
+    navigate(`/assess/${token}/submitting/${assessmentId}`, {
+      state: { answers: answerList, companyName, pillarName, prospectName, prospectRole },
+    })
   }
 
   const progress = Math.round(((currentIndex + 1) / totalQuestions) * 100)
@@ -182,20 +172,15 @@ export default function AssessmentPage() {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!allAnswered || submitting}
+                disabled={!allAnswered}
                 className="px-5 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-1"
               >
-                {submitting ? 'Submitting…' : 'Submit Assessment'}
+                Submit Assessment
               </button>
             )}
           </div>
         </div>
 
-        {submitError && (
-          <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-            {submitError}
-          </div>
-        )}
       </div>
       </div>
     </div>
