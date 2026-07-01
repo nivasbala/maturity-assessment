@@ -4,7 +4,7 @@ import { getAssessmentInfo, registerProspect } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
 import { PERSONAS } from '../../types'
-import FloatingThemeToggle from '../../components/FloatingThemeToggle'
+import ProspectHeader from '../../components/ProspectHeader'
 
 export default function LandingPage() {
   const { token } = useParams<{ token: string }>()
@@ -13,10 +13,12 @@ export default function LandingPage() {
   const [info, setInfo] = useState<AssessmentInfo | null>(null)
   const [loadError, setLoadError] = useState('')
 
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState('')
+  const savedName = sessionStorage.getItem('prospect_name') ?? ''
+  const savedParts = savedName.split(' ')
+  const [firstName, setFirstName] = useState(savedParts[0] ?? '')
+  const [lastName, setLastName] = useState(savedParts.slice(1).join(' ') ?? '')
+  const [email, setEmail] = useState(sessionStorage.getItem('prospect_email') ?? '')
+  const [role, setRole] = useState(sessionStorage.getItem('prospect_role') ?? '')
   const [gateAnswers, setGateAnswers] = useState<Record<string, boolean | null>>({})
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState('')
@@ -80,6 +82,7 @@ export default function LandingPage() {
       sessionStorage.setItem('p4_gate', JSON.stringify(p4GateFinal))
       sessionStorage.setItem('prospect_name', `${firstName.trim()} ${lastName.trim()}`)
       sessionStorage.setItem('prospect_role', role)
+      sessionStorage.setItem('prospect_email', email.trim())
       navigate(`/assess/${token}/pillars`)
     } catch (e) {
       setFormError(extractApiError(e, 'Registration failed. Please try again.'))
@@ -90,9 +93,9 @@ export default function LandingPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <FloatingThemeToggle />
-        <div className="text-center">
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center">
           <p className="text-red-600 dark:text-red-400 font-medium">{loadError}</p>
         </div>
       </div>
@@ -101,16 +104,19 @@ export default function LandingPage() {
 
   if (!info) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <FloatingThemeToggle />
-        <div className="text-gray-500 dark:text-gray-400">Loading assessment…</div>
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
+          Loading assessment…
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center py-12 px-4">
-      <FloatingThemeToggle />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <ProspectHeader />
+      <div className="flex-1 flex items-center justify-center py-12 px-4">
       <div className="w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
         {/* Header */}
         <div className="mb-8">
@@ -200,6 +206,7 @@ export default function LandingPage() {
             {submitting ? 'Starting…' : 'Begin Assessment'}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

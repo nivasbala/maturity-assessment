@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { submitAssessment } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { QuestionPublic } from '../../types'
-import FloatingThemeToggle from '../../components/FloatingThemeToggle'
+import ProspectHeader from '../../components/ProspectHeader'
 
 interface LocationState {
   questions: QuestionPublic[]
@@ -84,8 +84,9 @@ export default function AssessmentPage() {
   const progress = Math.round(((currentIndex + 1) / totalQuestions) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
-      <FloatingThemeToggle />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <ProspectHeader />
+      <div className="flex-1 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Company + user info header */}
         <div className="flex items-center justify-between mb-6">
@@ -195,6 +196,7 @@ export default function AssessmentPage() {
             {submitError}
           </div>
         )}
+      </div>
       </div>
     </div>
   )

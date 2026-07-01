@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getReport } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ReportPublic } from '../../types'
-import FloatingThemeToggle from '../../components/FloatingThemeToggle'
+import ProspectHeader from '../../components/ProspectHeader'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 
 const LOADING_MESSAGES = [
@@ -59,16 +59,18 @@ export default function ReportPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <FloatingThemeToggle />
-        <div className="text-center">
-          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-          <button
-            onClick={() => navigate(`/assess/${token}/pillars`)}
-            className="text-sm text-brand hover:underline"
-          >
-            Back to pillar selection
-          </button>
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+            <button
+              onClick={() => navigate(`/assess/${token}/pillars`)}
+              className="text-sm text-brand hover:underline"
+            >
+              Back to pillar selection
+            </button>
+          </div>
         </div>
       </div>
     )
@@ -76,10 +78,12 @@ export default function ReportPage() {
 
   if (!report) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <FloatingThemeToggle />
-        <div className="animate-spin h-10 w-10 border-4 border-brand border-t-transparent rounded-full mb-6" />
-        <p className="text-gray-600 dark:text-gray-400 font-medium text-lg">{LOADING_MESSAGES[loadingMsgIdx]}</p>
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex flex-col items-center justify-center">
+          <div className="animate-spin h-10 w-10 border-4 border-brand border-t-transparent rounded-full mb-6" />
+          <p className="text-gray-600 dark:text-gray-400 font-medium text-lg">{LOADING_MESSAGES[loadingMsgIdx]}</p>
+        </div>
       </div>
     )
   }
@@ -87,8 +91,9 @@ export default function ReportPage() {
   const badgeClass = MATURITY_COLORS[report.maturity_label] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
-      <FloatingThemeToggle />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <ProspectHeader />
+      <div className="flex-1 py-10 px-4">
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
@@ -208,6 +213,7 @@ export default function ReportPage() {
             Take Another Pillar Assessment
           </button>
         </div>
+      </div>
       </div>
     </div>
   )

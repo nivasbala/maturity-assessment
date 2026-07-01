@@ -4,7 +4,7 @@ import { getAssessmentInfo, selectPillar } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
 import { PERSONAS } from '../../types'
-import FloatingThemeToggle from '../../components/FloatingThemeToggle'
+import ProspectHeader from '../../components/ProspectHeader'
 
 export default function PillarSelectPage() {
   const { token } = useParams<{ token: string }>()
@@ -73,8 +73,9 @@ export default function PillarSelectPage() {
   // Full-screen loading state while questions are being personalized
   if (loadingPillar) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center px-4">
-        <FloatingThemeToggle />
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
           <div className="mb-6">
             <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
@@ -104,24 +105,29 @@ export default function PillarSelectPage() {
             Tailoring the assessment for your role and company
           </p>
         </div>
+        </div>
       </div>
     )
   }
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <FloatingThemeToggle />
-        <p className="text-red-600 dark:text-red-400">{loadError}</p>
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-red-600 dark:text-red-400">{loadError}</p>
+        </div>
       </div>
     )
   }
 
   if (!info) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <FloatingThemeToggle />
-        <div className="text-gray-500 dark:text-gray-400">Loading pillars…</div>
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
+          Loading pillars…
+        </div>
       </div>
     )
   }
@@ -129,8 +135,9 @@ export default function PillarSelectPage() {
   const visiblePillars = info.available_pillars.filter(shouldShow)
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
-      <FloatingThemeToggle />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <ProspectHeader />
+      <div className="flex-1 py-10 px-4">
       <div className="max-w-3xl mx-auto">
         {/* Header with company + user info */}
         <div className="mb-8">
@@ -206,6 +213,7 @@ export default function PillarSelectPage() {
             No assessment areas are available. Please contact your Datadog representative.
           </p>
         )}
+      </div>
       </div>
     </div>
   )
