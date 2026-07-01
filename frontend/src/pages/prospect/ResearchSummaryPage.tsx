@@ -43,7 +43,7 @@ export default function ResearchSummaryPage() {
         if (cancelled) return
         setSummary(data)
         if (!data.is_ready) {
-          // Exponential backoff: 2s → 4s → 6s → cap at 8s
+          // Backoff: immediate → 4s → 6s → cap at 8s
           delayRef.current = Math.min(delayRef.current + 2000, 8000)
           pollRef.current = setTimeout(poll, delayRef.current)
         }

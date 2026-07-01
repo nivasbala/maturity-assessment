@@ -40,14 +40,19 @@ function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> })
             </div>
           )}
 
-          {data.technology_signals.length > 0 && (
+          {data.target_customers && data.target_customers !== 'unknown' && (
             <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Technology Signals</p>
-              <div className="flex flex-wrap gap-1.5">
-                {data.technology_signals.map((t, i) => (
-                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">{t}</span>
-                ))}
-              </div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Target Customers</p>
+              <p className="text-gray-700 dark:text-gray-300">{data.target_customers}</p>
+            </div>
+          )}
+
+          {data.operational_scale && data.operational_scale.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Operational Scale</p>
+              <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
+                {data.operational_scale.map((s, i) => <li key={i}>{s}</li>)}
+              </ul>
             </div>
           )}
 

@@ -287,18 +287,14 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     assessment = await _get_assessment_by_token(token, db)
     account = assessment.account
 
-    # Update the original assessment with prospect info
+    # Update assessment and account in one commit
     assessment.prospect_name = body.prospect_name
     assessment.prospect_email = body.prospect_email
     assessment.prospect_role = body.prospect_role
+    account.infrastructure_location = body.infrastructure_location or account.infrastructure_location
+    account.tech_stack_description = body.tech_stack_description or account.tech_stack_description
+    account.current_tools = body.current_tools or account.current_tools
     await db.commit()
-
-    # Save optional prospect context onto the account
-    if any([body.infrastructure_location, body.tech_stack_description, body.current_tools]):
-        account.infrastructure_location = body.infrastructure_location or account.infrastructure_location
-        account.tech_stack_description = body.tech_stack_description or account.tech_stack_description
-        account.current_tools = body.current_tools or account.current_tools
-        await db.commit()
 
     # Build session token payload
     session_data: dict = {
@@ -335,12 +331,7 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
     if assessment.account_id != account_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    account = (
-        await db.execute(select(Account).where(Account.id == account_id))
-    ).scalar_one_or_none()
-    if not account:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
-
+    account = assessment.account
     if not account.research_cache:
         logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
         return ResearchSummaryOut(is_ready=False)
@@ -376,12 +367,7 @@ async def confirm_research(
     if assessment.account_id != account_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    account = (
-        await db.execute(select(Account).where(Account.id == account_id))
-    ).scalar_one_or_none()
-    if not account:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
-
+    account = assessment.account
     account.research_confirmed_at = datetime.now(timezone.utc)
     if body.corrections and body.corrections.strip():
         account.prospect_corrections = body.corrections.strip()
@@ -459,7 +445,14 @@ async def select_pillar(
     account = (
         await db.execute(select(Account).where(Account.id == account_id))
     ).scalar_one_or_none()
-    research_cache = account.research_cache if account else None
+
+    if not account or not account.research_confirmed_at:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Research summary must be confirmed before selecting a pillar",
+        )
+
+    research_cache = account.research_cache
 
     try:
         questions = await select_questions(

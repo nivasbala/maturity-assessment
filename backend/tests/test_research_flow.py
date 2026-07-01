@@ -14,8 +14,6 @@ from uuid import uuid4
 
 import pytest
 
-from app.core.security import create_session_token
-
 
 # ── Research Summary Service ──────────────────────────────────────────────────
 
@@ -29,19 +27,18 @@ async def test_get_research_summary_not_ready_when_cache_null():
     token = "test_token"
     session = {"account_id": str(account_id)}
 
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-
     mock_account = MagicMock()
     mock_account.id = account_id
     mock_account.research_cache = None
 
+    mock_assessment = MagicMock()
+    mock_assessment.account_id = account_id
+    mock_assessment.account = mock_account
+
     db = AsyncMock()
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    account_result = MagicMock()
-    account_result.scalar_one_or_none.return_value = mock_account
-    db.execute.side_effect = [assessment_result, account_result]
+    db.execute.return_value = assessment_result
 
     result = await get_research_summary(token, session, db)
 
@@ -80,12 +77,12 @@ async def test_get_research_summary_ready_with_full_profile():
     mock_account.company_name = "Acme Corp"
     mock_account.research_cache = cache
 
+    mock_assessment.account = mock_account
+
     db = AsyncMock()
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    account_result = MagicMock()
-    account_result.scalar_one_or_none.return_value = mock_account
-    db.execute.side_effect = [assessment_result, account_result]
+    db.execute.return_value = assessment_result
 
     result = await get_research_summary(token, session, db)
 
@@ -134,19 +131,18 @@ async def test_confirm_research_sets_timestamp():
     session = {"account_id": str(account_id)}
     body = ConfirmResearchRequest(corrections=None)
 
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-
     mock_account = MagicMock()
     mock_account.id = account_id
     mock_account.prospect_corrections = None
 
+    mock_assessment = MagicMock()
+    mock_assessment.account_id = account_id
+    mock_assessment.account = mock_account
+
     db = AsyncMock()
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    account_result = MagicMock()
-    account_result.scalar_one_or_none.return_value = mock_account
-    db.execute.side_effect = [assessment_result, account_result]
+    db.execute.return_value = assessment_result
 
     result = await confirm_research(token, session, body, db)
 
@@ -166,19 +162,18 @@ async def test_confirm_research_saves_corrections_when_provided():
     session = {"account_id": str(account_id)}
     body = ConfirmResearchRequest(corrections="We are on Azure, not AWS.")
 
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-
     mock_account = MagicMock()
     mock_account.id = account_id
     mock_account.prospect_corrections = None
 
+    mock_assessment = MagicMock()
+    mock_assessment.account_id = account_id
+    mock_assessment.account = mock_account
+
     db = AsyncMock()
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    account_result = MagicMock()
-    account_result.scalar_one_or_none.return_value = mock_account
-    db.execute.side_effect = [assessment_result, account_result]
+    db.execute.return_value = assessment_result
 
     await confirm_research(token, session, body, db)
 
@@ -196,19 +191,18 @@ async def test_confirm_research_does_not_overwrite_when_corrections_empty():
     session = {"account_id": str(account_id)}
     body = ConfirmResearchRequest(corrections="   ")  # whitespace only → treated as empty
 
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-
     mock_account = MagicMock()
     mock_account.id = account_id
     mock_account.prospect_corrections = "previous corrections"
 
+    mock_assessment = MagicMock()
+    mock_assessment.account_id = account_id
+    mock_assessment.account = mock_account
+
     db = AsyncMock()
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    account_result = MagicMock()
-    account_result.scalar_one_or_none.return_value = mock_account
-    db.execute.side_effect = [assessment_result, account_result]
+    db.execute.return_value = assessment_result
 
     await confirm_research(token, session, body, db)
 

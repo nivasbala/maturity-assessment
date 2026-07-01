@@ -64,15 +64,10 @@ export default function LandingPage() {
 
     setSubmitting(true)
     try {
-      const p3Pillar = gatedPillars.find((p) => p.name.toLowerCase().includes('ai system') || p.name.toLowerCase().includes('p3'))
-      const p4Pillar = gatedPillars.find((p) => p.name.toLowerCase().includes('ml') || p.name.toLowerCase().includes('p4') || p.name.toLowerCase().includes('foundation'))
-
-      const p3Gate = p3Pillar ? (gateAnswers[p3Pillar.id] ?? null) : null
-      const p4Gate = p4Pillar ? (gateAnswers[p4Pillar.id] ?? null) : null
-
+      // gatedPillars is ordered by display_order from the backend (P3 first, P4 second)
       const gateByIndex = gatedPillars.map((gp) => gateAnswers[gp.id] ?? null)
-      const p3GateFinal = p3Gate !== null ? p3Gate : (gateByIndex[0] ?? null)
-      const p4GateFinal = p4Gate !== null ? p4Gate : (gateByIndex[1] ?? null)
+      const p3GateFinal = gateByIndex[0] ?? null
+      const p4GateFinal = gateByIndex[1] ?? null
 
       const result = await registerProspect(token!, {
         prospect_name: `${firstName.trim()} ${lastName.trim()}`,

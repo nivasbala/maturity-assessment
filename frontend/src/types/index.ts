@@ -220,11 +220,14 @@ export interface Report {
     industry: string
     company_size: string
     products_summary: string
-    technology_signals: string[]
+    target_customers: string
+    operational_scale: string[]
     builds_ai_products: boolean
     cloud_providers: string[]
     key_challenges: string[]
     business_outcomes: string[]
+    data_confidence: string
+    research_notes: string
   } | null
   created_at: string
 }

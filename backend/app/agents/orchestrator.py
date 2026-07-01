@@ -36,6 +36,7 @@ from typing_extensions import TypedDict
 from app.agents.report_agent import run_report_agent
 from app.agents.research_agent import run_research_agent
 from app.core.database import AsyncSessionLocal
+from app.models.account import Account
 from app.models.assessment import AssessmentAnswer
 from app.models.question import AnswerOption, Question
 
@@ -92,11 +93,17 @@ def _build_graph(db: AsyncSession) -> Any:
         )
         try:
             async with AsyncSessionLocal() as fresh_db:
+                acct = (
+                    await fresh_db.execute(select(Account).where(Account.id == account_id))
+                ).scalar_one_or_none()
                 profile = await run_research_agent(
                     account_id,
                     state["company_name"],
                     state.get("company_website"),
                     fresh_db,
+                    infrastructure_location=acct.infrastructure_location if acct else None,
+                    tech_stack_description=acct.tech_stack_description if acct else None,
+                    current_tools=acct.current_tools if acct else None,
                 )
             return {"company_profile": profile}
         except Exception:
