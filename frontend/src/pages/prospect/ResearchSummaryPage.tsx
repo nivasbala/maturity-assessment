@@ -5,6 +5,40 @@ import { extractApiError } from '../../api'
 import type { ResearchSummary } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
 
+interface ProspectCtx {
+  infrastructure: string
+  techStack: string
+  tools: string
+  challenges: string
+}
+
+function ProspectContextCard({ ctx }: { ctx: ProspectCtx }) {
+  const rows: { label: string; value: string }[] = [
+    { label: 'Infrastructure & deployment', value: ctx.infrastructure },
+    { label: 'Tech stack', value: ctx.techStack },
+    { label: 'Current tools', value: ctx.tools },
+    { label: 'Key challenges', value: ctx.challenges },
+  ].filter((r) => r.value.trim() !== '')
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
+        What you provided
+      </h2>
+      <dl className="space-y-3">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <dt className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-0.5">
+              {r.label}
+            </dt>
+            <dd className="text-sm text-gray-700 dark:text-gray-300">{r.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  )
+}
+
 const CONFIDENCE_STYLES: Record<string, string> = {
   high: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
   medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
@@ -15,6 +49,15 @@ export default function ResearchSummaryPage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
+
+  // Prospect-provided context — always shown regardless of agent result
+  const prospectContext = {
+    infrastructure: sessionStorage.getItem('infrastructure_location') ?? '',
+    techStack: sessionStorage.getItem('tech_stack_description') ?? '',
+    tools: sessionStorage.getItem('current_tools') ?? '',
+    challenges: sessionStorage.getItem('prospect_challenges') ?? '',
+  }
+  const hasProspectContext = Object.values(prospectContext).some((v) => v.trim() !== '')
 
   const [summary, setSummary] = useState<ResearchSummary | null>(null)
   const [error, setError] = useState('')
@@ -92,19 +135,22 @@ export default function ResearchSummaryPage() {
 
           {/* Loading state */}
           {(!summary || !summary.is_ready) && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
-              <div className="flex justify-center mb-4">
-                <svg className="animate-spin h-8 w-8 text-brand" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
+            <div className="space-y-4">
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <div className="flex justify-center mb-4">
+                  <svg className="animate-spin h-8 w-8 text-brand" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                </div>
+                <p className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-1">
+                  Analyzing your company profile…
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  This usually takes 10–20 seconds.
+                </p>
               </div>
-              <p className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-1">
-                Analyzing your company profile…
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                This usually takes 10–20 seconds.
-              </p>
+              {hasProspectContext && <ProspectContextCard ctx={prospectContext} />}
             </div>
           )}
 
@@ -154,6 +200,9 @@ export default function ResearchSummaryPage() {
                   )}
                 </div>
               </div>
+
+              {/* Prospect-provided context — always shown */}
+              {hasProspectContext && <ProspectContextCard ctx={prospectContext} />}
 
               {/* Key Challenges */}
               {summary.key_challenges.length > 0 && (
