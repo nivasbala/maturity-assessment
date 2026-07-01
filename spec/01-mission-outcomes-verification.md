@@ -50,14 +50,14 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Prospect public endpoints accessible without auth token
 
 ### 3.2 Question Selection
-- [ ] For P1, SRE persona: 12 questions returned = 4 general + 8 SRE-specific
-- [ ] For P1, CTO persona: 12 questions returned = 4 general + 8 CTO/VP Eng-specific
-- [ ] For P1, CISO persona: 12 questions returned = 4 general + CISO/Security-specific questions
+- [ ] For P1, SRE persona: pillar.question_count questions returned — all general questions included, remainder SRE-specific (default: 12 total = 4 general + 8 SRE-specific)
+- [ ] For P1, CTO persona: pillar.question_count questions returned — all general questions included, remainder CTO/VP Eng-specific (default: 12 total = 4 general + 8 CTO-specific)
+- [ ] For P1, CISO persona: pillar.question_count questions returned — all general questions included, remainder CISO/Security-specific
 - [ ] Inactive questions (`is_active = FALSE`) never appear in assessment sessions
-- [ ] Agent 2 (Question Selection) returns exactly 12 valid question IDs for the pillar + persona
-- [ ] When research cache is available: Agent 2 question selection reflects company context (questions relevant to company's tech signals and business outcomes prioritized)
-- [ ] When research cache is absent: Agent 2 selects 12 questions appropriate for the prospect's persona
-- [ ] If Agent 2 fails: rule-based fallback returns 12 questions with no user-facing error
+- [ ] Agent 2 (Question Selection) returns exactly pillar.question_count valid question IDs for the pillar + persona
+- [ ] When research cache is available: Agent 2 question selection reflects company context (questions relevant to company's business context and prospect's tech signals prioritized)
+- [ ] When research cache is absent: Agent 2 selects pillar.question_count questions appropriate for the prospect's persona
+- [ ] If Agent 2 fails: rule-based fallback returns pillar.question_count questions with no user-facing error
 
 ### 3.3 Gated Pillars (P3 & P4)
 - [ ] P3 card visible on pillar menu when P3 gate answered "Yes"
@@ -76,13 +76,13 @@ Each criterion must be explicitly tested before the spec is considered implement
 
 ### 3.5 Agent Behavior
 - [ ] Agent 1 fires at `/register` time (non-blocking) — verify by checking research_cache is populated before select-pillar is called
-- [ ] Agent 1 receives both web research inputs (company_name, website) AND prospect-provided context (infrastructure_location, tech_stack_description, current_tools)
+- [ ] Agent 1 receives both web research inputs (company_name, website) AND prospect-provided context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input)
 - [ ] Agent 1 output does NOT include technology_signals — prospect tech context is passed separately to Agent 2
 - [ ] Agent 1 output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes
 - [ ] Agent 1 result stored in `accounts.research_cache` after first run
 - [ ] Second pillar assessment for same account uses cached research (no second Agent 1 call)
 - [ ] Cache older than 7 days triggers Agent 1 re-run
-- [ ] Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, prospect_corrections)
+- [ ] Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections)
 - [ ] Agent 2 (Question Selection) runs synchronously at `/select-pillar` time
 - [ ] Agent 2 output is validated: correct count, all IDs from the provided candidate pool
 - [ ] Agent 2 failure triggers rule-based fallback — assessment proceeds without user-facing error
@@ -112,7 +112,7 @@ Each criterion must be explicitly tested before the spec is considered implement
 ### 3.8 Internal User Dashboard
 - [ ] Account row shows correct count of sent / completed pillars
 - [ ] Aggregate view visible only when 2+ pillars are completed for an account
-- [ ] Raw answers tab shows all 12 questions with correct selected answer text
+- [ ] Raw answers tab shows all pillar.question_count questions with correct selected answer text
 - [ ] "Generate URL" disabled for a pillar that already has an assessment (pending or complete)
 
 ### 3.9 Admin CRUD

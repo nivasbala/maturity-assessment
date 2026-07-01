@@ -15,11 +15,11 @@ last_updated: 2026-06-28
 ### 1.1 In Scope — MVP (Build These)
 
 - Three user roles: End Customer (Prospect), Internal User, Admin
-- Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI System Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive), P5 Security & DevSecOps
+- Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI Application Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive), P5 Security & DevSecOps
 - 50-question bank per pillar; session question count is admin-configurable per pillar (default 12); bounds enforced by system_settings (question_count_min default 12, question_count_max default 25, both admin-adjustable)
 - Admin CRUD: pillars (including question count), questions (with persona tagging, weighting, and context_tags), internal users, system settings (question count bounds)
 - Three-agent architecture: Agent 1 (Research — dual input: web + prospect context), Agent 2 (Question Selection — dual input: research profile + prospect context), Agent 3 (Report Generation)
-- Prospect context collection at registration: optional infrastructure location, tech stack description, and current tools — passed to Agent 1 as primary input alongside web research
+- Prospect context collection at registration: optional infrastructure location, tech stack description, current tools, and key challenges — passed to Agent 1 as primary input alongside web research
 - Research summary validation step: prospect reviews and optionally corrects Agent 1 output before proceeding to pillar selection
 - Short URL generation and prospect landing flow
 - On-screen report display with PDF download (client-side)
@@ -276,7 +276,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Spec files:** `02-domain-model.md` + `04-data-model.md` + `05-architecture-api.md` + `06-question-bank.md`
 
 - Implement all `/api/public/assess/` endpoints from `05-architecture-api.md` Section 2.4:
-  - `/register`: accept optional context fields (infrastructure_location, tech_stack_description, current_tools); save to accounts table; trigger Agent 1 in background
+  - `/register`: accept optional context fields (infrastructure_location, tech_stack_description, current_tools, key_challenges_input); save to accounts table; trigger Agent 1 in background
   - `/research-summary` (GET): return Agent 1 output from research_cache; `is_ready: false` while Agent 1 is still running
   - `/confirm-research` (POST): save prospect_corrections and research_confirmed_at; stub for Task 7
   - `/select-pillar`: synchronous; implement with rule-based fallback for now (Agent 2 wired in Task 9)
@@ -288,7 +288,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Gate logic: P3/P4 hidden based on gate answers and is_active flag
 
 **Verification:**
-- [ ] Registration form collects optional infrastructure_location, tech_stack_description, current_tools
+- [ ] Registration form collects optional infrastructure_location, tech_stack_description, current_tools, key_challenges_input
 - [ ] Optional context fields are saved to accounts table
 - [ ] Agent 1 fires at /register time (not at select-pillar time)
 - [ ] GET /research-summary returns is_ready=false while Agent 1 running; true once complete
@@ -332,7 +332,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement `core/llm_factory.py` exactly as specified in `03-tech-stack-constraints.md` Section 2
 - Implement Agent 1: research agent (`05-architecture-api.md` Section 1.2)
   - Agent 1 receives TWO inputs: web research (company_name, company_website) AND
-    prospect-provided context (infrastructure_location, tech_stack_description, current_tools)
+    prospect-provided context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input)
   - technology_signals field is NOT in Agent 1 output — prospect context is passed directly to Agent 2
   - Output includes: industry, company_size, products_summary, target_customers, builds_ai_products,
     cloud_providers (extracted from infrastructure_location), key_challenges, business_outcomes,
@@ -340,7 +340,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement Agent 2: question selection agent (`05-architecture-api.md` Section 1.3):
   - File: `backend/app/agents/question_selection_agent.py`
   - Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect context
-    (infrastructure_location, tech_stack_description, current_tools, prospect_corrections)
+    (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections)
   - Wire into `/select-pillar` endpoint (replacing the Task 7 stub)
   - Resolve question_count, general_count, persona_count from pillar settings before calling Agent 2
   - Implement fallback to rule-based selection if Agent 2 fails
@@ -356,9 +356,9 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Verification:**
 - [ ] Submit triggers orchestrator; report record updated with executive_summary, strengths, gap_analysis, next_steps
 - [ ] Agent 1 fires at /register and result stored in accounts.research_cache
-- [ ] Agent 2 runs at /select-pillar time and returns exactly 12 question IDs
+- [ ] Agent 2 runs at /select-pillar time and returns exactly pillar.question_count question IDs
 - [ ] Agent 2 with research cache: questions reflect company context (e.g., Kubernetes company gets k8s-tagged questions)
-- [ ] Agent 2 with empty research cache: returns 12 valid questions based on persona
+- [ ] Agent 2 with empty research cache: returns pillar.question_count valid questions based on persona
 - [ ] Agent 2 failure triggers rule-based fallback with no user-facing error
 - [ ] Second pillar assessment for same account uses cache (no second Agent 1 call)
 - [ ] Orchestrator research_node reads from cache only — does not re-fire Agent 1 when cache is fresh
@@ -395,12 +395,12 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement all internal user dashboard pages from `05-architecture-api.md` Section 3.3
 - Implement `GET /api/accounts/{id}/aggregate` endpoint
 - Aggregate view: radar chart with all completed pillar scores; unlocks at 2+ completions
-- Raw answers tab: all 12 questions + selected answer + maturity level
+- Raw answers tab: all question_count questions + selected answer + maturity level
 - Report tab: same report UI as prospect-facing page, read-only
 
 **Verification:**
 - [ ] Aggregate view visible only when 2+ pillar assessments completed
-- [ ] Raw answers tab shows all 12 questions with correct selected answer text
+- [ ] Raw answers tab shows all pillar.question_count questions with correct selected answer text
 - [ ] Internal user A cannot see reports created by Internal User B
 - [ ] "Generate URL" button disabled for pillars with existing assessment
 
@@ -417,7 +417,7 @@ Run the complete user journey and verify every item in `01-mission-outcomes-veri
 2. Internal User logs in → creates Account for "Acme Corp"
 3. Internal User generates P1 URL (suggested pillar)
 4. Prospect clicks URL → enters details as SRE persona
-5. Prospect selects P1 → answers 12 questions → submits
+5. Prospect selects P1 → answers question_count questions → submits
 6. Report displayed on screen → PDF downloaded
 7. Prospect clicks "Take Another Pillar" → selects P5 → completes
 8. Internal User opens Acme Corp account → views both pillar statuses

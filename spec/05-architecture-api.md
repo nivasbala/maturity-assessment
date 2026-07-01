@@ -21,36 +21,71 @@ Three agents operate across three phases. Agent 1 output feeds both Agent 2 and 
 PHASE 1 — REGISTRATION  (triggers Agent 1)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Prospect fills in name, email, role, gate answers
+Prospect fills in:
+  Required: name, email, role, gate answers
+  Optional: infrastructure location, tech stack,
+            current tools, key challenges
                     │
                     ▼
            POST /register
                     │
-         ┌──────────┴──────────────────────────────┐
-         │ returns immediately                      │ background
-         ▼                                          ▼ (non-blocking)
- {session_token}                     ┌──────────────────────┐
- → prospect sees                     │   Agent 1:           │──── cache hit?
-   pillar menu                       │   Research Agent     │         │
-                                     │                      │ No:  web search
-                                     │  Input:              │ Yes: use cache
-                                     │  - company_name      │         │
-                                     │  - company_website   │         │
-                                     │                      │◄────────┘
-                                     │  Output stored in    │
-                                     │  accounts.           │
-                                     │  research_cache:     │
-                                     │  - industry          │
-                                     │  - tech_signals[]    │
-                                     │  - cloud_providers[] │
-                                     │  - builds_ai         │
-                                     │  - key_challenges[]  │
-                                     │  - business_         │
-                                     │    outcomes[]        │
-                                     └──────────────────────┘
-                                       stored at account level
-                                       (JSONB, 7-day TTL)
-                                       reused across all pillars
+         ┌──────────┴──────────────────────────────────────┐
+         │ returns immediately                              │ background (non-blocking)
+         ▼                                                  ▼
+ {session_token}                          ┌────────────────────────────────┐
+ → prospect polls                         │   Agent 1: Research Agent      │──── cache hit?
+   GET /research-summary                  │                                │         │
+   (loading spinner)                      │  Input 1 — Prospect context    │ Yes: skip    │
+                                          │  (treat as ground truth):      │ No:  run     │
+                                          │  - infrastructure_location     │◄─────────────┘
+                                          │  - tech_stack_description      │
+                                          │  - current_tools               │
+                                          │  - key_challenges_input        │
+                                          │                                │
+                                          │  Input 2 — Web research:       │
+                                          │  - "{company}" + website       │
+                                          │  - 2–3 DuckDuckGo searches     │
+                                          │                                │
+                                          │  Output → research_cache:      │
+                                          │  - company_name                │
+                                          │  - industry                    │
+                                          │  - company_size                │
+                                          │  - products_summary            │
+                                          │  - target_customers            │
+                                          │  - builds_ai_products          │
+                                          │  - cloud_providers[]           │
+                                          │  - key_challenges[]            │
+                                          │  - business_outcomes[]         │
+                                          │  - operational_scale           │
+                                          │  - data_confidence             │
+                                          │  - research_notes              │
+                                          └────────────────────────────────┘
+                                            JSONB, 7-day TTL
+                                            shared across all pillars
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PHASE 1.5 — RESEARCH SUMMARY VALIDATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GET /research-summary returns is_ready=true
+                    │
+                    ▼
+         ResearchSummaryPage displays:
+         - products_summary, industry, company_size,
+           target_customers (company overview)
+         - cloud_providers, operational_scale
+         - key_challenges[], business_outcomes[]
+         - data_confidence badge (High / Medium / Low)
+         - Optional: correction / additional notes textarea
+                    │
+                    │ prospect reviews; optionally adds corrections
+                    ▼
+         POST /confirm-research
+         (saves prospect_corrections,
+          sets research_confirmed_at)
+                    │
+                    ▼
+           Pillar Selection Page
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 2 — QUESTION SELECTION  (Agent 2 — synchronous LLM)
@@ -74,7 +109,9 @@ Prospect selects a pillar
    │                                                    │
    │  Input:                                            │
    │  - prospect persona + pillar context               │
-   │  - research_cache from Agent 1 (if ready)          │
+   │  - research_cache from Agent 1 (company profile)  │
+   │  - prospect-provided context (tech stack, tools,  │
+   │    key challenges, and any corrections)            │
    │  - candidate questions list:                       │
    │    • all general questions (must include all)      │
    │    • all persona-eligible questions for this role  │
@@ -82,29 +119,32 @@ Prospect selects a pillar
    │                                                    │
    │  LLM selects which questions are most             │
    │  diagnostic given:                                 │
-   │    • company's tech stack, cloud providers,        │
-   │      industry, and business outcomes               │
+   │    • prospect's directly stated tech context       │
+   │      and key challenges (primary signal)           │
+   │    • company profile: industry, challenges,        │
+   │      outcomes, target customers, scale             │
    │    • prospect's role and expertise level           │
    │    • context_tags as structured relevance hints    │
    │                                                    │
    │  If research_cache is empty:                       │
-   │    → selects based on persona expertise only       │
+   │    → selects based on prospect context + persona   │
    │  If Agent 2 fails (timeout/error):                 │
    │    → rule-based fallback:                          │
-   │      4 general + 8 persona by display_order        │
+   │      general_count general + remaining persona     │
+   │      by display_order (up to question_count total) │
    │                                                    │
-   │  Output: ordered list of exactly 12 question IDs  │
+   │  Output: ordered list of {question_count} IDs     │
    └─────────────────────┬──────────────────────────────┘
                          │
                          ▼
-            12 questions returned to prospect
+            question_count questions returned to prospect
             (ordered for maximum diagnostic value)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 3 — REPORT GENERATION  (Agent 3 — uses Agent 1 cache + answers)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Prospect answers 12 questions → submits
+Prospect answers question_count questions → submits
                     │
                     ▼
            POST /submit
@@ -190,11 +230,15 @@ SYNTHESIS RULES
    operational context from web research (scale, customer type, product demands).
    If key_challenges_input is empty, synthesize from product type + infrastructure
    + company scale. Always produce company-specific, operational challenges.
-2. technology_signals: derive from tech_stack_description and current_tools
-   (prospect-provided). Do NOT infer technology details from web research alone.
-3. cloud_providers: extract from infrastructure_location if provided; otherwise
+2. cloud_providers: extract from infrastructure_location if provided; otherwise
    infer from web research if explicitly mentioned.
-4. business_outcomes: derive from business model + customer type from web research.
+3. business_outcomes: derive from business model + customer type from web research.
+4. target_customers: infer from company website, product pages, or marketing copy.
+   Who pays for and uses their product? Be specific (e.g. "enterprise DevOps teams
+   at Fortune 500 companies", "independent software vendors building on AWS").
+5. operational_scale: infer from job postings, engineering blogs, case studies, or
+   any quantitative public mentions (team size, request volume, service count).
+   Empty string if no evidence found.
 
 FIELD DEFINITIONS AND DEFAULT VALUES
 
@@ -219,11 +263,13 @@ products_summary
   Specific to this company — not a generic category description.
   Default: "Insufficient public information to summarize products."
 
-technology_signals
-  Lowercase technology keywords derived from prospect's tech_stack_description
-  and current_tools. Do NOT infer from web research.
-  Format: ["kubernetes", "python", "react", "postgresql", "kafka", "terraform"]
-  Default if prospect provided nothing: []
+target_customers
+  Who pays for and uses this company's products or services.
+  Specific to this company — not a generic category description.
+  Good: "enterprise DevOps and platform engineering teams at Fortune 500 companies"
+        "independent e-commerce merchants selling on Shopify"
+        "mid-market financial institutions managing compliance workflows"
+  Default: ""
 
 builds_ai_products
   true  = company ships AI-powered features to their end customers.
@@ -256,6 +302,14 @@ business_outcomes
     Fintech:         ["transaction success rate", "fraud detection recall", "compliance pass rate"]
   Default: []
 
+operational_scale
+  A brief quantitative description of the company's technical operations.
+  Infer from job postings, engineering blogs, case studies, or public mentions.
+  Good: "processes 5B+ API requests per day across 200+ microservices"
+        "500 engineers across 40+ product teams, 12 global data centers"
+        "serves 10M monthly active users across iOS, Android, and web"
+  Default: "" (empty string — do not guess if no evidence found)
+
 data_confidence
   "high"   = rich public presence, multiple independent confirming sources
   "medium" = some information found; some fields estimated
@@ -272,11 +326,12 @@ RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
   "industry": "string",
   "company_size": "startup" | "mid-market" | "enterprise",
   "products_summary": "string",
-  "technology_signals": ["string"],
+  "target_customers": "string",
   "builds_ai_products": boolean,
   "cloud_providers": ["string"],
   "key_challenges": ["string"],
   "business_outcomes": ["string"],
+  "operational_scale": "string",
   "data_confidence": "high" | "medium" | "low",
   "research_notes": "string"
 }
@@ -311,6 +366,7 @@ You will receive:
    Tech stack description:      {tech_stack_description}
    Current tools:               {current_tools}
    Key challenges they stated:  {key_challenges_input}
+   Corrections / additional notes after research review: {prospect_corrections}
    (Empty fields above were not provided by the prospect)
 
 5. Candidate questions (JSON):
@@ -318,43 +374,45 @@ You will receive:
 
 Each question has: "id", "text", "is_general", "context_tags"
 
-Your task: Select exactly 12 questions that best assess this prospect's
+Your task: Select exactly {question_count} questions that best assess this prospect's
 maturity in {pillar_name}.
 
 MANDATORY RULES:
 - Include ALL questions where "is_general" is true — no exceptions
 - Select remaining questions ONLY from the provided list — never invent questions
-- Return exactly 12 question IDs total
+- Return exactly {question_count} question IDs total
 
 SELECTION GUIDANCE:
 Use the prospect's directly stated context (Input 4) as the primary signal:
 - Match questions whose context_tags align with tech mentioned in tech_stack_description
   or current_tools
 - Prioritize questions that directly address challenges stated in key_challenges_input
+- If prospect_corrections is provided, treat it as the highest-priority signal —
+  it represents the prospect's own review and adjustment of the research
 - Use the research profile (Input 3) for additional business context: key_challenges,
-  business_outcomes, and technology_signals from web research
+  business_outcomes, target_customers, and operational_scale
 When prospect context is sparse, rely more heavily on the research profile and persona.
 
-Return ONLY a valid JSON array of exactly 12 question IDs in presentation order.
+Return ONLY a valid JSON array of exactly {question_count} question IDs in presentation order.
 No explanation, no markdown, no preamble — just the array:
-["uuid-1", "uuid-2", ..., "uuid-12"]
+["uuid-1", "uuid-2", ..., "uuid-N"]
 ```
 
 **Fallback (if Agent 2 fails or times out):**
 The calling service catches all exceptions and falls back to rule-based selection:
-4 general questions + first 8 persona-eligible questions by `display_order`.
+all general questions + first (question_count − general_count) persona-eligible questions by `display_order`.
 The assessment always proceeds — Agent 2 is an enhancement, not a dependency.
 
 **Output parsing:**
 ```python
 import json
 raw = llm_response.strip()
-question_ids = json.loads(raw)  # expects list of 12 UUID strings
-assert len(question_ids) == 12
+question_ids = json.loads(raw)  # expects list of question_count UUID strings
+assert len(question_ids) == question_count
 # validate all IDs exist in candidate pool (prevent hallucination)
 valid_ids = {q.id for q in all_candidates}
 question_ids = [qid for qid in question_ids if qid in valid_ids]
-if len(question_ids) != 12:
+if len(question_ids) != question_count:
     raise ValueError("Agent 2 returned invalid IDs — triggering fallback")
 ```
 
@@ -563,6 +621,36 @@ POST   /api/public/assess/{token}/register
   Side effect: triggers Agent 1 in background (non-blocking) — Agent 1 receives both
                company_name/website AND all prospect-provided context fields
 
+GET    /api/public/assess/{token}/research-summary
+  Headers: X-Session-Token: <session_token>
+  Returns: {
+    is_ready: boolean,
+    -- Fields below present only when is_ready=true:
+    company_name?: string,
+    industry?: string,
+    company_size?: string,
+    products_summary?: string,
+    target_customers?: string,
+    builds_ai_products?: boolean,
+    cloud_providers?: string[],
+    key_challenges?: string[],
+    business_outcomes?: string[],
+    operational_scale?: string,
+    data_confidence?: "high" | "medium" | "low",
+    research_notes?: string
+  }
+  Note: is_ready reflects whether accounts.research_cache is populated.
+        Poll every 3 seconds until is_ready=true.
+        If Agent 1 has not completed after 60s, is_ready=true is returned
+        with empty/null profile fields so the prospect is never blocked.
+
+POST   /api/public/assess/{token}/confirm-research
+  Headers: X-Session-Token: <session_token>
+  Body:    {prospect_corrections?: string}  -- optional free-form correction text
+  Returns: {success: true}
+  Side effect: saves prospect_corrections to accounts table
+  Side effect: sets research_confirmed_at timestamp on accounts table
+
 POST   /api/public/assess/{token}/select-pillar
   Headers: X-Session-Token: <session_token>
   Body:    {pillar_id: uuid}
@@ -579,9 +667,11 @@ POST   /api/public/assess/{token}/select-pillar
   Question selection sequence:
     1. Fetch general questions + persona-eligible questions for this pillar from DB
     2. Call Agent 2 (Question Selection) with: persona, pillar context,
-       research_cache, and candidate question list
-    3. Agent 2 returns 12 ordered question IDs
-    4. If Agent 2 fails: fallback to 4 general + 8 persona by display_order
+       research_cache, prospect-provided context (infrastructure_location,
+       tech_stack_description, current_tools, key_challenges_input,
+       prospect_corrections), and candidate question list
+    3. Agent 2 returns {question_count} ordered question IDs
+    4. If Agent 2 fails: fallback to all general + (question_count − general_count) persona by display_order
     5. Fetch full question objects (text + answer_options) for the 12 IDs
     6. Return questions in Agent 2's selected order
 
@@ -591,7 +681,7 @@ POST   /api/public/assess/{token}/submit
     assessment_id: uuid,
     answers: [{question_id: uuid, answer_option_id: uuid}]
   }
-  Validates: exactly 12 answers, all question_ids match questions returned for this session
+  Validates: answer count matches pillar.question_count for this session, all question_ids match questions returned for this session
   Sequence:
     1. Save answers to assessment_answers
     2. Compute score synchronously (scoring_service)
@@ -650,7 +740,30 @@ GET    /api/public/assess/{token}/report/{assessment_id}
   - Key challenges (textarea): placeholder "e.g. reducing alert noise across 300+ microservices, managing GPU costs for real-time inference" — label: "What are your biggest technology or operational challenges?"
   - Helper text beneath the section: "The more context you provide, the more relevant your questions and report will be"
 - Primary CTA: "Begin Assessment"
-- On submit: POST `/register` (including optional context fields), store session_token in sessionStorage, navigate to pillar select
+- On submit: POST `/register` (including optional context fields), store session_token in sessionStorage, navigate to research summary page
+
+**Research Summary Page (`/assess/:token/research-summary`)**
+- Shown immediately after registration — prospect cannot skip this step (UI routing enforced)
+- **Loading state** (shown while is_ready=false):
+  - Full-page centered spinner
+  - Static message: "Researching your company…"
+  - Polls GET `/research-summary` every 3 seconds
+- **Profile display** (shown once is_ready=true):
+  - **Company overview:** products_summary (narrative paragraph), industry badge, company_size badge, target_customers
+  - **Infrastructure & cloud:** cloud_providers (tag chips), operational_scale
+  - **Key challenges:** bullet list from key_challenges[]
+  - **Business outcomes:** bullet list from business_outcomes[]
+  - **Data confidence badge:** "High" (green) / "Medium" (yellow) / "Low" (grey)
+    - Tooltip/helper: explains how much public information was found
+- **Optional corrections section** (collapsible, closed by default):
+  - Label: "Something look off? Add corrections or additional context"
+  - Single textarea: {prospect_corrections}
+  - Helper text: "Your corrections will be used to improve question selection and your final report"
+- Primary CTA: "Confirm & Continue"
+- On confirm: POST `/confirm-research` (with optional corrections text), navigate to pillar selection page
+- **Failure state** (if Agent 1 timed out and cache is still empty):
+  - Skip profile display sections; show: "We couldn't find much about [company name] — your assessment will proceed with the context you provided"
+  - CTA still reads "Confirm & Continue" and navigates to pillar selection
 
 **Pillar Selection Page (`/assess/:token/pillars`)**
 - 2-column card grid of available pillars
@@ -665,11 +778,11 @@ GET    /api/public/assess/{token}/report/{assessment_id}
 - On response: navigate to Assessment Page with questions
 
 **Assessment Page (`/assess/:token/assessment/:assessmentId`)**
-- Progress bar at top: "Question 4 of 12"
+- Progress bar at top: "Question 4 of {question_count}" (dynamic — reflects pillar.question_count)
 - One question displayed at a time — no scrolling through all questions
 - Question text as heading, 4 radio button options below (ordered 1→4 by maturity level)
 - "Back" and "Next" navigation buttons
-- "Submit" button appears only on question 12 (replaces "Next")
+- "Submit" button appears only on the last question (replaces "Next")
 - No ability to skip questions — "Next" disabled until a radio option is selected
 - All answers stored in local React state until Submit — not saved to DB until submission
 
@@ -717,7 +830,7 @@ Pillar status grid (one row per active pillar):
 Pillar Name      | Prospect Name  | Prospect Role | Score    | Status      | Action
 P1 Observability | Sarah Smith    | SRE           | 2.4 / 4  | ✅ Complete  | [View Report]
 P2 AIOps         | —              | —             | —        | ⏳ Sent      | [Copy URL]
-P3 AI Systems    | —              | —             | —        | 📋 Not Sent  | [Generate URL]
+P3 AI Applications | —              | —             | —        | 📋 Not Sent  | [Generate URL]
 P4 ML & Models   | —              | —             | —        | 🔒 Inactive  | [Admin Only]
 P5 Security      | —              | —             | —        | 📋 Not Sent  | [Generate URL]
 ```
@@ -744,7 +857,7 @@ Two tabs:
 
 "Raw Answers" tab:
 - Table: Question Text | Selected Answer | Maturity Level (1–4)
-- 12 rows (one per question)
+- One row per question answered (pillar.question_count rows total)
 - Prospect details shown above table: name, email, role, date completed
 - Pillar score and maturity label shown as summary below table
 

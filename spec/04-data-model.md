@@ -8,7 +8,7 @@ last_updated: 2026-06-28
 
 > **When to load this file:** Any task that touches the database — migrations, API routes, services, scoring, seeding, or reporting. This is the most cross-referenced file in the spec. When in doubt, load it.
 
-Eleven tables. No additional tables for MVP. All foreign keys enforce referential integrity. Soft deletes (`is_active = FALSE`) are used throughout — never hard delete data.
+Ten tables. No additional tables for MVP. All foreign keys enforce referential integrity. Soft deletes (`is_active = FALSE`) are used throughout — never hard delete data.
 
 ---
 
@@ -47,6 +47,8 @@ CREATE TABLE accounts (
     -- Research:
     research_cache          JSONB,                       -- Agent 1 output cached here
     research_cached_at      TIMESTAMPTZ,
+    prospect_corrections    TEXT,                        -- free-form corrections submitted at ResearchSummaryPage
+    research_confirmed_at   TIMESTAMPTZ,                 -- set by POST /confirm-research
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -70,7 +72,8 @@ CREATE TABLE pillars (
 -- Questions: Belong to a pillar.
 -- is_general = TRUE means shown to all personas regardless of question_personas entries.
 -- Target: 50 questions per pillar in the bank; 12 selected per session.
--- context_tags is used by the research-informed question selection algorithm (see Section 8).
+-- context_tags are passed to Agent 2 (Question Selection Agent) as structured metadata
+-- to help the LLM understand when each question is most relevant. Not algorithmic inputs.
 CREATE TABLE questions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     pillar_id       UUID NOT NULL REFERENCES pillars(id),
@@ -324,16 +327,18 @@ all_candidates = general_questions + persona_questions
 The research cache provides the company's signals for the LLM to reason against:
 ```python
 # These are provided to Agent 2 as part of the research_summary:
-research_cache.get("technology_signals", [])   # e.g. ["AWS", "Python", "Kubernetes"]
-research_cache.get("cloud_providers", [])      # e.g. ["AWS", "GCP"]
+research_cache.get("cloud_providers", [])      # e.g. ["aws", "gcp"]
 research_cache.get("key_challenges", [])       # e.g. ["scaling microservices", "alert fatigue"]
 research_cache.get("business_outcomes", [])    # e.g. ["uptime SLAs", "deployment velocity"]
+research_cache.get("target_customers", "")     # e.g. "enterprise DevOps teams at Fortune 500"
+research_cache.get("operational_scale", "")    # e.g. "200+ microservices, 10M DAU"
 
 # Prospect-provided context — also passed directly to Agent 2 alongside the research:
 account.infrastructure_location    # where their apps and infra run (free-form, may be empty)
 account.tech_stack_description     # their tech stack (free-form, may be empty)
 account.current_tools              # current toolset (free-form, may be empty)
 account.key_challenges_input       # prospect-stated key challenges (free-form, may be empty)
+account.prospect_corrections       # corrections/additions from ResearchSummaryPage (may be empty)
 ```
 
 ### Fallback rule (if Agent 2 fails)

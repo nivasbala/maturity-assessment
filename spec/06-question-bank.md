@@ -26,13 +26,13 @@ For a given pillar + persona, the service fetches:
 Agent 2 uses the research cache (from Agent 1) + the prospect's persona to select the most diagnostic questions up to `pillar.question_count`:
 - When research is available: Agent 2 prioritizes questions whose `context_tags` match the company's technology stack, cloud providers, industry, and business outcomes
 - When research is empty: Agent 2 selects based on what matters most to this persona in this pillar
-- Result: exactly 12 question IDs in presentation order
+- Result: exactly `pillar.question_count` question IDs in presentation order
 
 ### Fallback (if Agent 2 fails)
 
 If Agent 2 raises an exception, times out, or returns invalid output, the service falls back to:
 1. All general questions (target: 4)
-2. First 8 persona-eligible questions by `display_order`
+2. First `(question_count − general_count)` persona-eligible questions by `display_order`
 3. Backfill from general pool if persona pool < 8
 
 The assessment always proceeds — Agent 2 is an enhancement, not a dependency. All questions must be `is_active = TRUE`.
@@ -488,7 +488,7 @@ Options:
 
 ---
 
-## 5. P3: AI SYSTEM OBSERVABILITY
+## 5. P3: AI APPLICATION OBSERVABILITY
 
 > **Note:** This pillar is gated. Only shown to prospects who answer "Yes" to the gate question: "Is your organization currently building, deploying, or operating AI-powered applications or services?"
 
