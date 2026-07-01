@@ -257,6 +257,7 @@ export interface RegisterRequest {
   infrastructure_location?: string | null
   tech_stack_description?: string | null
   current_tools?: string | null
+  prospect_challenges?: string | null
 }
 
 export interface ResearchSummary {

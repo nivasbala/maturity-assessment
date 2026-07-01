@@ -41,6 +41,9 @@ export default function LandingPage() {
   const [currentTools, setCurrentTools] = useState(
     sessionStorage.getItem('current_tools') ?? ''
   )
+  const [prospectChallenges, setProspectChallenges] = useState(
+    sessionStorage.getItem('prospect_challenges') ?? ''
+  )
 
   useEffect(() => {
     if (!token) return
@@ -113,6 +116,7 @@ export default function LandingPage() {
         infrastructure_location: infrastructureLocation.trim() || null,
         tech_stack_description: techStackDescription.trim() || null,
         current_tools: currentTools.trim() || null,
+        prospect_challenges: prospectChallenges.trim() || null,
       })
 
       sessionStorage.setItem('session_token', result.session_token)
@@ -124,6 +128,7 @@ export default function LandingPage() {
       sessionStorage.setItem('infrastructure_location', infrastructureLocation.trim())
       sessionStorage.setItem('tech_stack_description', techStackDescription.trim())
       sessionStorage.setItem('current_tools', currentTools.trim())
+      sessionStorage.setItem('prospect_challenges', prospectChallenges.trim())
       navigate(`/assess/${token}/research-summary`)
     } catch (e) {
       setFormError(extractApiError(e, 'Registration failed. Please try again.'))
@@ -284,6 +289,19 @@ export default function LandingPage() {
                   value={currentTools}
                   onChange={(e) => setCurrentTools(e.target.value)}
                   placeholder="e.g. Datadog, PagerDuty, GitHub Actions, Terraform"
+                  className={TEXTAREA_CLS}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Key challenges
+                </label>
+                <textarea
+                  rows={2}
+                  value={prospectChallenges}
+                  onChange={(e) => setProspectChallenges(e.target.value)}
+                  placeholder="e.g. Alert fatigue, slow incident triage, no observability on ML pipelines"
                   className={TEXTAREA_CLS}
                 />
               </div>

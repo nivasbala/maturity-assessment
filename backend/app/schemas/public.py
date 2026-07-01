@@ -30,6 +30,7 @@ class RegisterRequest(BaseModel):
     infrastructure_location: str | None = None
     tech_stack_description: str | None = None
     current_tools: str | None = None
+    prospect_challenges: str | None = None
 
 
 class RegisterOut(BaseModel):

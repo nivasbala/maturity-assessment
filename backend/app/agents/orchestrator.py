@@ -104,6 +104,7 @@ def _build_graph(db: AsyncSession) -> Any:
                     infrastructure_location=acct.infrastructure_location if acct else None,
                     tech_stack_description=acct.tech_stack_description if acct else None,
                     current_tools=acct.current_tools if acct else None,
+                    prospect_challenges=acct.prospect_challenges if acct else None,
                 )
             return {"company_profile": profile}
         except Exception:

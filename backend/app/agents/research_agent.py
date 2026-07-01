@@ -59,6 +59,7 @@ The following was stated directly by the prospect:
   Infrastructure & deployment:  {infrastructure_location}
   Tech stack description:       {tech_stack_description}
   Current tools:                {current_tools}
+  Key challenges they mentioned: {prospect_challenges}
 
 Empty fields above mean the prospect did not provide that information.
 
@@ -72,8 +73,10 @@ Ignore sources older than 3 years.
 SYNTHESIS RULES
 1. cloud_providers: extract from prospect's infrastructure_location (e.g. \
 "AWS us-east-1 and GCP europe-west" → ["aws", "gcp"]). If empty, check web research.
-2. key_challenges: synthesize from product type + prospect's stated infrastructure \
-+ company scale. Must be company-specific and operational.
+2. key_challenges: if the prospect provided key_challenges they mentioned, use \
+those as-is or lightly paraphrase — they are authoritative. Supplement with \
+challenges inferred from product type and company scale only if the prospect \
+provided fewer than 3. Must be company-specific and operational.
 3. business_outcomes: derive from business model + customer type from web research.
 4. DO NOT include technology_signals — prospect tech context is passed separately \
 to downstream agents as raw text. Do not duplicate it in this output.
@@ -170,6 +173,7 @@ async def run_research_agent(
     infrastructure_location: str | None = None,
     tech_stack_description: str | None = None,
     current_tools: str | None = None,
+    prospect_challenges: str | None = None,
 ) -> dict[str, Any]:
     """Research the company and store the result in accounts.research_cache.
 
@@ -186,6 +190,7 @@ async def run_research_agent(
             infrastructure_location,
             tech_stack_description,
             current_tools,
+            prospect_challenges,
         )
 
 
@@ -197,6 +202,7 @@ async def _run_research_agent_locked(
     infrastructure_location: str | None,
     tech_stack_description: str | None,
     current_tools: str | None,
+    prospect_challenges: str | None = None,
 ) -> dict[str, Any]:
     account = (
         await db.execute(select(Account).where(Account.id == account_id))
@@ -248,6 +254,7 @@ async def _run_research_agent_locked(
                 "infrastructure_location": infrastructure_location or "(not provided)",
                 "tech_stack_description": tech_stack_description or "(not provided)",
                 "current_tools": current_tools or "(not provided)",
+                "prospect_challenges": prospect_challenges or "(not provided)",
                 "search_results": search_results or "No search results available.",
             }
         )

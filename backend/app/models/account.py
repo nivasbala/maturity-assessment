@@ -19,6 +19,7 @@ class Account(Base):
     infrastructure_location = Column(Text, nullable=True)
     tech_stack_description = Column(Text, nullable=True)
     current_tools = Column(Text, nullable=True)
+    prospect_challenges = Column(Text, nullable=True)
     # Research and validation
     research_cache = Column(JSONB, nullable=True)
     research_cached_at = Column(DateTime(timezone=True), nullable=True)
