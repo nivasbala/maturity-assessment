@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { createAssessment, getAccountDetail } from '../../api/internal'
+import { createAssessment, deleteAccount, getAccountDetail } from '../../api/internal'
 import type { AccountDetail, AssessmentCreated, PillarStatusRow } from '../../types'
 
 function UrlModal({
@@ -48,6 +48,46 @@ function UrlModal({
   )
 }
 
+function DeleteConfirmModal({
+  companyName,
+  onConfirm,
+  onCancel,
+  deleting,
+}: {
+  companyName: string
+  onConfirm: () => void
+  onCancel: () => void
+  deleting: boolean
+}) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Delete Account</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Are you sure you want to delete <span className="font-medium text-gray-800 dark:text-gray-200">{companyName}</span>?
+          This will permanently delete all assessments and reports for this account.
+        </p>
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deleting}
+            className="px-4 py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+          >
+            {deleting ? 'Deleting…' : 'Delete Account'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function StatusBadge({ status }: { status: PillarStatusRow['status'] }) {
   if (!status) return <span className="text-gray-400 text-sm">Not Sent</span>
   const map: Record<string, { label: string; className: string }> = {
@@ -72,6 +112,8 @@ export default function AccountDetailPage() {
   const [generating, setGenerating] = useState<string | null>(null)
   const [urlResult, setUrlResult] = useState<AssessmentCreated | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -99,6 +141,20 @@ export default function AccountDetailPage() {
       }
     } finally {
       setGenerating(null)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!id) return
+    setDeleting(true)
+    try {
+      await deleteAccount(id)
+      navigate('/dashboard')
+    } catch {
+      setActionError('Failed to delete account. Please try again.')
+      setShowDeleteModal(false)
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -154,6 +210,12 @@ export default function AccountDetailPage() {
                 {new Date(account.created_at).toLocaleDateString()}
               </p>
             </div>
+            <button
+              onClick={() => setShowDeleteModal(true)}
+              className="px-3 py-1.5 text-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              Delete Account
+            </button>
           </div>
         </div>
 
@@ -244,6 +306,15 @@ export default function AccountDetailPage() {
 
       {urlResult && (
         <UrlModal result={urlResult} onClose={() => setUrlResult(null)} />
+      )}
+
+      {showDeleteModal && (
+        <DeleteConfirmModal
+          companyName={account.company_name}
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteModal(false)}
+          deleting={deleting}
+        />
       )}
     </div>
   )

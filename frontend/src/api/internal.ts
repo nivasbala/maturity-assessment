@@ -26,6 +26,9 @@ export const createAccount = (data: {
 export const getAccountDetail = (id: string) =>
   api.get<AccountDetail>(`/accounts/${id}`).then((r) => r.data)
 
+export const deleteAccount = (id: string) =>
+  api.delete(`/accounts/${id}`)
+
 export const getAccountAggregate = (id: string) =>
   api.get<AggregateView>(`/accounts/${id}/aggregate`).then((r) => r.data)
 

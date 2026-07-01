@@ -3,6 +3,7 @@ import secrets
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from sqlalchemy import delete as sql_delete
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -397,6 +398,23 @@ async def get_assessment_report(
         research_data=report.research_data,
         created_at=report.created_at,
     )
+
+
+async def delete_account(
+    db: AsyncSession,
+    account_id: UUID,
+    current_user: User,
+) -> None:
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+    await db.execute(sql_delete(Assessment).where(Assessment.account_id == account_id))
+    await db.delete(account)
+    await db.commit()
+    logger.info("delete_account: account_id=%s user_id=%s", account_id, current_user.id)
 
 
 async def get_account_aggregate(
