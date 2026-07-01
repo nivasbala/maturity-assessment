@@ -108,14 +108,14 @@ export default function SettingsPage() {
                 <div className="mt-3 flex items-center gap-3">
                   <input
                     type="number"
-                    min="1"
+                    min={s.key === 'question_count_min' ? 12 : 1}
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
                     className="w-24 border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]"
                   />
                   <button
                     onClick={() => handleSave(s.key)}
-                    disabled={saving || !editValue}
+                    disabled={saving || !editValue || (s.key === 'question_count_min' && parseInt(editValue, 10) < 12)}
                     className="px-3 py-1.5 bg-[#2563EB] text-white text-xs rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
                   >
                     {saving ? 'Saving…' : 'Save'}
