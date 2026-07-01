@@ -30,8 +30,8 @@ export default function NavBar() {
             <line x1="16" y1="23" x2="16" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
             <line x1="11" y1="28" x2="21" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
           </svg>
-          <span className="text-white font-semibold text-sm tracking-tight leading-tight">
-            Observability<br />Maturity<br />Assessment
+          <span className="text-white font-semibold text-xs tracking-tight leading-tight">
+            Observability Maturity<br />Assessment
           </span>
         </NavLink>
       </div>

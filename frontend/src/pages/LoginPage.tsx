@@ -43,14 +43,9 @@ export default function LoginPage() {
               <line x1="16" y1="23" x2="16" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
               <line x1="11" y1="28" x2="21" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
             </svg>
-            <span className="text-white font-semibold text-sm tracking-tight leading-tight">
-              Observability<br />Maturity<br />Assessment
+            <span className="text-white font-semibold text-xs tracking-tight leading-tight">
+              Observability Maturity<br />Assessment
             </span>
-          </Link>
-        </div>
-        <div className="px-5 pt-4">
-          <Link to="/" className="text-xs text-white/50 hover:text-white/80 transition-colors">
-            ← Back to home
           </Link>
         </div>
       </div>
