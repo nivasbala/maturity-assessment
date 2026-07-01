@@ -78,6 +78,8 @@ export default function LandingPage() {
       sessionStorage.setItem('session_token', result.session_token)
       sessionStorage.setItem('p3_gate', JSON.stringify(p3GateFinal))
       sessionStorage.setItem('p4_gate', JSON.stringify(p4GateFinal))
+      sessionStorage.setItem('prospect_name', `${firstName.trim()} ${lastName.trim()}`)
+      sessionStorage.setItem('prospect_role', role)
       navigate(`/assess/${token}/pillars`)
     } catch (e) {
       setFormError(extractApiError(e, 'Registration failed. Please try again.'))

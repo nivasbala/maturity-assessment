@@ -7,6 +7,10 @@ import FloatingThemeToggle from '../../components/FloatingThemeToggle'
 
 interface LocationState {
   questions: QuestionPublic[]
+  companyName?: string
+  pillarName?: string
+  prospectName?: string
+  prospectRole?: string
 }
 
 export default function AssessmentPage() {
@@ -16,6 +20,10 @@ export default function AssessmentPage() {
 
   const state = location.state as LocationState | null
   const questions: QuestionPublic[] = state?.questions ?? []
+  const companyName = state?.companyName ?? ''
+  const pillarName = state?.pillarName ?? ''
+  const prospectName = state?.prospectName ?? sessionStorage.getItem('prospect_name') ?? ''
+  const prospectRole = state?.prospectRole ?? ''
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -65,7 +73,7 @@ export default function AssessmentPage() {
         question_id: q.id,
         answer_option_id: answers[q.id],
       }))
-      const result = await submitAssessment(token!, sessionToken, assessmentId!, answerList)
+      await submitAssessment(token!, sessionToken, assessmentId!, answerList)
       navigate(`/assess/${token}/report/${assessmentId}`)
     } catch (e) {
       setSubmitError(extractApiError(e, 'Submission failed. Please try again.'))
@@ -76,11 +84,39 @@ export default function AssessmentPage() {
   const progress = Math.round(((currentIndex + 1) / totalQuestions) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 px-4">
       <FloatingThemeToggle />
       <div className="max-w-2xl mx-auto">
+        {/* Company + user info header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            {companyName && (
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-0.5">
+                {companyName}
+              </p>
+            )}
+            {pillarName && (
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{pillarName}</p>
+            )}
+          </div>
+          <div className="text-right">
+            {prospectName && (
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">{prospectName}</p>
+            )}
+            {prospectRole && (
+              <p className="text-xs text-gray-400 dark:text-gray-500">{prospectRole}</p>
+            )}
+            <button
+              onClick={() => navigate(`/assess/${token}/pillars`)}
+              className="mt-1 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 underline underline-offset-2 transition-colors"
+            >
+              ← Back to pillars
+            </button>
+          </div>
+        </div>
+
         {/* Progress */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
               Question {currentIndex + 1} of {totalQuestions}
@@ -96,7 +132,7 @@ export default function AssessmentPage() {
         </div>
 
         {/* Question card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-4">
           <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-6 leading-snug">
             {currentQuestion.text}
           </h2>
@@ -123,42 +159,42 @@ export default function AssessmentPage() {
               )
             })}
           </div>
+
+          {/* Navigation inside card, right-aligned and close together */}
+          <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+            <button
+              onClick={goBack}
+              disabled={currentIndex === 0}
+              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1"
+            >
+              ← Back
+            </button>
+
+            {!isLastQuestion ? (
+              <button
+                onClick={goNext}
+                disabled={!selectedOptionId}
+                className="px-5 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+              >
+                Next →
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={!allAnswered || submitting}
+                className="px-5 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-1"
+              >
+                {submitting ? 'Submitting…' : 'Submit Assessment'}
+              </button>
+            )}
+          </div>
         </div>
 
         {submitError && (
-          <div className="mb-4 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+          <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
             {submitError}
           </div>
         )}
-
-        {/* Navigation */}
-        <div className="flex items-center justify-between">
-          <button
-            onClick={goBack}
-            disabled={currentIndex === 0}
-            className="px-5 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1"
-          >
-            Back
-          </button>
-
-          {!isLastQuestion ? (
-            <button
-              onClick={goNext}
-              disabled={!selectedOptionId}
-              className="px-6 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
-            >
-              Next
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={!allAnswered || submitting}
-              className="px-6 py-2 text-sm font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-1"
-            >
-              {submitting ? 'Submitting…' : 'Submit Assessment'}
-            </button>
-          )}
-        </div>
       </div>
     </div>
   )

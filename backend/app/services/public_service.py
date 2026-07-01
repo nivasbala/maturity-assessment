@@ -466,6 +466,7 @@ async def submit_assessment(
     ).scalars().all()
     for ea in existing_answers:
         await db.delete(ea)
+    await db.flush()  # ensure deletes execute before inserts
 
     # Save answers
     for answer in body.answers:

@@ -48,7 +48,7 @@ Focus on:
   a SaaS company: churn reduction, expansion revenue, uptime).
 
 Return ONLY valid JSON with this exact structure, no preamble, no markdown:
-{
+{{
   "company_name": string,
   "industry": string,
   "company_size": "startup" | "mid-market" | "enterprise",
@@ -58,7 +58,7 @@ Return ONLY valid JSON with this exact structure, no preamble, no markdown:
   "cloud_providers": string[],
   "key_challenges": string[],
   "business_outcomes": string[]
-}"""
+}}"""
 
 
 def _should_refresh(account: Account) -> bool:

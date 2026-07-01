@@ -216,7 +216,12 @@ async def select_questions(
         raise ValueError("Agent 2 response is not a list")
 
     valid_ids = {str(q.id) for q in all_candidates}
-    filtered_ids = [qid for qid in selected_ids if qid in valid_ids]
+    seen_ids: set[str] = set()
+    filtered_ids: list[str] = []
+    for qid in selected_ids:
+        if qid in valid_ids and qid not in seen_ids:
+            seen_ids.add(qid)
+            filtered_ids.append(qid)
 
     if len(filtered_ids) != question_count:
         raise ValueError(
