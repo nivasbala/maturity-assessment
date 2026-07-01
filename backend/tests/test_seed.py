@@ -52,13 +52,13 @@ def test_pillar_names():
     names = {p["name"] for p in PILLARS}
     assert "Full-Stack Observability" in names
     assert "AIOps & Intelligent Observability" in names
-    assert "AI Application Observability" in names
+    assert "AI System Observability" in names
     assert "ML & Foundation Model Operations" in names
     assert "Security & DevSecOps" in names
 
 
 def test_p3_is_gated():
-    p3 = next(p for p in PILLARS if p["name"] == "AI Application Observability")
+    p3 = next(p for p in PILLARS if p["name"] == "AI System Observability")
     assert p3["is_gated"] is True
     assert p3["gate_question"] is not None
     assert len(p3["gate_question"]) > 0
@@ -77,7 +77,7 @@ def test_p4_is_inactive():
 
 
 def test_non_gated_pillars():
-    gated_names = {"AI Application Observability", "ML & Foundation Model Operations"}
+    gated_names = {"AI System Observability", "ML & Foundation Model Operations"}
     for pillar in PILLARS:
         if pillar["name"] not in gated_names:
             assert pillar["is_gated"] is False
@@ -104,7 +104,7 @@ def test_p4_has_13_questions():
 
 
 def test_p2_p3_p5_have_12_questions():
-    twelve_q_pillars = {"AIOps & Intelligent Observability", "AI Application Observability", "Security & DevSecOps"}
+    twelve_q_pillars = {"AIOps & Intelligent Observability", "AI System Observability", "Security & DevSecOps"}
     for pillar in PILLARS:
         if pillar["name"] in twelve_q_pillars:
             assert len(pillar["questions"]) == 12, f"{pillar['name']} should have 12 questions"
@@ -190,7 +190,7 @@ def test_known_questions_have_non_empty_context_tags():
         "AIOps & Intelligent Observability": {
             5: ["aiops", "machine_learning", "ai"],
         },
-        "AI Application Observability": {
+        "AI System Observability": {
             5: ["llm", "ai_agents", "langchain", "openai", "anthropic"],
         },
         "ML & Foundation Model Operations": {
@@ -233,7 +233,7 @@ def test_p2_overall_weight():
 
 
 def test_p3_overall_weight():
-    p3 = next(p for p in PILLARS if p["name"] == "AI Application Observability")
+    p3 = next(p for p in PILLARS if p["name"] == "AI System Observability")
     assert p3["overall_weight"] == 0.85
 
 
