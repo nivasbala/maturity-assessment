@@ -13,15 +13,15 @@ interface LocationState {
 }
 
 const MESSAGES = [
-  'AI is personalizing your questions…',
   'Analyzing your responses…',
-  'Researching your company profile…',
+  'Calculating your maturity score…',
   'Identifying capability gaps…',
-  'Generating your observability maturity assessment…',
-  'Calculating scores and recommendations…',
   'Mapping strengths across pillars…',
-  'Building your personalized report…',
-  'Preparing prioritized next steps…',
+  'Generating your observability maturity report…',
+  'Researching industry context…',
+  'Building prioritized recommendations…',
+  'Drafting your executive summary…',
+  'Preparing next steps…',
   'Almost there…',
 ]
 
