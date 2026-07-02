@@ -510,7 +510,12 @@ async def select_pillar(
                     Assessment.pillar_id == pillar_id,
                 )
             )
-        ).scalar_one()
+        ).scalar_one_or_none()
+        if not assessment:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Assessment conflict — please try again.",
+            )
         assessment.status = "in_progress"
         await db.commit()
         await db.refresh(assessment)
