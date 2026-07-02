@@ -11,6 +11,7 @@ import type {
   Pillar,
   Prospect,
   ProspectDetail,
+  ProspectWithAccount,
   Report,
 } from '../types'
 
@@ -62,6 +63,9 @@ export const getActivePillars = () =>
   api.get<{ items: Pillar[] }>('/pillars', { params: { size: 50 } }).then((r) => r.data.items)
 
 // ── Prospects ─────────────────────────────────────────────────────────────────
+
+export const listAllProspects = () =>
+  api.get<ProspectWithAccount[]>('/accounts/all-prospects').then((r) => r.data)
 
 export const listProspects = (accountId: string) =>
   api.get<Prospect[]>(`/accounts/${accountId}/prospects`).then((r) => r.data)

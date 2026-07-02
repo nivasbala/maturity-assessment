@@ -76,6 +76,19 @@ class ProspectOut(BaseModel):
     created_at: datetime
 
 
+class ProspectWithAccountOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    account_id: UUID
+    company_name: str
+    email: str
+    name: str | None
+    short_url_token: str
+    full_url: str
+    created_at: datetime
+
+
 class ProspectAssessmentRow(BaseModel):
     pillar_id: UUID
     pillar_name: str

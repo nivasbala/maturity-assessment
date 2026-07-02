@@ -33,6 +33,7 @@ from app.schemas.internal import (
     ProspectCreate,
     ProspectDetailOut,
     ProspectOut,
+    ProspectWithAccountOut,
     ReportOut,
 )
 
@@ -623,6 +624,34 @@ async def list_prospects(
             created_at=p.created_at,
         )
         for p in prospects
+    ]
+
+
+async def list_all_prospects(
+    db: AsyncSession,
+    current_user: User,
+) -> list[ProspectWithAccountOut]:
+    q = (
+        select(Prospect, Account.company_name)
+        .join(Account, Prospect.account_id == Account.id)
+        .order_by(Prospect.created_at.desc())
+    )
+    if current_user.role != "admin":
+        q = q.where(Account.internal_user_id == current_user.id)
+    rows = (await db.execute(q)).all()
+    logger.info("list_all_prospects: user_id=%s count=%d", current_user.id, len(rows))
+    return [
+        ProspectWithAccountOut(
+            id=p.id,
+            account_id=p.account_id,
+            company_name=company_name,
+            email=p.email,
+            name=p.name,
+            short_url_token=p.short_url_token,
+            full_url=f"{settings.base_url}/assess/{p.short_url_token}",
+            created_at=p.created_at,
+        )
+        for p, company_name in rows
     ]
 
 

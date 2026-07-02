@@ -93,6 +93,10 @@ export interface Prospect {
   created_at: string
 }
 
+export interface ProspectWithAccount extends Prospect {
+  company_name: string
+}
+
 export interface ProspectAssessmentRow {
   pillar_id: string
   pillar_name: string
