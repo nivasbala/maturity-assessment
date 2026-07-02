@@ -91,6 +91,12 @@ export interface Prospect {
   short_url_token: string
   full_url: string
   created_at: string
+  is_registered: boolean
+  registered_at: string | null
+  infrastructure_location: string | null
+  tech_stack_description: string | null
+  current_tools: string | null
+  key_challenges_input: string | null
 }
 
 export interface ProspectWithAccount extends Prospect {
@@ -327,6 +333,10 @@ export interface QuestionPublic {
 
 export interface SelectPillarResponse {
   assessment_id: string
+}
+
+export interface ConfirmResearchResponse {
+  confirmed: boolean
   questions: QuestionPublic[]
 }
 

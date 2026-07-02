@@ -5,7 +5,7 @@
 import axios from 'axios'
 import type {
   AssessmentInfo,
-  QuestionPublic,
+  ConfirmResearchResponse,
   ReportPublic,
   RegisterRequest,
   ResearchSummary,
@@ -35,12 +35,13 @@ export const getResearchSummary = (token: string, sessionToken: string) =>
 export const confirmResearch = (
   token: string,
   sessionToken: string,
+  assessmentId: string,
   corrections: string | null,
 ) =>
   api
-    .post<{ confirmed: boolean }>(
+    .post<ConfirmResearchResponse>(
       `/assess/${token}/confirm-research`,
-      { corrections },
+      { assessment_id: assessmentId, corrections },
       { headers: { 'X-Session-Token': sessionToken } },
     )
     .then((r) => r.data)

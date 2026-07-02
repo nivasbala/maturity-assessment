@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getAssessmentInfo, selectPillar } from '../../api/public'
 import { extractApiError } from '../../api'
@@ -12,9 +12,8 @@ export default function PillarSelectPage() {
 
   const [info, setInfo] = useState<AssessmentInfo | null>(null)
   const [loadError, setLoadError] = useState('')
-  const [loadingPillar, setLoadingPillar] = useState<AvailablePillar | null>(null)
+  const [loadingPillarId, setLoadingPillarId] = useState<string | null>(null)
   const [pillarError, setPillarError] = useState('')
-  const cancelledRef = useRef(false)
 
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
   const p3Gate: boolean | null = JSON.parse(sessionStorage.getItem('p3_gate') ?? 'null')
@@ -52,101 +51,42 @@ export default function PillarSelectPage() {
   }
 
   function getCacheKey(pillarId: string) {
-    return `pillar_questions_${token}_${pillarId}`
-  }
-
-  function handleCancelLoading() {
-    cancelledRef.current = true
-    setLoadingPillar(null)
-    setPillarError('')
+    return `pillar_assessment_${token}_${pillarId}`
   }
 
   async function handleSelectPillar(pillar: AvailablePillar) {
     setPillarError('')
-    cancelledRef.current = false
 
     const cacheKey = getCacheKey(pillar.id)
     const cached = sessionStorage.getItem(cacheKey)
     if (cached) {
-      // Cache hit — navigate immediately, no agent call, no loading screen
-      const result = JSON.parse(cached)
-      navigate(`/assess/${token}/assessment/${result.assessment_id}`, {
+      const { assessment_id } = JSON.parse(cached)
+      navigate(`/assess/${token}/research-summary`, {
         state: {
-          questions: result.questions,
-          companyName: info?.company_name,
+          assessmentId: assessment_id,
           pillarName: pillar.name,
-          prospectName,
-          prospectRole: roleLabel,
+          companyName: info?.company_name,
         },
       })
       return
     }
 
-    setLoadingPillar(pillar)
+    setLoadingPillarId(pillar.id)
     try {
       const result = await selectPillar(token!, sessionToken, pillar.id)
-      if (cancelledRef.current) return
-      sessionStorage.setItem(cacheKey, JSON.stringify(result))
-      navigate(`/assess/${token}/assessment/${result.assessment_id}`, {
+      sessionStorage.setItem(cacheKey, JSON.stringify({ assessment_id: result.assessment_id }))
+      navigate(`/assess/${token}/research-summary`, {
         state: {
-          questions: result.questions,
-          companyName: info?.company_name,
+          assessmentId: result.assessment_id,
+          pillarId: pillar.id,
           pillarName: pillar.name,
-          prospectName,
-          prospectRole: roleLabel,
+          companyName: info?.company_name,
         },
       })
     } catch (e) {
-      if (cancelledRef.current) return
-      setPillarError(extractApiError(e, 'Failed to load questions. Please try again.'))
-      setLoadingPillar(null)
+      setPillarError(extractApiError(e, 'Failed to start assessment. Please try again.'))
+      setLoadingPillarId(null)
     }
-  }
-
-  // Full-screen loading state while questions are being personalized
-  if (loadingPillar) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-        <ProspectHeader />
-        <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
-          <div className="mb-6">
-            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
-              {info?.company_name}
-            </p>
-            <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
-              {loadingPillar.name}
-            </h2>
-            {prospectName && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {prospectName} · {roleLabel}
-              </p>
-            )}
-          </div>
-
-          <div className="flex justify-center mb-6">
-            <div className="relative w-14 h-14">
-              <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
-              <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
-            </div>
-          </div>
-
-          <p className="text-base font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Personalizing your questions…
-          </p>
-          <p className="text-sm text-gray-400 dark:text-gray-500">
-            Tailoring the assessment for your role and company
-          </p>
-          <button
-            onClick={handleCancelLoading}
-            className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
-          >
-            ← Choose a different pillar
-          </button>
-        </div>
-        </div>
-      </div>
-    )
   }
 
   if (loadError) {
@@ -216,7 +156,8 @@ export default function PillarSelectPage() {
         <div className="space-y-3">
           {visiblePillars.map((pillar) => {
             const isSuggested = info.suggested_pillars.includes(pillar.id)
-            const isDisabled = loadingPillar !== null
+            const isThisLoading = loadingPillarId === pillar.id
+            const isDisabled = loadingPillarId !== null
 
             return (
               <div
@@ -243,7 +184,7 @@ export default function PillarSelectPage() {
                     disabled={isDisabled}
                     className="text-sm font-medium bg-brand text-white px-4 py-1.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
                   >
-                    Start →
+                    {isThisLoading ? 'Starting…' : 'Start →'}
                   </button>
                 </div>
               </div>

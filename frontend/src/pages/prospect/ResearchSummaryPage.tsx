@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getResearchSummary, confirmResearch } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ResearchSummary } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
+
+interface LocationState {
+  assessmentId: string
+  pillarName: string
+  companyName: string
+}
 
 interface ProspectCtx {
   infrastructure: string
@@ -48,7 +54,20 @@ const CONFIDENCE_STYLES: Record<string, string> = {
 export default function ResearchSummaryPage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const { assessmentId, pillarName, companyName: stateCompanyName } =
+    (location.state as LocationState) ?? {}
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
+
+  const prospectName = sessionStorage.getItem('prospect_name') ?? ''
+  const prospectRole = sessionStorage.getItem('prospect_role') ?? ''
+
+  // Redirect to pillar select if no assessment context
+  useEffect(() => {
+    if (!assessmentId) {
+      navigate(`/assess/${token}/pillars`, { replace: true })
+    }
+  }, [assessmentId, token, navigate])
 
   // Prospect-provided context — always shown regardless of agent result
   const prospectContext = {
@@ -104,11 +123,19 @@ export default function ResearchSummaryPage() {
   }, [token, sessionToken])
 
   async function handleConfirm() {
-    if (!token) return
+    if (!token || !assessmentId) return
     setConfirming(true)
     try {
-      await confirmResearch(token, sessionToken, corrections.trim() || null)
-      navigate(`/assess/${token}/pillars`)
+      const result = await confirmResearch(token, sessionToken, assessmentId, corrections.trim() || null)
+      navigate(`/assess/${token}/assessment/${assessmentId}`, {
+        state: {
+          questions: result.questions,
+          companyName: stateCompanyName ?? summary?.company_name ?? '',
+          pillarName: pillarName ?? '',
+          prospectName,
+          prospectRole,
+        },
+      })
     } catch (e) {
       setError(extractApiError(e, 'Failed to confirm research. Please try again.'))
     } finally {
@@ -133,10 +160,10 @@ export default function ResearchSummaryPage() {
       <div className="flex-1 flex items-center justify-center py-12 px-4">
         <div className="w-full max-w-2xl">
           <button
-            onClick={() => navigate(`/assess/${token}`)}
+            onClick={() => navigate(`/assess/${token}/pillars`)}
             className="mb-4 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
           >
-            ← Back to Registration
+            ← Back to Pillar Selection
           </button>
 
           {/* Loading state */}
@@ -171,10 +198,10 @@ export default function ResearchSummaryPage() {
                   This usually takes 10–20 seconds
                 </p>
                 <button
-                  onClick={() => navigate(`/assess/${token}`)}
+                  onClick={() => navigate(`/assess/${token}/pillars`)}
                   className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
                 >
-                  ← Back to Registration
+                  ← Back to Pillar Selection
                 </button>
               </div>
               {hasProspectContext && <ProspectContextCard ctx={prospectContext} />}
@@ -331,7 +358,7 @@ export default function ResearchSummaryPage() {
                 disabled={confirming}
                 className="w-full bg-brand text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
               >
-                {confirming ? 'Confirming…' : 'Confirm & Continue to Assessment'}
+                {confirming ? 'Personalizing your questions…' : 'Confirm & Continue to Assessment'}
               </button>
             </div>
           )}

@@ -57,7 +57,13 @@ export default function LandingPage() {
           setLastName((prev) => prev || parts.slice(1).join(' ') || '')
         }
       })
-      .catch((e) => setLoadError(extractApiError(e, 'Failed to load assessment.')))
+      .catch((e) => {
+        if (e?.response?.status === 410) {
+          setLoadError('This assessment link has already been used. Please contact your representative to start a new assessment.')
+        } else {
+          setLoadError(extractApiError(e, 'Failed to load assessment.'))
+        }
+      })
   }, [token])
 
   // Restore gate answers from sessionStorage once pillar IDs are known
@@ -137,7 +143,7 @@ export default function LandingPage() {
       sessionStorage.setItem('tech_stack_description', techStackDescription.trim())
       sessionStorage.setItem('current_tools', currentTools.trim())
       sessionStorage.setItem('key_challenges_input', keyChallengesInput.trim())
-      navigate(`/assess/${token}/research-summary`)
+      navigate(`/assess/${token}/pillars`)
     } catch (e) {
       setFormError(extractApiError(e, 'Registration failed. Please try again.'))
     } finally {
