@@ -209,7 +209,7 @@ function ReportBody() {
 
 function VerticalReportMockup() {
   return (
-    <div className="w-full max-w-xs mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden flex flex-col h-full min-h-[420px]">
+    <div className="w-full max-w-xs mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden flex flex-col h-full">
       {/* Sticky header */}
       <div className="bg-[#1B2B4B] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between mb-1">
