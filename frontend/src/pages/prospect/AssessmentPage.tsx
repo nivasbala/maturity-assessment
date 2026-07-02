@@ -85,6 +85,9 @@ export default function AssessmentPage() {
       }
       return next
     })
+    if (currentIndex < totalQuestions - 1) {
+      setTimeout(() => setCurrentIndex((i) => i + 1), 300)
+    }
   }
 
   function goNext() {
@@ -190,12 +193,12 @@ export default function AssessmentPage() {
             })}
           </div>
 
-          {/* Navigation inside card, right-aligned and close together */}
-          <div className="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+          {/* Navigation inside card */}
+          <div className="flex items-center justify-center gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button
               onClick={goBack}
               disabled={currentIndex === 0}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1"
+              className="px-4 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-1"
             >
               ← Previous
             </button>
@@ -204,14 +207,14 @@ export default function AssessmentPage() {
               <button
                 onClick={goNext}
                 disabled={!selectedOptionId}
-                className="px-5 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+                className="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-1"
               >
                 Next →
               </button>
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!selectedOptionId}
+                disabled={!allAnswered}
                 className="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
               >
                 Submit Assessment
