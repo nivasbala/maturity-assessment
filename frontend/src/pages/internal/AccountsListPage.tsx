@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { createAccount, getAccounts, getActivePillars } from '../../api/internal'
+import { useAuth } from '../../contexts/AuthContext'
 import type { AccountListItem, Pillar } from '../../types'
 
 function NewAccountModal({
@@ -126,6 +127,8 @@ function NewAccountModal({
 }
 
 export default function AccountsListPage() {
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
   const navigate = useNavigate()
   const [accounts, setAccounts] = useState<AccountListItem[]>([])
   const [pillars, setPillars] = useState<Pillar[]>([])
@@ -196,13 +199,16 @@ export default function AccountsListPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Suggested Pillars</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillars Sent</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillars Completed</th>
+                {isAdmin && (
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Created By</th>
+                )}
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Date Created</th>
               </tr>
             </thead>
             <tbody>
               {accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
+                  <td colSpan={isAdmin ? 7 : 6} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
                     No accounts yet. Click "New Account" to get started.
                   </td>
                 </tr>
@@ -234,6 +240,11 @@ export default function AccountsListPage() {
                     </td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.pillars_sent}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.pillars_completed}</td>
+                    {isAdmin && (
+                      <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                        {a.internal_user_name || '—'}
+                      </td>
+                    )}
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(a.created_at).toLocaleDateString()}
                     </td>

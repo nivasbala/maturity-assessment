@@ -21,6 +21,7 @@ class AccountListOut(BaseModel):
     company_name: str
     company_website: str | None
     internal_user_id: UUID
+    internal_user_name: str = ""
     suggested_pillars: list[UUID]
     created_at: datetime
     pillars_sent: int = 0

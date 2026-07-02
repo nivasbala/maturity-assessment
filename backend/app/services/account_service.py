@@ -66,7 +66,12 @@ async def list_accounts(
     total_q = select(func.count()).select_from(q.subquery())
     total = (await db.execute(total_q)).scalar_one()
     rows = (
-        await db.execute(q.order_by(Account.created_at.desc()).offset(offset).limit(size))
+        await db.execute(
+            q.options(selectinload(Account.internal_user))
+            .order_by(Account.created_at.desc())
+            .offset(offset)
+            .limit(size)
+        )
     ).scalars().all()
     logger.info("list_accounts: user_id=%s count=%d", current_user.id, total)
 
@@ -98,6 +103,7 @@ async def list_accounts(
     items = []
     for a in rows:
         item = AccountListOut.model_validate(a)
+        item.internal_user_name = a.internal_user.name if a.internal_user else ""
         item.pillars_sent = sent_map.get(a.id, 0)
         item.pillars_completed = completed_map.get(a.id, 0)
         items.append(item)
@@ -125,7 +131,9 @@ async def create_account(
     await db.commit()
     await db.refresh(account)
     logger.info("create_account: account_id=%s user_id=%s", account.id, current_user.id)
-    return AccountListOut.model_validate(account)
+    out = AccountListOut.model_validate(account)
+    out.internal_user_name = current_user.name
+    return out
 
 
 async def get_account_detail(
