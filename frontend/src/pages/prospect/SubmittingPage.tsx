@@ -119,6 +119,14 @@ export default function SubmittingPage() {
             </div>
           ) : (
             <>
+              {/* Circular spinner */}
+              <div className="flex justify-center mb-6">
+                <div className="relative w-14 h-14">
+                  <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
+                  <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+                </div>
+              </div>
+
               {/* Progress bar */}
               <div className="mb-3">
                 <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">

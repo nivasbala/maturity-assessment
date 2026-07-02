@@ -228,6 +228,43 @@ export default function ResearchSummaryPage() {
     return <ResearchProgressPage onBack={handleBack} />
   }
 
+  if (confirming) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
+                Question Selection
+              </p>
+              <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+                Personalizing your questions…
+              </h2>
+            </div>
+            <div className="flex justify-center mb-6">
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
+                <div className="absolute inset-0 rounded-full border-4 border-blue-600 dark:border-blue-400 border-t-transparent animate-spin" />
+              </div>
+            </div>
+            <div className="flex justify-center mt-4">
+              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-5 py-2.5">
+                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse shrink-0" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  Selecting questions tailored to your profile…
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              This usually takes 10–20 seconds
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <ProspectHeader />
