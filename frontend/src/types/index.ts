@@ -321,6 +321,7 @@ export interface ResearchSummary {
   operational_scale: string[]
   data_confidence: 'high' | 'medium' | 'low'
   research_notes: string
+  news_insights: string
 }
 
 export interface AnswerOptionPublic {

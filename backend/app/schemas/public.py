@@ -71,6 +71,7 @@ class ResearchSummaryOut(BaseModel):
     operational_scale: list[str] = []
     data_confidence: str = "low"
     research_notes: str = ""
+    news_insights: str = ""
 
 
 class SaveAdditionalNotesRequest(BaseModel):

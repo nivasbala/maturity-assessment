@@ -144,7 +144,7 @@ class TestResearchAgent:
             "company_name", "industry", "company_size", "products_summary",
             "target_customers", "builds_ai_products", "cloud_providers",
             "key_challenges", "business_outcomes", "operational_scale",
-            "data_confidence", "research_notes",
+            "data_confidence", "research_notes", "news_insights",
         }
         assert required_keys == set(profile.keys())
         assert profile["company_name"] == "TestCorp"

@@ -128,6 +128,9 @@ def _build_research_summary(research_cache: dict[str, Any] | None) -> str:
         parts.append(f"Operational scale: {'; '.join(scale)}")
     confidence = research_cache.get("data_confidence", "low")
     parts.append(f"Data confidence: {confidence}")
+    news = research_cache.get("news_insights", "")
+    if news:
+        parts.append(f"Recent news context: {news}")
     return "\n".join(parts) if parts else "No research data available."
 
 

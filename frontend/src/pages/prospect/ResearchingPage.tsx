@@ -7,7 +7,8 @@ import ProspectHeader from '../../components/ProspectHeader'
 
 const MESSAGES = [
   'Researching your company…',
-  'Analyzing your tech stack…',
+  'Scanning recent news articles…',
+  'Analyzing security and AI signals…',
   'Reviewing your industry context…',
   'Building your company profile…',
   'Identifying key challenges…',
@@ -183,7 +184,7 @@ export default function ResearchingPage() {
                 </div>
 
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-                  This usually takes 15–30 seconds
+                  This usually takes 30–60 seconds
                 </p>
 
                 <button
@@ -327,6 +328,18 @@ export default function ResearchingPage() {
                     ))}
                   </ul>
                 )}
+              </div>
+            )}
+
+            {/* Recent news insights */}
+            {summary?.news_insights && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-5">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-blue-600 dark:text-blue-400 mb-2">
+                  Recent News & Market Context
+                </h2>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {summary.news_insights}
+                </p>
               </div>
             )}
 

@@ -14,7 +14,7 @@ Output schema (drops technology_signals, adds target_customers,
 operational_scale, data_confidence, research_notes per spec v1.6):
   industry, company_size, products_summary, target_customers,
   builds_ai_products, cloud_providers, key_challenges, business_outcomes,
-  operational_scale, data_confidence, research_notes
+  operational_scale, data_confidence, research_notes, news_insights
 
 Cache behavior:
   - If accounts.research_cached_at is within 7 days, skip and use existing cache.
@@ -46,9 +46,9 @@ _prospect_research_locks: dict[str, asyncio.Lock] = {}
 
 _SYSTEM_PROMPT = """\
 You are a business intelligence analyst preparing a company profile for a \
-technology maturity assessment. You have TWO inputs: publicly available \
-web information AND direct context provided by the prospect. Synthesize \
-both into a precise, grounded profile.
+technology maturity assessment. You have THREE inputs: direct context from \
+the prospect, publicly available web information, and recent news articles \
+(past 30-60 days). Synthesize all three into a precise, grounded profile.
 
 ACCURACY RULE: Do not infer or fabricate. If a field cannot be determined \
 from the inputs, use the exact default value specified. A missing value is \
@@ -63,17 +63,23 @@ The following was stated directly by the prospect:
 
 Empty fields above mean the prospect did not provide that information.
 
-INPUT 2 — WEB RESEARCH
-Search results:
+INPUT 2 — WEB RESEARCH (company profile)
 {search_results}
 
 Trusted sources: company website, LinkedIn, Crunchbase, press releases.
 Ignore sources older than 3 years.
 
+INPUT 3 — RECENT NEWS (past 30-60 days)
+{news_results}
+
+Topics searched: security incidents or investments, AI/ML initiatives, \
+observability/monitoring investments, cost optimization or efficiency programs. \
+If this section is empty or shows no results, no relevant recent news was found.
+
 SYNTHESIS RULES
 1. cloud_providers: extract from prospect's infrastructure_location (e.g. \
 "AWS us-east-1 and GCP europe-west" → ["aws", "gcp"]). If empty, check web research.
-2. key_challenges: if the prospect provided key_challenges they mentioned, use \
+2. key_challenges: if the prospect provided key_challenges_input, use \
 those as-is or lightly paraphrase — they are authoritative. Supplement with \
 challenges inferred from product type and company scale only if the prospect \
 provided fewer than 3. Must be company-specific and operational.
@@ -81,6 +87,15 @@ provided fewer than 3. Must be company-specific and operational.
 4. DO NOT include technology_signals — prospect tech context is passed separately \
 to downstream agents as raw text. Do not duplicate it in this output.
 5. DO NOT infer what technologies the company uses from web research.
+6. news_insights: synthesize relevant signals from INPUT 3. Focus on: security \
+posture and investments, AI/ML adoption or plans, observability/monitoring \
+maturity signals, and operational efficiency programs. Frame ALL findings \
+constructively and positively — a security incident becomes an opportunity to \
+invest in resilience and secure-by-design practices; a cost-reduction program \
+signals an operational excellence mindset and appetite for efficient tooling; \
+AI investment signals a forward-thinking, innovation-led culture; observability \
+investment signals engineering maturity and reliability focus. \
+Write 2-4 sentences. Use empty string "" if INPUT 3 contains no relevant signals.
 
 FIELD DEFINITIONS AND DEFAULT VALUES
 
@@ -125,8 +140,12 @@ data_confidence:
   "low"    = minimal public information; most fields from defaults or prospect input
   REQUIRED.
 
-research_notes: One sentence noting anything significant. Use empty string if \
-nothing notable. Default: ""
+research_notes: One sentence noting anything significant about data quality or \
+sourcing. Use empty string if nothing notable. Default: ""
+
+news_insights: 2-4 sentences summarizing relevant signals found in recent news \
+(past 30-60 days) related to security, AI/ML, observability, or cost/efficiency. \
+Frame constructively and positively. Empty string "" if no relevant signals found.
 
 RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
 {{
@@ -141,7 +160,8 @@ RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
   "business_outcomes": [],
   "operational_scale": [],
   "data_confidence": "high | medium | low",
-  "research_notes": "string"
+  "research_notes": "string",
+  "news_insights": "string"
 }}"""
 
 
@@ -202,19 +222,29 @@ async def _run_research_agent_for_prospect_locked(
         )
         return prospect.research_cache  # type: ignore[return-value]
 
-    # DuckDuckGo web search — same logic as account-scoped version
+    # DuckDuckGo web search — two passes: general profile + recent news
     search_results = ""
+    news_results = ""
     try:
         from ddgs import DDGS  # noqa: PLC0415
 
-        queries = [
+        general_queries = [
             f"{company_name} company products customers overview",
             f"{company_name} engineering technology stack infrastructure",
         ]
         if company_website:
-            queries.append(f"{company_name} {company_website} funding size employees")
+            general_queries.append(f"{company_name} {company_website} funding size employees")
 
-        def _run_ddgs_search(qs: list[str]) -> list[dict]:
+        news_queries = [
+            f"{company_name} security breach cybersecurity incident investment 2025 2026",
+            f"{company_name} artificial intelligence AI machine learning investment plan 2025 2026",
+            f"{company_name} observability monitoring reliability infrastructure news 2025 2026",
+            f"{company_name} cost reduction efficiency optimization layoffs 2025 2026",
+        ]
+
+        def _run_ddgs_search(
+            qs: list[str], timelimit: str | None = None
+        ) -> list[dict]:
             import concurrent.futures
 
             all_results: list[dict] = []
@@ -222,7 +252,10 @@ async def _run_research_agent_for_prospect_locked(
             with DDGS() as ddgs, concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
                 for q in qs:
                     try:
-                        future = ex.submit(list, ddgs.text(q, max_results=4))
+                        kwargs: dict = {"max_results": 4}
+                        if timelimit:
+                            kwargs["timelimit"] = timelimit
+                        future = ex.submit(list, ddgs.text(q, **kwargs))
                         results = future.result(timeout=10)
                         for r in results:
                             url = r.get("href", "")
@@ -239,14 +272,28 @@ async def _run_research_agent_for_prospect_locked(
                         )
             return all_results
 
-        all_results = await asyncio.to_thread(_run_ddgs_search, queries)
+        general_results = await asyncio.to_thread(_run_ddgs_search, general_queries, None)
         search_results = "\n\n".join(
-            f"{r.get('title', '')}: {r.get('body', '')}" for r in all_results
+            f"{r.get('title', '')}: {r.get('body', '')}" for r in general_results
         )
+
+        # News pass: past month first; if sparse, retry without time limit for recent-year queries
+        news_hits = await asyncio.to_thread(_run_ddgs_search, news_queries, "m")
+        if len(news_hits) < 2:
+            logger.info(
+                "run_research_agent_for_prospect: sparse news with timelimit=m (%d hits) — retrying broader",
+                len(news_hits),
+            )
+            news_hits = await asyncio.to_thread(_run_ddgs_search, news_queries, None)
+        news_results = "\n\n".join(
+            f"{r.get('title', '')}: {r.get('body', '')}" for r in news_hits
+        ) or "No recent news found."
+
         logger.info(
-            "run_research_agent_for_prospect: search complete for company=%s results=%d",
+            "run_research_agent_for_prospect: search complete company=%s general=%d news=%d",
             company_name,
-            len(all_results),
+            len(general_results),
+            len(news_hits),
         )
     except Exception:
         logger.error(
@@ -276,6 +323,7 @@ async def _run_research_agent_for_prospect_locked(
                 "current_tools": current_tools or "(not provided)",
                 "key_challenges_input": key_challenges_input or "(not provided)",
                 "search_results": search_results or "No search results available.",
+                "news_results": news_results or "No recent news found.",
             }
         )
         profile = json.loads(_extract_json_object(raw))
@@ -332,4 +380,5 @@ def _build_minimal_profile(company_name: str) -> dict[str, Any]:
         "operational_scale": [],
         "data_confidence": "low",
         "research_notes": "Research could not be completed.",
+        "news_insights": "",
     }

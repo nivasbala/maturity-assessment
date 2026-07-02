@@ -92,6 +92,9 @@ def _format_company_context(
     scale = company_profile.get("operational_scale") or []
     if scale:
         parts.append(f"Operational scale: {', '.join(scale)}")
+    news = company_profile.get("news_insights", "")
+    if news:
+        parts.append(f"Recent news context: {news}")
     if prospect_additional_notes:
         parts.append(f"Additional notes from prospect: {prospect_additional_notes}")
     return "\n".join(parts) if parts else "No company research available."
