@@ -112,13 +112,9 @@ def test_accounts_columns():
     assert "company_website" in cols
     assert "internal_user_id" in cols
     assert "suggested_pillars" in cols
-    assert "research_cache" in cols
-    assert "research_cached_at" in cols
-
-
-def test_accounts_research_cache_is_jsonb():
-    col = Account.__table__.columns["research_cache"]
-    assert isinstance(col.type, JSONB)
+    # Context/research fields were removed — they live on Prospect only
+    assert "research_cache" not in cols
+    assert "infrastructure_location" not in cols
 
 
 def test_accounts_suggested_pillars_is_array():
@@ -128,10 +124,6 @@ def test_accounts_suggested_pillars_is_array():
 
 def test_accounts_company_website_nullable():
     assert Account.__table__.columns["company_website"].nullable
-
-
-def test_accounts_research_cached_at_nullable():
-    assert Account.__table__.columns["research_cached_at"].nullable
 
 
 def test_accounts_fk_to_users():

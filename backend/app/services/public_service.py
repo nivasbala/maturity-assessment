@@ -712,7 +712,7 @@ async def submit_assessment(
     assessment = (
         await db.execute(
             select(Assessment)
-            .options(selectinload(Assessment.account))
+            .options(selectinload(Assessment.account), selectinload(Assessment.prospect))
             .where(Assessment.id == body.assessment_id)
         )
     ).scalar_one_or_none()
@@ -799,12 +799,14 @@ async def submit_assessment(
         )
         db.add(report)
 
-    # Capture account fields before commit — db.commit() expires all ORM objects
+    # Capture fields before commit — db.commit() expires all ORM objects
     acct = assessment.account
     acct_id = acct.id
     acct_company_name = acct.company_name
     acct_company_website = acct.company_website
-    acct_research_cache = acct.research_cache
+    prospect = assessment.prospect
+    prospect_id = prospect.id if prospect else None
+    prospect_research_cache = prospect.research_cache if prospect else None
 
     # Load prospect_corrections from assessment record (saved at confirm_research)
     acct_prospect_corrections = assessment.prospect_corrections
@@ -835,8 +837,9 @@ async def submit_assessment(
         pre_computed_score=pillar_score,
         pre_computed_maturity_level=maturity_level,
         pre_computed_maturity_label=maturity_label,
-        company_profile=acct_research_cache,
+        company_profile=prospect_research_cache,
         prospect_corrections=acct_prospect_corrections,
+        prospect_id=prospect_id,
     )
 
     # Update report with LLM narrative
@@ -844,7 +847,7 @@ async def submit_assessment(
     report.strengths = narrative.get("strengths", [])
     report.gap_analysis = narrative.get("gap_analysis", [])
     report.next_steps = narrative.get("next_steps", [])
-    report.research_data = acct_research_cache or {}
+    report.research_data = prospect_research_cache or {}
     await db.commit()
     await db.refresh(report)
 

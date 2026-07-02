@@ -35,10 +35,10 @@ from sqlalchemy.orm import selectinload
 from typing_extensions import TypedDict
 
 from app.agents.report_agent import run_report_agent
-from app.agents.research_agent import run_research_agent
+from app.agents.research_agent import run_research_agent_for_prospect
 from app.core.database import AsyncSessionLocal
-from app.models.account import Account
 from app.models.assessment import AssessmentAnswer
+from app.models.prospect import Prospect
 from app.models.question import AnswerOption, Question
 
 logger = logging.getLogger(__name__)
@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 class AssessmentReportState(TypedDict):
     # ── Inputs (provided before graph runs) ──────────────────────────────────
     account_id: str
+    prospect_id: str | None
     company_name: str
     company_website: str | None
     persona: str
@@ -89,31 +90,39 @@ def _build_graph(db: AsyncSession) -> Any:
         # Edge case: prospect submitted before Agent 1 background task completed.
         # Re-run Agent 1 using a fresh session — must NOT commit on the orchestrator's
         # shared db session since generate_report_node still needs to read from it.
+        prospect_id_str = state.get("prospect_id")
         account_id = UUID(state["account_id"])
         logger.warning(
-            "orchestrator research_node: no cached profile for account_id=%s — re-running Agent 1",
-            account_id,
+            "orchestrator research_node: no cached profile for prospect_id=%s — re-running Agent 1",
+            prospect_id_str,
         )
         try:
             async with AsyncSessionLocal() as fresh_db:
-                acct = (
-                    await fresh_db.execute(select(Account).where(Account.id == account_id))
-                ).scalar_one_or_none()
-                profile = await run_research_agent(
-                    account_id,
-                    state["company_name"],
-                    state.get("company_website"),
-                    fresh_db,
-                    infrastructure_location=acct.infrastructure_location if acct else None,
-                    tech_stack_description=acct.tech_stack_description if acct else None,
-                    current_tools=acct.current_tools if acct else None,
-                    key_challenges_input=acct.key_challenges_input if acct else None,
-                )
+                if prospect_id_str:
+                    prospect = (
+                        await fresh_db.execute(select(Prospect).where(Prospect.id == UUID(prospect_id_str)))
+                    ).scalar_one_or_none()
+                    profile = await run_research_agent_for_prospect(
+                        UUID(prospect_id_str),
+                        state["company_name"],
+                        state.get("company_website"),
+                        fresh_db,
+                        infrastructure_location=prospect.infrastructure_location if prospect else None,
+                        tech_stack_description=prospect.tech_stack_description if prospect else None,
+                        current_tools=prospect.current_tools if prospect else None,
+                        key_challenges_input=prospect.key_challenges_input if prospect else None,
+                    )
+                else:
+                    logger.warning(
+                        "orchestrator research_node: no prospect_id in state for account_id=%s — using empty profile",
+                        account_id,
+                    )
+                    profile = {}
             return {"company_profile": profile}
         except Exception:
             logger.error(
-                "orchestrator research_node: Agent 1 re-run failed for account_id=%s — continuing with empty profile",
-                account_id,
+                "orchestrator research_node: Agent 1 re-run failed for prospect_id=%s — continuing with empty profile",
+                prospect_id_str,
                 exc_info=True,
             )
             return {"company_profile": {}}
@@ -209,6 +218,7 @@ async def run_assessment_orchestrator(
     pre_computed_maturity_label: str,
     company_profile: dict[str, Any] | None = None,
     prospect_corrections: str | None = None,
+    prospect_id: UUID | None = None,
 ) -> dict[str, Any]:
     """Run the report generation pipeline and return the narrative fields.
 
@@ -217,6 +227,7 @@ async def run_assessment_orchestrator(
     """
     initial_state: AssessmentReportState = {
         "account_id": str(account_id),
+        "prospect_id": str(prospect_id) if prospect_id else None,
         "company_name": company_name,
         "company_website": company_website,
         "persona": persona,
