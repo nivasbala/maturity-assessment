@@ -154,35 +154,7 @@ def _should_refresh(account: Account) -> bool:
     return age > timedelta(days=7)
 
 
-def _extract_json_object(text: str) -> str:
-    """Extract the first complete JSON object from text, handling prose preamble."""
-    text = text.strip()
-    start = text.find("{")
-    if start == -1:
-        raise ValueError("No JSON object found in LLM response")
-    # Find matching closing brace tracking depth and string context
-    depth = 0
-    in_string = False
-    escape_next = False
-    for i, ch in enumerate(text[start:], start):
-        if escape_next:
-            escape_next = False
-            continue
-        if ch == "\\" and in_string:
-            escape_next = True
-            continue
-        if ch == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    raise ValueError("Incomplete JSON object in LLM response")
+from app.core.json_utils import extract_json_object as _extract_json_object
 
 
 async def run_research_agent(
@@ -250,16 +222,27 @@ async def _run_research_agent_locked(
             queries.append(f"{company_name} {company_website} funding size employees")
 
         def _run_ddgs_search(qs: list[str]) -> list[dict]:
+            import concurrent.futures
+
             all_results: list[dict] = []
             seen_urls: set[str] = set()
-            with DDGS() as ddgs:
+            # Use a single worker executor shared across queries so that each query
+            # can be given a per-query wall-clock timeout, preventing a stalled or
+            # rate-limited DuckDuckGo request from blocking the entire search phase.
+            with DDGS() as ddgs, concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
                 for q in qs:
                     try:
-                        for r in ddgs.text(q, max_results=4):
+                        future = ex.submit(list, ddgs.text(q, max_results=4))
+                        results = future.result(timeout=10)
+                        for r in results:
                             url = r.get("href", "")
                             if url not in seen_urls:
                                 seen_urls.add(url)
                                 all_results.append(r)
+                    except concurrent.futures.TimeoutError:
+                        logger.warning(
+                            "run_research_agent: query %r timed out after 10s — skipping", q
+                        )
                     except Exception as e:
                         logger.warning(
                             "run_research_agent: query %r failed — %s", q, e

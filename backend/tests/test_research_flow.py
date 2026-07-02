@@ -15,6 +15,43 @@ from uuid import uuid4
 import pytest
 
 
+# ── json_utils ───────────────────────────────────────────────────────────────
+
+
+def test_extract_json_array_plain():
+    from app.core.json_utils import extract_json_array
+
+    assert extract_json_array('["a", "b"]') == '["a", "b"]'
+
+
+def test_extract_json_array_with_preamble():
+    from app.core.json_utils import extract_json_array
+
+    assert extract_json_array('Here are the IDs:\n["id1", "id2"]') == '["id1", "id2"]'
+
+
+def test_extract_json_array_stops_at_first_closing_bracket():
+    """rfind-based extraction would return the wrong slice; depth-tracking stops correctly."""
+    from app.core.json_utils import extract_json_array
+
+    raw = '["id1", "id2"] Note: [ranked by relevance]'
+    result = extract_json_array(raw)
+    assert result == '["id1", "id2"]'
+
+
+def test_extract_json_array_nested():
+    from app.core.json_utils import extract_json_array
+
+    assert extract_json_array('[["a"], ["b"]]') == '[["a"], ["b"]]'
+
+
+def test_extract_json_array_no_array_raises():
+    from app.core.json_utils import extract_json_array
+
+    with pytest.raises(ValueError, match="No JSON array"):
+        extract_json_array("no array here")
+
+
 # ── Research Summary Service ──────────────────────────────────────────────────
 
 
@@ -32,7 +69,8 @@ async def test_get_research_summary_not_ready_when_cache_null():
     mock_account = MagicMock()
     mock_account.id = account_id
     mock_account.research_cache = None
-    mock_account.created_at = datetime.now(timezone.utc)  # recent — within 60s window
+    mock_account.research_started_at = datetime.now(timezone.utc)  # recent — within 60s window
+    mock_account.created_at = datetime.now(timezone.utc)
 
     mock_assessment = MagicMock()
     mock_assessment.account_id = account_id
@@ -46,6 +84,43 @@ async def test_get_research_summary_not_ready_when_cache_null():
     result = await get_research_summary(token, session, db)
 
     assert result.is_ready is False
+
+
+@pytest.mark.asyncio
+async def test_get_research_summary_not_ready_uses_research_started_at_not_account_created_at():
+    """Timeout window is anchored to research_started_at, not account.created_at.
+
+    An old account (created_at days ago) should still return is_ready=False when
+    research_started_at is recent, proving the proxy fix is in effect.
+    """
+    from datetime import timedelta
+
+    from app.services.public_service import get_research_summary
+
+    account_id = uuid4()
+    token = "test_token"
+    session = {"account_id": str(account_id)}
+
+    mock_account = MagicMock()
+    mock_account.id = account_id
+    mock_account.research_cache = None
+    # Account created 2 days ago — would exceed the 60s window if created_at were used.
+    mock_account.created_at = datetime.now(timezone.utc) - timedelta(days=2)
+    # Agent 1 fired a moment ago.
+    mock_account.research_started_at = datetime.now(timezone.utc)
+
+    mock_assessment = MagicMock()
+    mock_assessment.account_id = account_id
+    mock_assessment.account = mock_account
+
+    db = AsyncMock()
+    assessment_result = MagicMock()
+    assessment_result.scalar_one_or_none.return_value = mock_assessment
+    db.execute.return_value = assessment_result
+
+    result = await get_research_summary(token, session, db)
+
+    assert result.is_ready is False  # still waiting; not yet expired
 
 
 @pytest.mark.asyncio

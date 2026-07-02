@@ -198,10 +198,10 @@ export default function PillarSelectPage() {
                 <p className="text-xs text-gray-500 dark:text-gray-400">{roleLabel}</p>
               )}
               <button
-                onClick={() => navigate(`/assess/${token}/research-summary`)}
+                onClick={() => navigate(`/assess/${token}`)}
                 className="mt-2 text-xs text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
               >
-                ← Back to Company Profile
+                ← Back to Registration
               </button>
             </div>
           </div>

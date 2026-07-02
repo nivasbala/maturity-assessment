@@ -23,6 +23,7 @@ class Account(Base):
     # Research and validation
     research_cache = Column(JSONB, nullable=True)
     research_cached_at = Column(DateTime(timezone=True), nullable=True)
+    research_started_at = Column(DateTime(timezone=True), nullable=True)
     prospect_corrections = Column(Text, nullable=True)
     research_confirmed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())

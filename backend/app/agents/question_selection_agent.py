@@ -256,13 +256,11 @@ async def select_questions(
         }
     )
 
-    # Parse and validate — extract the JSON array even if the model adds preamble
-    raw = raw.strip()
-    start = raw.find("[")
-    end = raw.rfind("]")
-    if start != -1 and end != -1 and end > start:
-        raw = raw[start : end + 1]
+    # Parse and validate — extract the first balanced JSON array from the response,
+    # handling prose preamble and trailing content that local models sometimes emit.
+    from app.core.json_utils import extract_json_array  # noqa: PLC0415
 
+    raw = extract_json_array(raw.strip())
     selected_ids: list[str] = json.loads(raw)
     if not isinstance(selected_ids, list):
         raise ValueError("Agent 2 response is not a list")

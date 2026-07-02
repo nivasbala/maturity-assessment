@@ -109,38 +109,7 @@ def _format_answers(answers_with_context: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def _extract_json_object(text: str) -> str:
-    """Extract the first balanced JSON object from text.
-
-    Handles preamble prose, markdown fences, and trailing content that
-    local models (llama3.1:8b) frequently emit despite JSON-only instructions.
-    """
-    text = text.strip()
-    start = text.find("{")
-    if start == -1:
-        raise ValueError("No JSON object found in LLM response")
-    depth = 0
-    in_string = False
-    escape_next = False
-    for i, ch in enumerate(text[start:], start):
-        if escape_next:
-            escape_next = False
-            continue
-        if ch == "\\" and in_string:
-            escape_next = True
-            continue
-        if ch == '"':
-            in_string = not in_string
-            continue
-        if in_string:
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    raise ValueError("Incomplete JSON object in LLM response")
+from app.core.json_utils import extract_json_object as _extract_json_object
 
 
 async def run_report_agent(

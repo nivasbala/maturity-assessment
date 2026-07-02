@@ -311,6 +311,12 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     }
     session_token = create_session_token(session_data)
 
+    # Record when Agent 1 is about to fire so get_research_summary can use it as the
+    # polling timeout anchor (account.created_at is the account-creation time, which
+    # may be days before the prospect registers).
+    account.research_started_at = datetime.now(timezone.utc)
+    await db.commit()
+
     # Fire Agent 1 in background (non-blocking) with both web + prospect context
     asyncio.create_task(
         _run_agent1_background(
@@ -337,12 +343,14 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
 
     account = assessment.account
     if not account.research_cache:
-        # Use created_at (immutable) as the Agent 1 start proxy — updated_at resets
-        # on any Account write (e.g. confirm_research) and would extend the window.
-        created_at = account.created_at
-        if created_at.tzinfo is None:
-            created_at = created_at.replace(tzinfo=timezone.utc)
-        elapsed_seconds = (datetime.now(timezone.utc) - created_at).total_seconds()
+        # Use research_started_at (set at /register when Agent 1 fires) as the timeout
+        # anchor — account.created_at is the internal-user account creation time, which
+        # may be days before the prospect registers.  Fall back to created_at only for
+        # legacy rows that predate the research_started_at column.
+        anchor = account.research_started_at or account.created_at
+        if anchor.tzinfo is None:
+            anchor = anchor.replace(tzinfo=timezone.utc)
+        elapsed_seconds = (datetime.now(timezone.utc) - anchor).total_seconds()
         if elapsed_seconds < 60:
             logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
             return ResearchSummaryOut(is_ready=False)
