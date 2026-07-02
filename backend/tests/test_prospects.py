@@ -316,9 +316,10 @@ async def test_service_create_prospect_happy_path():
 
     db = AsyncMock()
     db.add = MagicMock()
-    # account lookup returns account; token collision check returns None (no collision)
+    # account lookup → email dup check (None=no dup) → token collision check (None=no collision)
     db.execute.side_effect = [
         MagicMock(scalar_one_or_none=MagicMock(return_value=account)),   # account select
+        MagicMock(scalar_one_or_none=MagicMock(return_value=None)),      # email dup check
         MagicMock(scalar_one_or_none=MagicMock(return_value=None)),      # token collision check
     ]
 
@@ -383,8 +384,10 @@ async def test_service_create_prospect_admin_bypasses_ownership():
 
     db = AsyncMock()
     db.add = MagicMock()
+    # account lookup → email dup check (None) → token collision check (None)
     db.execute.side_effect = [
         MagicMock(scalar_one_or_none=MagicMock(return_value=account)),
+        MagicMock(scalar_one_or_none=MagicMock(return_value=None)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=None)),
     ]
 
@@ -417,10 +420,12 @@ async def test_service_create_prospect_token_collision_retries():
 
     db = AsyncMock()
     db.add = MagicMock()
+    # account lookup → email dup check (None) → first token: collision → second token: no collision
     db.execute.side_effect = [
-        MagicMock(scalar_one_or_none=MagicMock(return_value=account)),        # account lookup
-        MagicMock(scalar_one_or_none=MagicMock(return_value=colliding_prospect)),  # first token: collision
-        MagicMock(scalar_one_or_none=MagicMock(return_value=None)),           # second token: no collision
+        MagicMock(scalar_one_or_none=MagicMock(return_value=account)),            # account lookup
+        MagicMock(scalar_one_or_none=MagicMock(return_value=None)),               # email dup check
+        MagicMock(scalar_one_or_none=MagicMock(return_value=colliding_prospect)), # first token: collision
+        MagicMock(scalar_one_or_none=MagicMock(return_value=None)),               # second token: no collision
     ]
 
     async def mock_refresh(obj):
@@ -434,8 +439,33 @@ async def test_service_create_prospect_token_collision_retries():
     )
 
     assert result.email == "jane@acme.com"
-    # account lookup + 2 collision checks = 3 execute calls
-    assert db.execute.call_count == 3
+    # account lookup + email check + 2 collision checks = 4 execute calls
+    assert db.execute.call_count == 4
+
+
+@pytest.mark.asyncio
+async def test_service_create_prospect_duplicate_email_raises_409():
+    """Service raises 409 when the same email already exists under the same account."""
+    from app.services.account_service import create_prospect
+
+    user = make_user()
+    account_id = uuid4()
+    account = MagicMock()
+    account.id = account_id
+    account.internal_user_id = user.id
+    existing_prospect = MagicMock()
+
+    db = AsyncMock()
+    db.execute.side_effect = [
+        MagicMock(scalar_one_or_none=MagicMock(return_value=account)),           # account lookup
+        MagicMock(scalar_one_or_none=MagicMock(return_value=existing_prospect)), # email dup found
+    ]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await create_prospect(db, account_id, user, ProspectCreate(email="jane@acme.com"))
+
+    assert exc_info.value.status_code == 409
+    assert "already exists" in exc_info.value.detail
 
 
 @pytest.mark.asyncio
@@ -449,9 +479,10 @@ async def test_service_create_prospect_all_tokens_collide_raises_500():
     colliding = MagicMock()
 
     db = AsyncMock()
-    # account lookup + 5 collisions
+    # account lookup → email dup check (None) → 5 token collisions → 500
     db.execute.side_effect = [
         MagicMock(scalar_one_or_none=MagicMock(return_value=account)),
+        MagicMock(scalar_one_or_none=MagicMock(return_value=None)),  # email dup check
     ] + [
         MagicMock(scalar_one_or_none=MagicMock(return_value=colliding))
         for _ in range(5)
