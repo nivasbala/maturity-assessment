@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -137,15 +137,41 @@ function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> })
   )
 }
 
+async function downloadPdf(el: HTMLElement, companyName: string, pillarName: string) {
+  const html2canvas = (await import('html2canvas')).default
+  const { jsPDF } = await import('jspdf')
+
+  const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f9fafb' })
+  const imgData = canvas.toDataURL('image/png')
+
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const imgWidth = pageWidth
+  const imgHeight = (canvas.height * pageWidth) / canvas.width
+
+  let y = 0
+  while (y < imgHeight) {
+    if (y > 0) pdf.addPage()
+    pdf.addImage(imgData, 'PNG', 0, -y, imgWidth, imgHeight)
+    y += pageHeight
+  }
+
+  const safe = (s: string) => s.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().replace(/\s+/g, '-')
+  pdf.save(`${safe(companyName)}-${safe(pillarName)}-maturity-report.pdf`)
+}
+
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
 
+  const reportRef = useRef<HTMLDivElement>(null)
   const [answers, setAnswers] = useState<AssessmentAnswers | null>(null)
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -205,16 +231,42 @@ export default function ReportDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
 
-        {/* Back */}
-        <button
-          onClick={() => answers.prospect_id
-            ? navigate(`/dashboard/accounts/${answers.account_id}/prospects/${answers.prospect_id}`)
-            : navigate(`/dashboard/accounts/${answers.account_id}`)
-          }
-          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-        >
-          ← Back to {answers.prospect_name ?? answers.company_name}
-        </button>
+        {/* Back + Download */}
+        <div className="flex items-center justify-between gap-4">
+          <button
+            onClick={() => answers.prospect_id
+              ? navigate(`/dashboard/accounts/${answers.account_id}/prospects/${answers.prospect_id}`)
+              : navigate(`/dashboard/accounts/${answers.account_id}`)
+            }
+            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          >
+            ← Back to {answers.prospect_name ?? answers.company_name}
+          </button>
+          {report && (
+            <button
+              onClick={async () => {
+                if (!reportRef.current) return
+                setDownloading(true)
+                try {
+                  await downloadPdf(reportRef.current, answers.company_name, answers.pillar_name)
+                } finally {
+                  setDownloading(false)
+                }
+              }}
+              disabled={downloading}
+              className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors ${
+                downloading
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600'
+              }`}
+            >
+              {downloading ? 'Generating PDF…' : 'Download PDF'}
+            </button>
+          )}
+        </div>
+
+        {/* Printable report area */}
+        <div ref={reportRef} className="space-y-6">
 
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -424,6 +476,8 @@ export default function ReportDetailPage() {
             <p className="text-sm text-gray-400 dark:text-gray-500">Report not yet generated.</p>
           </div>
         )}
+
+        </div>{/* end reportRef */}
       </div>
     </div>
   )
