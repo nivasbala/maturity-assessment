@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -8,6 +8,7 @@ import { getAssessmentAnswers, getAssessmentReport } from '../../api/internal'
 import { useAuth } from '../../contexts/AuthContext'
 import type { AssessmentAnswers, Report } from '../../types'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
+import { InternalReportPdf } from '../../components/pdf/InternalReportPdf'
 
 function ScoreChart({ report }: { report: Report }) {
   const breakdown = report.pillar_breakdown as Record<string, number>
@@ -137,28 +138,16 @@ function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> })
   )
 }
 
-async function downloadPdf(el: HTMLElement, companyName: string, pillarName: string) {
-  const html2canvas = (await import('html2canvas')).default
-  const { jsPDF } = await import('jspdf')
-
-  const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f9fafb' })
-  const imgData = canvas.toDataURL('image/png')
-
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const imgWidth = pageWidth
-  const imgHeight = (canvas.height * pageWidth) / canvas.width
-
-  let y = 0
-  while (y < imgHeight) {
-    if (y > 0) pdf.addPage()
-    pdf.addImage(imgData, 'PNG', 0, -y, imgWidth, imgHeight)
-    y += pageHeight
-  }
-
+async function downloadPdf(answers: AssessmentAnswers, report: Report) {
+  const { pdf } = await import('@react-pdf/renderer')
+  const blob = await pdf(<InternalReportPdf answers={answers} report={report} />).toBlob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
   const safe = (s: string) => s.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().replace(/\s+/g, '-')
-  pdf.save(`${safe(companyName)}-${safe(pillarName)}-maturity-report.pdf`)
+  a.href = url
+  a.download = `${safe(answers.company_name)}-${safe(answers.pillar_name)}-maturity-report.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function ReportDetailPage() {
@@ -166,7 +155,6 @@ export default function ReportDetailPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const reportRef = useRef<HTMLDivElement>(null)
   const [answers, setAnswers] = useState<AssessmentAnswers | null>(null)
   const [report, setReport] = useState<Report | null>(null)
   const [loading, setLoading] = useState(true)
@@ -245,10 +233,9 @@ export default function ReportDetailPage() {
           {report && (
             <button
               onClick={async () => {
-                if (!reportRef.current) return
                 setDownloading(true)
                 try {
-                  await downloadPdf(reportRef.current, answers.company_name, answers.pillar_name)
+                  await downloadPdf(answers, report)
                 } finally {
                   setDownloading(false)
                 }
@@ -264,9 +251,6 @@ export default function ReportDetailPage() {
             </button>
           )}
         </div>
-
-        {/* Printable report area */}
-        <div ref={reportRef} className="space-y-6">
 
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -477,7 +461,6 @@ export default function ReportDetailPage() {
           </div>
         )}
 
-        </div>{/* end reportRef */}
       </div>
     </div>
   )

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
@@ -9,6 +9,7 @@ import { extractApiError } from '../../api'
 import type { ReportPublic } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
+import { ProspectReportPdf } from '../../components/pdf/ProspectReportPdf'
 
 const LOADING_MESSAGES = [
   'Analyzing your responses…',
@@ -65,34 +66,21 @@ function ScoreChart({ report }: { report: ReportPublic }) {
   )
 }
 
-async function downloadPdf(el: HTMLElement, companyName: string, pillarName: string) {
-  const html2canvas = (await import('html2canvas')).default
-  const { jsPDF } = await import('jspdf')
-
-  const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f9fafb' })
-  const imgData = canvas.toDataURL('image/png')
-
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const pageHeight = pdf.internal.pageSize.getHeight()
-  const imgWidth = pageWidth
-  const imgHeight = (canvas.height * pageWidth) / canvas.width
-
-  let y = 0
-  while (y < imgHeight) {
-    if (y > 0) pdf.addPage()
-    pdf.addImage(imgData, 'PNG', 0, -y, imgWidth, imgHeight)
-    y += pageHeight
-  }
-
+async function downloadPdf(report: ReportPublic) {
+  const { pdf } = await import('@react-pdf/renderer')
+  const blob = await pdf(<ProspectReportPdf report={report} />).toBlob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
   const safe = (s: string) => s.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().replace(/\s+/g, '-')
-  pdf.save(`${safe(companyName)}-${safe(pillarName)}-maturity-report.pdf`)
+  a.href = url
+  a.download = `${safe(report.company_name)}-${safe(report.pillar_name)}-maturity-report.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function ReportPage() {
   const { token, assessmentId } = useParams<{ token: string; assessmentId: string }>()
   const navigate = useNavigate()
-  const reportRef = useRef<HTMLDivElement>(null)
 
   const [report, setReport] = useState<ReportPublic | null>(null)
   const [error, setError] = useState('')
@@ -206,10 +194,10 @@ export default function ReportPage() {
   const badgeClass = MATURITY_COLORS[report.maturity_label] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
 
   const handleDownloadPdf = async () => {
-    if (!reportRef.current || !report) return
+    if (!report) return
     setPdfGenerating(true)
     try {
-      await downloadPdf(reportRef.current, report.company_name, report.pillar_name)
+      await downloadPdf(report)
     } finally {
       setPdfGenerating(false)
     }
@@ -219,7 +207,7 @@ export default function ReportPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <ProspectHeader />
       <div className="flex-1 py-10 px-4">
-      <div ref={reportRef} className="max-w-3xl mx-auto space-y-8">
+      <div className="max-w-3xl mx-auto space-y-8">
         {/* 1. Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{report.company_name}</p>
