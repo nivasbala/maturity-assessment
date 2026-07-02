@@ -224,7 +224,7 @@ async def select_questions(
     ]
 
     general_count = len(general_qs)
-    persona_count = question_count - general_count
+    persona_count = max(0, question_count - general_count)
 
     persona_label = _PERSONA_LABELS.get(persona, persona)
     persona_description = _PERSONA_DESCRIPTIONS.get(persona, "")

@@ -137,6 +137,13 @@ export default function LandingPage() {
       sessionStorage.setItem('session_token', result.session_token)
       sessionStorage.setItem('p3_gate', JSON.stringify(p3GateFinal))
       sessionStorage.setItem('p4_gate', JSON.stringify(p4GateFinal))
+      // Clear stale cached pillar assessment IDs so selectPillar fires fresh
+      // on every registration, ensuring Agent 2 runs with current context.
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith(`pillar_assessment_${token!}_`)) {
+          sessionStorage.removeItem(key)
+        }
+      }
       sessionStorage.setItem('prospect_name', `${firstName.trim()} ${lastName.trim()}`)
       sessionStorage.setItem('prospect_role', role)
       sessionStorage.setItem('prospect_email', email.trim())

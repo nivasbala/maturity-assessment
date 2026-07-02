@@ -481,8 +481,7 @@ async def select_pillar(
 
     if existing:
         assessment = existing
-        if assessment.status == "pending":
-            assessment.status = "in_progress"
+        assessment.status = "in_progress"
     else:
         new_token = await _ensure_unique_token(db)
         assessment = Assessment(
@@ -528,9 +527,19 @@ async def select_pillar(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prospect not found")
 
     # Fire Agent 2 in background — create a future for confirm_research to await
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     future: asyncio.Future = loop.create_future()
     _agent2_futures[str(assessment.id)] = future
+    # Suppress "Future exception was never retrieved" if confirm_research times out
+    # before Agent 2 completes — the exception is handled by the fallback path.
+    def _ack_future(f: asyncio.Future) -> None:
+        if not f.cancelled():
+            try:
+                f.exception()
+            except Exception:
+                pass
+
+    future.add_done_callback(_ack_future)
 
     asyncio.create_task(
         _run_agent2_background(
