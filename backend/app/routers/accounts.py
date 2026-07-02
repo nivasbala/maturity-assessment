@@ -80,6 +80,15 @@ async def list_account_assessments(
     return await account_service.list_account_assessments(db, account_id, current_user)
 
 
+@router.delete("/{account_id}", status_code=204)
+async def delete_account(
+    account_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await account_service.delete_account(db, account_id, current_user)
+
+
 @router.delete("/{account_id}/assessments/{assessment_id}", status_code=204)
 async def delete_assessment(
     account_id: UUID,

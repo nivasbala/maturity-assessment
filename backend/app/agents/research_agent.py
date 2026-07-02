@@ -154,15 +154,35 @@ def _should_refresh(account: Account) -> bool:
     return age > timedelta(days=7)
 
 
-def _strip_markdown_fences(text: str) -> str:
+def _extract_json_object(text: str) -> str:
+    """Extract the first complete JSON object from text, handling prose preamble."""
     text = text.strip()
-    if text.startswith("```"):
-        lines = text.split("\n")
-        lines = lines[1:]
-        if lines and lines[-1].strip().startswith("```"):
-            lines = lines[:-1]
-        text = "\n".join(lines).strip()
-    return text
+    start = text.find("{")
+    if start == -1:
+        raise ValueError("No JSON object found in LLM response")
+    # Find matching closing brace tracking depth and string context
+    depth = 0
+    in_string = False
+    escape_next = False
+    for i, ch in enumerate(text[start:], start):
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\" and in_string:
+            escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : i + 1]
+    raise ValueError("Incomplete JSON object in LLM response")
 
 
 async def run_research_agent(
@@ -216,7 +236,8 @@ async def _run_research_agent_locked(
         logger.info("run_research_agent: cache hit for account_id=%s", account_id)
         return account.research_cache  # type: ignore[return-value]
 
-    # DuckDuckGo web search — 2-3 queries for richer coverage
+    # DuckDuckGo web search — 2-3 queries for richer coverage, run in a thread
+    # to avoid blocking the async event loop with synchronous HTTP calls.
     search_results = ""
     try:
         from ddgs import DDGS  # noqa: PLC0415
@@ -228,19 +249,24 @@ async def _run_research_agent_locked(
         if company_website:
             queries.append(f"{company_name} {company_website} funding size employees")
 
-        all_results: list[dict] = []
-        seen_urls: set[str] = set()
-        with DDGS() as ddgs:
-            for q in queries:
-                try:
-                    for r in ddgs.text(q, max_results=4):
-                        url = r.get("href", "")
-                        if url not in seen_urls:
-                            seen_urls.add(url)
-                            all_results.append(r)
-                except Exception:
-                    pass  # partial failure is acceptable — other queries may succeed
+        def _run_ddgs_search(qs: list[str]) -> list[dict]:
+            all_results: list[dict] = []
+            seen_urls: set[str] = set()
+            with DDGS() as ddgs:
+                for q in qs:
+                    try:
+                        for r in ddgs.text(q, max_results=4):
+                            url = r.get("href", "")
+                            if url not in seen_urls:
+                                seen_urls.add(url)
+                                all_results.append(r)
+                    except Exception as e:
+                        logger.warning(
+                            "run_research_agent: query %r failed — %s", q, e
+                        )
+            return all_results
 
+        all_results = await asyncio.to_thread(_run_ddgs_search, queries)
         search_results = "\n\n".join(
             f"{r.get('title', '')}: {r.get('body', '')}" for r in all_results
         )
@@ -268,7 +294,7 @@ async def _run_research_agent_locked(
                 ),
             ]
         )
-        chain = prompt | get_llm() | StrOutputParser()
+        chain = prompt | get_llm(json_mode=True) | StrOutputParser()
         raw = await chain.ainvoke(
             {
                 "company_name": company_name,
@@ -280,7 +306,7 @@ async def _run_research_agent_locked(
                 "search_results": search_results or "No search results available.",
             }
         )
-        profile = json.loads(_strip_markdown_fences(raw))
+        profile = json.loads(_extract_json_object(raw))
 
         account.research_cache = profile
         account.research_cached_at = datetime.now(timezone.utc)

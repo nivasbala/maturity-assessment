@@ -337,10 +337,12 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
 
     account = assessment.account
     if not account.research_cache:
-        updated_at = account.updated_at
-        if updated_at.tzinfo is None:
-            updated_at = updated_at.replace(tzinfo=timezone.utc)
-        elapsed_seconds = (datetime.now(timezone.utc) - updated_at).total_seconds()
+        # Use created_at (immutable) as the Agent 1 start proxy — updated_at resets
+        # on any Account write (e.g. confirm_research) and would extend the window.
+        created_at = account.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        elapsed_seconds = (datetime.now(timezone.utc) - created_at).total_seconds()
         if elapsed_seconds < 60:
             logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
             return ResearchSummaryOut(is_ready=False)
@@ -473,20 +475,26 @@ async def select_pillar(
     account = (
         await db.execute(select(Account).where(Account.id == account_id))
     ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
 
-    research_cache = account.research_cache if account else None
+    if not account.research_confirmed_at:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Research summary must be confirmed before selecting a pillar",
+        )
 
     try:
         questions = await select_questions(
             pillar_id,
             persona,
-            research_cache,
+            account.research_cache,
             db,
-            infrastructure_location=account.infrastructure_location if account else None,
-            tech_stack_description=account.tech_stack_description if account else None,
-            current_tools=account.current_tools if account else None,
-            prospect_corrections=account.prospect_corrections if account else None,
-            key_challenges_input=account.key_challenges_input if account else None,
+            infrastructure_location=account.infrastructure_location,
+            tech_stack_description=account.tech_stack_description,
+            current_tools=account.current_tools,
+            prospect_corrections=account.prospect_corrections,
+            key_challenges_input=account.key_challenges_input,
         )
         logger.info(
             "select_pillar: Agent 2 selected %d questions for assessment_id=%s",

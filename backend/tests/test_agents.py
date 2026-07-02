@@ -150,18 +150,16 @@ class TestResearchAgent:
         assert profile["company_name"] == "TestCorp"
         assert "technology_signals" not in profile
 
-    def test_strip_markdown_fences(self):
-        """Markdown fences should be stripped from LLM output."""
-        from app.agents.research_agent import _strip_markdown_fences
+    def test_extract_json_object(self):
+        """JSON object extraction handles preamble, fences, and nested structures."""
+        from app.agents.research_agent import _extract_json_object
 
-        raw = '```json\n{"key": "value"}\n```'
-        assert _strip_markdown_fences(raw) == '{"key": "value"}'
-
-        raw2 = '```\n{"key": "value"}\n```'
-        assert _strip_markdown_fences(raw2) == '{"key": "value"}'
-
-        raw3 = '{"key": "value"}'
-        assert _strip_markdown_fences(raw3) == '{"key": "value"}'
+        # Plain JSON
+        assert _extract_json_object('{"key": "value"}') == '{"key": "value"}'
+        # With markdown fence
+        assert _extract_json_object('```json\n{"key": "value"}\n```') == '{"key": "value"}'
+        # With prose preamble
+        assert _extract_json_object('Here is your result:\n{"key": "value"}') == '{"key": "value"}'
 
 
 # ── question_selection_agent ──────────────────────────────────────────────────
@@ -395,12 +393,13 @@ class TestReportAgent:
         assert "Level 3" in result
         assert "Partially" in result
 
-    def test_strip_markdown_fences(self):
-        """Markdown fences stripped correctly."""
-        from app.agents.report_agent import _strip_markdown_fences
+    def test_extract_json_object(self):
+        """JSON object extraction handles preamble and fences."""
+        from app.agents.report_agent import _extract_json_object
 
-        assert _strip_markdown_fences('```json\n{}\n```') == "{}"
-        assert _strip_markdown_fences("{}") == "{}"
+        assert _extract_json_object("{}") == "{}"
+        assert _extract_json_object('```json\n{}\n```') == "{}"
+        assert _extract_json_object('Sure! Here you go:\n{"a": 1}') == '{"a": 1}'
 
     @pytest.mark.asyncio
     async def test_run_report_agent_valid_response(self):

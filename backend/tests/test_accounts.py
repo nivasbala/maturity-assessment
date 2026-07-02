@@ -316,4 +316,92 @@ async def test_get_aggregate_404_insufficient_assessments():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(f"/api/accounts/{account_id}/aggregate")
 
+
+# ---------------------------------------------------------------------------
+# DELETE /api/accounts/{id}/assessments/{assessment_id}
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_assessment_returns_204():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    assessment_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.delete_assessment", new_callable=AsyncMock
+    ) as mock_del:
+        mock_del.return_value = None
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.delete(
+                f"/api/accounts/{account_id}/assessments/{assessment_id}"
+            )
+
+    assert resp.status_code == 204
+    mock_del.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_assessment_404_not_found():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    assessment_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.delete_assessment", new_callable=AsyncMock
+    ) as mock_del:
+        mock_del.side_effect = HTTPException(status_code=404, detail="Assessment not found")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.delete(
+                f"/api/accounts/{account_id}/assessments/{assessment_id}"
+            )
+
     assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_delete_assessment_403_wrong_user():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    assessment_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.delete_assessment", new_callable=AsyncMock
+    ) as mock_del:
+        mock_del.side_effect = HTTPException(status_code=403, detail="Access denied")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.delete(
+                f"/api/accounts/{account_id}/assessments/{assessment_id}"
+            )
+
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_delete_assessment_401_unauthenticated():
+    application = FastAPI()
+    application.include_router(accounts_router)
+    application.dependency_overrides[get_db] = _no_db
+    # No auth override — bearer header will be missing
+
+    account_id = uuid4()
+    assessment_id = uuid4()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=application), base_url="http://test"
+    ) as client:
+        resp = await client.delete(
+            f"/api/accounts/{account_id}/assessments/{assessment_id}"
+        )
+
+    assert resp.status_code == 401

@@ -27,9 +27,12 @@ async def test_get_research_summary_not_ready_when_cache_null():
     token = "test_token"
     session = {"account_id": str(account_id)}
 
+    from datetime import datetime, timezone
+
     mock_account = MagicMock()
     mock_account.id = account_id
     mock_account.research_cache = None
+    mock_account.created_at = datetime.now(timezone.utc)  # recent — within 60s window
 
     mock_assessment = MagicMock()
     mock_assessment.account_id = account_id

@@ -239,6 +239,13 @@ async def run_assessment_orchestrator(
         "error": None,
     }
 
+    _empty_result: dict[str, Any] = {
+        "executive_summary": "",
+        "strengths": [],
+        "gap_analysis": [],
+        "next_steps": [],
+    }
+
     try:
         compiled = _build_graph(db)
         final_state = await asyncio.wait_for(compiled.ainvoke(initial_state), timeout=120.0)
@@ -251,15 +258,22 @@ async def run_assessment_orchestrator(
             "gap_analysis": final_state.get("gap_analysis", []),
             "next_steps": final_state.get("next_steps", []),
         }
+    except asyncio.TimeoutError:
+        logger.error(
+            "run_assessment_orchestrator: 120s timeout for assessment_id=%s — rolling back session",
+            assessment_id,
+        )
+        # The cancelled coroutine may have left the session mid-transaction; roll back
+        # so the caller can safely commit the score fields it writes after this returns.
+        try:
+            await db.rollback()
+        except Exception:
+            pass
+        return _empty_result
     except Exception:
         logger.error(
             "run_assessment_orchestrator: pipeline failed for assessment_id=%s",
             assessment_id,
             exc_info=True,
         )
-        return {
-            "executive_summary": "",
-            "strengths": [],
-            "gap_analysis": [],
-            "next_steps": [],
-        }
+        return _empty_result
