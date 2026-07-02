@@ -621,7 +621,7 @@ export default function HomePage() {
           </p>
           <div className="grid md:grid-cols-2 gap-10 items-stretch">
             {/* Left: benefits */}
-            <div className="space-y-4">
+            <div className="flex flex-col justify-center gap-4">
               {REPORT_BENEFITS.map((b) => (
                 <div key={b.title} className="flex items-start gap-3">
                   <div className="text-lg w-7 shrink-0">{b.icon}</div>
