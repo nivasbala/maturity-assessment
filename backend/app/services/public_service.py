@@ -5,7 +5,7 @@ Handles the unauthenticated prospect flow:
   1. GET /assess/{token}     — assessment info + available pillars (pre-fills form if already registered)
   2. POST /register          — prospect registration + session token; saves context on Prospect
   3. POST /select-pillar     — creates assessment, fires Agent 2 in background, returns assessment_id
-  4. POST /confirm-research  — saves corrections on assessment, waits for Agent 2, returns questions
+  4. POST /confirm-research  — saves additional notes on assessment, waits for Agent 2, returns questions
   5. POST /submit            — save answers, score, create report (LangGraph orchestrator)
   6. GET /report/{id}        — fetch completed report
 
@@ -49,8 +49,8 @@ from app.schemas.public import (
     RegisterRequest,
     ReportPublicOut,
     ResearchSummaryOut,
-    SaveCorrectionsOut,
-    SaveCorrectionsRequest,
+    SaveAdditionalNotesOut,
+    SaveAdditionalNotesRequest,
     SelectPillarOut,
     SubmitOut,
     SubmitRequest,
@@ -115,7 +115,7 @@ async def _run_agent2_background(
     infrastructure_location: str | None = None,
     tech_stack_description: str | None = None,
     current_tools: str | None = None,
-    prospect_corrections: str | None = None,
+    prospect_additional_notes: str | None = None,
     key_challenges_input: str | None = None,
 ) -> None:
     """Run Agent 2 in background and resolve the future with selected questions."""
@@ -129,7 +129,7 @@ async def _run_agent2_background(
                 infrastructure_location=infrastructure_location,
                 tech_stack_description=tech_stack_description,
                 current_tools=current_tools,
-                prospect_corrections=prospect_corrections,
+                prospect_additional_notes=prospect_additional_notes,
                 key_challenges_input=key_challenges_input,
             )
             logger.info(
@@ -450,28 +450,28 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     return RegisterOut(session_token=session_token)
 
 
-async def save_research_corrections(
+async def save_research_additional_notes(
     token: str,
     session: dict,
-    body: SaveCorrectionsRequest,
+    body: SaveAdditionalNotesRequest,
     db: AsyncSession,
-) -> SaveCorrectionsOut:
-    """PUT /assess/{token}/research-corrections — save prospect's corrections to their record."""
+) -> SaveAdditionalNotesOut:
+    """PUT /assess/{token}/research-additional-notes — save prospect's additional notes to their record."""
     prospect = await _get_prospect_by_token(token, db)
     prospect_id = UUID(session["prospect_id"])
     if prospect.id != prospect_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    corrections = body.corrections.strip() if body.corrections else None
-    prospect.prospect_corrections = corrections
+    additional_notes = body.additional_notes.strip() if body.additional_notes else None
+    prospect.prospect_additional_notes = additional_notes
     await db.commit()
 
     logger.info(
-        "save_research_corrections: saved for prospect_id=%s length=%s",
+        "save_research_additional_notes: saved for prospect_id=%s length=%s",
         prospect_id,
-        len(corrections) if corrections else 0,
+        len(additional_notes) if additional_notes else 0,
     )
-    return SaveCorrectionsOut(saved=True)
+    return SaveAdditionalNotesOut(saved=True)
 
 
 async def get_research_summary(token: str, session: dict, db: AsyncSession) -> ResearchSummaryOut:
@@ -635,6 +635,7 @@ async def select_pillar(
             infrastructure_location=prospect.infrastructure_location,
             tech_stack_description=prospect.tech_stack_description,
             current_tools=prospect.current_tools,
+            prospect_additional_notes=prospect.prospect_additional_notes,
             key_challenges_input=prospect.key_challenges_input,
         )
     )
@@ -655,7 +656,7 @@ async def confirm_research(
     body: ConfirmResearchRequest,
     db: AsyncSession,
 ) -> ConfirmResearchOut:
-    """POST /assess/{token}/confirm-research — save corrections on assessment, await Agent 2, return questions."""
+    """POST /assess/{token}/confirm-research — save additional notes on assessment, await Agent 2, return questions."""
     prospect = await _get_prospect_by_token(token, db)
     prospect_id = UUID(session["prospect_id"])
     if prospect.id != prospect_id:
@@ -675,11 +676,11 @@ async def confirm_research(
     if not assessment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
 
-    # Save corrections and confirmation timestamp on the assessment record
+    # Save additional notes and confirmation timestamp on the assessment record
     assessment.research_confirmed_at = datetime.now(timezone.utc)
-    if body.corrections and body.corrections.strip():
-        assessment.prospect_corrections = body.corrections.strip()
-        logger.info("confirm_research: corrections saved for assessment_id=%s", assessment.id)
+    if body.additional_notes and body.additional_notes.strip():
+        assessment.prospect_additional_notes = body.additional_notes.strip()
+        logger.info("confirm_research: additional notes saved for assessment_id=%s", assessment.id)
     await db.commit()
 
     logger.info("confirm_research: confirmed for assessment_id=%s — awaiting Agent 2", assessment.id)
@@ -829,8 +830,8 @@ async def submit_assessment(
     prospect_id = prospect.id if prospect else None
     prospect_research_cache = prospect.research_cache if prospect else None
 
-    # Load prospect_corrections from assessment record (saved at confirm_research)
-    acct_prospect_corrections = assessment.prospect_corrections
+    # Load prospect_additional_notes from assessment record (saved at confirm_research)
+    acct_prospect_additional_notes = assessment.prospect_additional_notes
 
     # Mark assessment complete
     assessment.status = "completed"
@@ -859,7 +860,7 @@ async def submit_assessment(
         pre_computed_maturity_level=maturity_level,
         pre_computed_maturity_label=maturity_label,
         company_profile=prospect_research_cache,
-        prospect_corrections=acct_prospect_corrections,
+        prospect_additional_notes=acct_prospect_additional_notes,
         prospect_id=prospect_id,
     )
 

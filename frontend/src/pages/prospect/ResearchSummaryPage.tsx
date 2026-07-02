@@ -202,14 +202,14 @@ export default function ResearchSummaryPage() {
   }
   const hasProspectContext = Object.values(prospectContext).some((v) => v.trim() !== '')
 
-  const correctionsKey = assessmentId ? `prospect_corrections_${assessmentId}` : null
+  const additionalNotesKey = assessmentId ? `prospect_additional_notes_${assessmentId}` : null
 
   const [summary, setSummary] = useState<ResearchSummary | null>(null)
   const [error, setError] = useState('')
-  const [corrections, setCorrections] = useState(() =>
-    correctionsKey ? (sessionStorage.getItem(correctionsKey) ?? '') : ''
+  const [additionalNotes, setAdditionalNotes] = useState(() =>
+    additionalNotesKey ? (sessionStorage.getItem(additionalNotesKey) ?? '') : ''
   )
-  const [correctionExpanded, setCorrectionExpanded] = useState(false)
+  const [additionalNotesExpanded, setAdditionalNotesExpanded] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const delayRef = useRef(2000)
@@ -258,7 +258,7 @@ export default function ResearchSummaryPage() {
     if (!token || !assessmentId) return
     setConfirming(true)
     try {
-      const result = await confirmResearch(token, sessionToken, assessmentId, corrections.trim() || null)
+      const result = await confirmResearch(token, sessionToken, assessmentId, additionalNotes.trim() || null)
       navigate(`/assess/${token}/assessment/${assessmentId}`, {
         state: {
           questions: result.questions,
@@ -429,32 +429,32 @@ export default function ResearchSummaryPage() {
                 </p>
               )}
 
-              {/* Corrections */}
+              {/* Additional Notes */}
               <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <button
                   type="button"
-                  onClick={() => setCorrectionExpanded((v) => !v)}
+                  onClick={() => setAdditionalNotesExpanded((v) => !v)}
                   className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
                 >
                   <svg
-                    className={`w-4 h-4 transition-transform ${correctionExpanded ? 'rotate-180' : ''}`}
+                    className={`w-4 h-4 transition-transform ${additionalNotesExpanded ? 'rotate-180' : ''}`}
                     fill="none" stroke="currentColor" viewBox="0 0 24 24"
                   >
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
-                  Something looks inaccurate?
+                  Anything to add or correct?
                 </button>
-                {correctionExpanded && (
+                {additionalNotesExpanded && (
                   <div className="mt-3">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                      Add a correction note <span className="text-gray-400 font-normal">(optional)</span>
+                      Additional notes <span className="text-gray-400 font-normal">(optional)</span>
                     </label>
                     <textarea
                       rows={3}
-                      value={corrections}
+                      value={additionalNotes}
                       onChange={(e) => {
-                        setCorrections(e.target.value)
-                        if (correctionsKey) sessionStorage.setItem(correctionsKey, e.target.value)
+                        setAdditionalNotes(e.target.value)
+                        if (additionalNotesKey) sessionStorage.setItem(additionalNotesKey, e.target.value)
                       }}
                       placeholder="e.g. We are primarily on Azure, not AWS. We have 200 engineers."
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"

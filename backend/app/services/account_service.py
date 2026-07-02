@@ -487,7 +487,7 @@ async def reset_assessment(
     assessment.status = "pending"
     assessment.started_at = None
     assessment.completed_at = None
-    assessment.prospect_corrections = None
+    assessment.prospect_additional_notes = None
     assessment.research_confirmed_at = None
 
     await db.commit()

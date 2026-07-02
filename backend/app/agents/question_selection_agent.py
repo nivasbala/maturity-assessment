@@ -58,7 +58,7 @@ You will receive:
    Tech stack description:      {tech_stack_description}
    Current tools:               {current_tools}
    Key challenges they stated:  {key_challenges_input}
-   Research corrections:        {prospect_corrections}
+   Additional notes from prospect: {prospect_corrections}
    (Empty fields above were not provided by the prospect)
 
 5. Candidate questions (JSON):
@@ -83,7 +83,7 @@ in tech_stack_description or current_tools.
 Use the research profile (Input 3) for business context: prioritize questions \
 that address key_challenges, operational_scale, and business_outcomes.
 If data_confidence is "low", weight the pillar and persona more than company context.
-If prospect_corrections are present, use them to override any conflicting research.
+If prospect_additional_notes are present, use them to override any conflicting research.
 
 Return ONLY a valid JSON array of exactly {question_count} question IDs in \
 presentation order. No explanation, no markdown, no preamble:
@@ -139,7 +139,7 @@ async def select_questions(
     infrastructure_location: str | None = None,
     tech_stack_description: str | None = None,
     current_tools: str | None = None,
-    prospect_corrections: str | None = None,
+    prospect_additional_notes: str | None = None,
     key_challenges_input: str | None = None,
 ) -> list[Question]:
     """Return question_count questions for the given pillar and persona.
@@ -156,7 +156,7 @@ async def select_questions(
         infrastructure_location: Prospect-provided infra context (Input 2).
         tech_stack_description: Prospect-provided tech stack description (Input 2).
         current_tools: Prospect-provided current toolset (Input 2).
-        prospect_corrections: Corrections entered at research summary step (Input 2).
+        prospect_additional_notes: Additional notes entered at research summary step (Input 2).
 
     Returns:
         Ordered list of Question ORM objects (eager-loaded with answer_options + personas).
@@ -248,7 +248,7 @@ async def select_questions(
             "tech_stack_description": tech_stack_description or "(not provided)",
             "current_tools": current_tools or "(not provided)",
             "key_challenges_input": key_challenges_input or "(not provided)",
-            "prospect_corrections": prospect_corrections or "(none)",
+            "prospect_corrections": prospect_additional_notes or "(none)",
             "candidate_questions_json": json.dumps(candidate_list, indent=2),
             "question_count": question_count,
             "general_count": general_count,

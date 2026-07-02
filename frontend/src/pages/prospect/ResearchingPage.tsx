@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getResearchSummary, saveResearchCorrections } from '../../api/public'
+import { getResearchSummary, saveResearchAdditionalNotes } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ResearchSummary } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
@@ -106,13 +106,13 @@ export default function ResearchingPage() {
     const trimmed = additionalInfo.trim()
     sessionStorage.setItem('prospect_additional_info', trimmed)
 
-    // Save corrections to the prospect record if provided
+    // Save additional notes to the prospect record if provided
     if (trimmed) {
       setSaving(true)
       try {
-        await saveResearchCorrections(token!, sessionToken, trimmed)
+        await saveResearchAdditionalNotes(token!, sessionToken, trimmed)
       } catch (e) {
-        setSaveError(extractApiError(e, 'Failed to save corrections. Please try again.'))
+        setSaveError(extractApiError(e, 'Failed to save additional notes. Please try again.'))
         setSaving(false)
         return
       }

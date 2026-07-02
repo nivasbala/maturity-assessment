@@ -73,11 +73,11 @@ class ResearchSummaryOut(BaseModel):
     research_notes: str = ""
 
 
-class SaveCorrectionsRequest(BaseModel):
-    corrections: str | None = None
+class SaveAdditionalNotesRequest(BaseModel):
+    additional_notes: str | None = None
 
 
-class SaveCorrectionsOut(BaseModel):
+class SaveAdditionalNotesOut(BaseModel):
     saved: bool
 
 
@@ -99,7 +99,7 @@ class QuestionPublic(BaseModel):
 
 class ConfirmResearchRequest(BaseModel):
     assessment_id: UUID
-    corrections: str | None = None
+    additional_notes: str | None = None
 
 
 class ConfirmResearchOut(BaseModel):

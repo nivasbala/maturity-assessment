@@ -36,25 +36,25 @@ export const confirmResearch = (
   token: string,
   sessionToken: string,
   assessmentId: string,
-  corrections: string | null,
+  additional_notes: string | null,
 ) =>
   api
     .post<ConfirmResearchResponse>(
       `/assess/${token}/confirm-research`,
-      { assessment_id: assessmentId, corrections },
+      { assessment_id: assessmentId, additional_notes },
       { headers: { 'X-Session-Token': sessionToken } },
     )
     .then((r) => r.data)
 
-export const saveResearchCorrections = (
+export const saveResearchAdditionalNotes = (
   token: string,
   sessionToken: string,
-  corrections: string | null,
+  additional_notes: string | null,
 ) =>
   api
     .put<{ saved: boolean }>(
-      `/assess/${token}/research-corrections`,
-      { corrections },
+      `/assess/${token}/research-additional-notes`,
+      { additional_notes },
       { headers: { 'X-Session-Token': sessionToken } },
     )
     .then((r) => r.data)

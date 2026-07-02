@@ -27,7 +27,7 @@ class Assessment(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
-    prospect_corrections = Column(Text, nullable=True)
+    prospect_additional_notes = Column(Text, nullable=True)
     research_confirmed_at = Column(DateTime(timezone=True), nullable=True)
 
     account = relationship("Account", back_populates="assessments")

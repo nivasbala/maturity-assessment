@@ -73,7 +73,7 @@ Constraints:
 
 def _format_company_context(
     company_profile: dict[str, Any],
-    prospect_corrections: str | None = None,
+    prospect_additional_notes: str | None = None,
 ) -> str:
     if not company_profile:
         return "No company research available."
@@ -92,8 +92,8 @@ def _format_company_context(
     scale = company_profile.get("operational_scale") or []
     if scale:
         parts.append(f"Operational scale: {', '.join(scale)}")
-    if prospect_corrections:
-        parts.append(f"Prospect corrections: {prospect_corrections}")
+    if prospect_additional_notes:
+        parts.append(f"Additional notes from prospect: {prospect_additional_notes}")
     return "\n".join(parts) if parts else "No company research available."
 
 
@@ -120,7 +120,7 @@ async def run_report_agent(
     maturity_label: str,
     persona: str,
     company_name: str,
-    prospect_corrections: str | None = None,
+    prospect_additional_notes: str | None = None,
 ) -> dict[str, Any]:
     """Generate a maturity report narrative via LLM.
 
@@ -139,7 +139,7 @@ async def run_report_agent(
     Raises:
         Exception on LLM failure — caller (orchestrator) catches and logs.
     """
-    company_context = _format_company_context(company_profile, prospect_corrections)
+    company_context = _format_company_context(company_profile, prospect_additional_notes)
     formatted_answers = _format_answers(answers_with_context)
 
     prompt = ChatPromptTemplate.from_messages(

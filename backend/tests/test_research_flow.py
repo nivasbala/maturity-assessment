@@ -215,7 +215,7 @@ async def test_confirm_research_sets_timestamp():
     mock_assessment.prospect_id = prospect_id
     mock_assessment.pillar_id = uuid4()
     mock_assessment.pillar = mock_pillar
-    mock_assessment.prospect_corrections = None
+    mock_assessment.prospect_additional_notes = None
     mock_assessment.research_confirmed_at = None
 
     db = AsyncMock()
@@ -239,7 +239,7 @@ async def test_confirm_research_sets_timestamp():
 
 @pytest.mark.asyncio
 async def test_confirm_research_saves_corrections_when_provided():
-    """confirm_research saves non-empty corrections to assessment.prospect_corrections."""
+    """confirm_research saves non-empty additional_notes to assessment.prospect_additional_notes."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
@@ -252,7 +252,7 @@ async def test_confirm_research_saves_corrections_when_provided():
         "prospect_id": str(prospect_id),
         "prospect_role": "sre_platform_engineer",
     }
-    body = ConfirmResearchRequest(assessment_id=assessment_id, corrections="We are on Azure, not AWS.")
+    body = ConfirmResearchRequest(assessment_id=assessment_id, additional_notes="We are on Azure, not AWS.")
 
     mock_prospect = _make_mock_prospect(prospect_id)
 
@@ -264,7 +264,7 @@ async def test_confirm_research_saves_corrections_when_provided():
     mock_assessment.prospect_id = prospect_id
     mock_assessment.pillar_id = uuid4()
     mock_assessment.pillar = mock_pillar
-    mock_assessment.prospect_corrections = None
+    mock_assessment.prospect_additional_notes = None
     mock_assessment.research_confirmed_at = None
 
     db = AsyncMock()
@@ -281,12 +281,12 @@ async def test_confirm_research_saves_corrections_when_provided():
     ):
         await confirm_research(token, session, body, db)
 
-    assert mock_assessment.prospect_corrections == "We are on Azure, not AWS."
+    assert mock_assessment.prospect_additional_notes == "We are on Azure, not AWS."
 
 
 @pytest.mark.asyncio
 async def test_confirm_research_does_not_overwrite_when_corrections_empty():
-    """Empty/None corrections do not overwrite existing prospect_corrections."""
+    """Empty/None additional_notes do not overwrite existing prospect_additional_notes."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
@@ -299,7 +299,7 @@ async def test_confirm_research_does_not_overwrite_when_corrections_empty():
         "prospect_id": str(prospect_id),
         "prospect_role": "sre_platform_engineer",
     }
-    body = ConfirmResearchRequest(assessment_id=assessment_id, corrections="   ")
+    body = ConfirmResearchRequest(assessment_id=assessment_id, additional_notes="   ")
 
     mock_prospect = _make_mock_prospect(prospect_id)
 
@@ -311,7 +311,7 @@ async def test_confirm_research_does_not_overwrite_when_corrections_empty():
     mock_assessment.prospect_id = prospect_id
     mock_assessment.pillar_id = uuid4()
     mock_assessment.pillar = mock_pillar
-    mock_assessment.prospect_corrections = "previous corrections"
+    mock_assessment.prospect_additional_notes = "previous corrections"
     mock_assessment.research_confirmed_at = None
 
     db = AsyncMock()
@@ -329,7 +329,7 @@ async def test_confirm_research_does_not_overwrite_when_corrections_empty():
         await confirm_research(token, session, body, db)
 
     # Should not have overwritten existing value
-    assert mock_assessment.prospect_corrections == "previous corrections"
+    assert mock_assessment.prospect_additional_notes == "previous corrections"
 
 
 # ── Agent 1: minimal profile schema ──────────────────────────────────────────
@@ -473,12 +473,12 @@ def test_select_pillar_out_has_only_assessment_id():
     assert not hasattr(out, "questions")
 
 
-# ── Agent 2: prospect_corrections passed through ──────────────────────────────
+# ── Agent 2: prospect_additional_notes passed through ─────────────────────────
 
 
 @pytest.mark.asyncio
 async def test_select_questions_passes_prospect_context_to_llm():
-    """select_questions passes infrastructure_location and prospect_corrections to the LLM chain."""
+    """select_questions passes infrastructure_location and prospect_additional_notes to the LLM chain."""
     from app.agents.question_selection_agent import select_questions
 
     pillar_id = uuid4()
@@ -552,10 +552,10 @@ async def test_select_questions_passes_prospect_context_to_llm():
                     infrastructure_location="AWS us-east-1",
                     tech_stack_description="Kubernetes, Python",
                     current_tools="Datadog",
-                    prospect_corrections="We also use GCP.",
+                    prospect_additional_notes="We also use GCP.",
                 )
 
     assert captured_invoke.get("infrastructure_location") == "AWS us-east-1"
     assert captured_invoke.get("tech_stack_description") == "Kubernetes, Python"
     assert captured_invoke.get("current_tools") == "Datadog"
-    assert captured_invoke.get("prospect_corrections") == "We also use GCP."
+    assert captured_invoke.get("prospect_corrections") == "We also use GCP."  # key in prompt template stays as-is
