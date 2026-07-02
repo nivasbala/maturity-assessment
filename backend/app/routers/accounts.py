@@ -9,6 +9,7 @@ from app.core.deps import require_internal_user
 from app.models.user import User
 from app.schemas.admin import Paginated
 from app.schemas.internal import (
+    AccountAggregateOut,
     AccountCreate,
     AccountDetailOut,
     AccountListOut,
@@ -52,6 +53,15 @@ async def list_all_prospects(
     db: AsyncSession = Depends(get_db),
 ) -> list[ProspectWithAccountOut]:
     return await account_service.list_all_prospects(db, current_user)
+
+
+@router.get("/{account_id}/aggregate", response_model=AccountAggregateOut)
+async def get_account_aggregate(
+    account_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> AccountAggregateOut:
+    return await account_service.get_account_aggregate(db, account_id, current_user)
 
 
 @router.get("/{account_id}", response_model=AccountDetailOut)

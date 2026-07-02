@@ -589,3 +589,79 @@ class TestOrchestrator:
         assert result["pillar_score"] == 3.25
         assert result["maturity_level"] == 4
         assert result["maturity_label"] == "Optimized"
+
+
+# ── run_research_agent_for_prospect ──────────────────────────────────────────
+
+class TestResearchAgentForProspect:
+    """Tests for run_research_agent_for_prospect (prospect-scoped Agent 1)."""
+
+    @pytest.mark.asyncio
+    async def test_cache_hit_skips_llm(self):
+        """Fresh prospect cache is returned without calling LLM."""
+        from datetime import timedelta
+
+        from app.agents.research_agent import run_research_agent_for_prospect
+
+        prospect_id = uuid.uuid4()
+        cached_profile = {"company_name": "Acme", "industry": "SaaS"}
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = cached_profile
+        mock_prospect.research_cached_at = datetime.now(timezone.utc) - timedelta(days=1)
+
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalar_one_or_none.return_value = mock_prospect
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+        with patch("app.agents.research_agent.get_llm") as mock_llm:
+            result = await run_research_agent_for_prospect(
+                prospect_id, "Acme", "acme.com", mock_db
+            )
+
+        assert result == cached_profile
+        mock_llm.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_prospect_not_found_returns_minimal_profile(self):
+        """Missing prospect returns minimal profile without crashing."""
+        from app.agents.research_agent import run_research_agent_for_prospect
+
+        mock_execute_result = MagicMock()
+        mock_execute_result.scalar_one_or_none.return_value = None
+
+        mock_db = AsyncMock()
+        mock_db.execute = AsyncMock(return_value=mock_execute_result)
+
+        result = await run_research_agent_for_prospect(
+            uuid.uuid4(), "Unknown Co", None, mock_db
+        )
+
+        assert result["company_name"] == "Unknown Co"
+        assert result["data_confidence"] == "low"
+
+    @pytest.mark.asyncio
+    async def test_stale_cache_triggers_refresh(self):
+        """Cache older than 7 days triggers refresh (_should_refresh returns True)."""
+        from datetime import timedelta
+
+        from app.agents.research_agent import _should_refresh
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = {"company_name": "Acme"}
+        mock_prospect.research_cached_at = datetime.now(timezone.utc) - timedelta(days=8)
+
+        assert _should_refresh(mock_prospect) is True
+
+    @pytest.mark.asyncio
+    async def test_null_cache_triggers_refresh(self):
+        """NULL cache always triggers refresh."""
+        from app.agents.research_agent import _should_refresh
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = None
+        mock_prospect.research_cached_at = None
+
+        assert _should_refresh(mock_prospect) is True
