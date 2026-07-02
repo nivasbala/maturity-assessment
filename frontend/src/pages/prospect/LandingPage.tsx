@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams, Link } from 'react-router-dom'
 import { getAssessmentInfo, registerProspect } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
@@ -56,13 +56,14 @@ export default function LandingPage() {
           setFirstName((prev) => prev || parts[0] || '')
           setLastName((prev) => prev || parts.slice(1).join(' ') || '')
         }
+        // Pre-populate context fields from saved prospect data
+        if (data.infrastructure_location) setInfrastructureLocation((prev) => prev || data.infrastructure_location!)
+        if (data.tech_stack_description) setTechStackDescription((prev) => prev || data.tech_stack_description!)
+        if (data.current_tools) setCurrentTools((prev) => prev || data.current_tools!)
+        if (data.key_challenges_input) setKeyChallengesInput((prev) => prev || data.key_challenges_input!)
       })
       .catch((e) => {
-        if (e?.response?.status === 410) {
-          setLoadError('This assessment link has already been used. Please contact your representative to start a new assessment.')
-        } else {
-          setLoadError(extractApiError(e, 'Failed to load assessment.'))
-        }
+        setLoadError(extractApiError(e, 'Failed to load assessment.'))
       })
   }, [token])
 
@@ -191,6 +192,56 @@ export default function LandingPage() {
               Answer a few questions to receive a personalized maturity report with actionable recommendations.
             </p>
           </div>
+
+          {/* Returning visitor — existing assessments */}
+          {info.is_registered && info.existing_assessments.length > 0 && (
+            <div className="mb-5 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-950/30 p-4">
+              <p className="text-sm font-semibold text-blue-700 dark:text-blue-300 mb-1">
+                Welcome back — your previous assessments
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+                You can view your completed reports below, or fill in the form and start a new pillar assessment.
+              </p>
+              <div className="space-y-2">
+                {info.existing_assessments.map((a) => (
+                  <div
+                    key={a.assessment_id}
+                    className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg px-3 py-2 border border-gray-200 dark:border-gray-700"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{a.pillar_name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{a.status.replace('_', ' ')}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {a.pillar_score !== null && (
+                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                          {a.pillar_score.toFixed(1)} / 4.0
+                        </span>
+                      )}
+                      {a.status === 'completed' ? (
+                        <Link
+                          to={`/assess/${token}/report/${a.assessment_id}`}
+                          className="text-xs font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                        >
+                          View report
+                        </Link>
+                      ) : (
+                        <span className="text-xs text-gray-400 dark:text-gray-500">In progress</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {info.is_registered && (
+            <div className="mb-4 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <p className="text-xs text-amber-700 dark:text-amber-300">
+                Your details are pre-filled below. Update them if needed, then click <strong>Begin Assessment</strong> to start a new pillar.
+              </p>
+            </div>
+          )}
 
           {/* Two-column form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

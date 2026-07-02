@@ -14,12 +14,28 @@ class AvailablePillar(BaseModel):
     gate_question: str | None
 
 
+class ExistingAssessmentOut(BaseModel):
+    assessment_id: UUID
+    pillar_name: str
+    status: str
+    pillar_score: float | None
+    maturity_label: str | None
+    completed_at: datetime | None
+
+
 class AssessmentInfoOut(BaseModel):
     company_name: str
     prospect_name: str | None
     prospect_email: str
     suggested_pillars: list[UUID]
     available_pillars: list[AvailablePillar]
+    is_registered: bool = False
+    prospect_role: str | None = None
+    infrastructure_location: str | None = None
+    tech_stack_description: str | None = None
+    current_tools: str | None = None
+    key_challenges_input: str | None = None
+    existing_assessments: list[ExistingAssessmentOut] = []
 
 
 class RegisterRequest(BaseModel):

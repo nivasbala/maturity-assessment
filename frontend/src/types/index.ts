@@ -283,12 +283,28 @@ export interface AvailablePillar {
   gate_question: string | null
 }
 
+export interface ExistingAssessment {
+  assessment_id: string
+  pillar_name: string
+  status: 'pending' | 'in_progress' | 'completed'
+  pillar_score: number | null
+  maturity_label: string | null
+  completed_at: string | null
+}
+
 export interface AssessmentInfo {
   company_name: string
   prospect_name: string | null
   prospect_email: string
   suggested_pillars: string[]
   available_pillars: AvailablePillar[]
+  is_registered: boolean
+  prospect_role: string | null
+  infrastructure_location: string | null
+  tech_stack_description: string | null
+  current_tools: string | null
+  key_challenges_input: string | null
+  existing_assessments: ExistingAssessment[]
 }
 
 export interface RegisterRequest {

@@ -341,6 +341,7 @@ export default function AccountDetailPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Name</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Status</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Created by</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Created</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Action</th>
                 </tr>
@@ -367,6 +368,9 @@ export default function AccountDetailPage() {
                           Not registered
                         </span>
                       )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                      {account.internal_user_name}
                     </td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(p.created_at).toLocaleDateString()}

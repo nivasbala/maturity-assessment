@@ -2,7 +2,7 @@
 Public Assessment Service
 
 Handles the unauthenticated prospect flow:
-  1. GET /assess/{token}     — assessment info + available pillars (410 if already registered)
+  1. GET /assess/{token}     — assessment info + available pillars (pre-fills form if already registered)
   2. POST /register          — prospect registration + session token; saves context on Prospect
   3. POST /select-pillar     — creates assessment, fires Agent 2 in background, returns assessment_id
   4. POST /confirm-research  — saves corrections on assessment, waits for Agent 2, returns questions
@@ -43,6 +43,7 @@ from app.schemas.public import (
     AvailablePillar,
     ConfirmResearchOut,
     ConfirmResearchRequest,
+    ExistingAssessmentOut,
     QuestionPublic,
     RegisterOut,
     RegisterRequest,
@@ -286,16 +287,10 @@ def _questions_to_public(questions: list[Question]) -> list[QuestionPublic]:
 async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut:
     """GET /assess/{token} — return company info and all available active pillars.
 
-    Returns 410 Gone if the prospect has already registered (one-time link).
+    If already registered, returns is_registered=True with saved prospect fields and
+    existing assessments so the frontend can pre-populate the form and show past results.
     """
     prospect = await _get_prospect_by_token(token, db)
-
-    if prospect.is_registered:
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail="This assessment link has already been used",
-        )
-
     account = prospect.account
 
     pillars = (
@@ -306,7 +301,28 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
         )
     ).scalars().all()
 
-    logger.info("get_assessment_info: token=%s account_id=%s", token, account.id)
+    existing: list[ExistingAssessmentOut] = []
+    if prospect.is_registered:
+        assessments = (
+            await db.execute(
+                select(Assessment)
+                .options(selectinload(Assessment.pillar), selectinload(Assessment.report))
+                .where(Assessment.prospect_id == prospect.id)
+                .order_by(Assessment.created_at.desc())
+            )
+        ).scalars().all()
+        for a in assessments:
+            report = a.report
+            existing.append(ExistingAssessmentOut(
+                assessment_id=a.id,
+                pillar_name=a.pillar.name if a.pillar else "Unknown",
+                status=a.status,
+                pillar_score=float(report.pillar_score) if report else None,
+                maturity_label=report.maturity_label if report else None,
+                completed_at=a.completed_at,
+            ))
+
+    logger.info("get_assessment_info: token=%s account_id=%s is_registered=%s", token, account.id, prospect.is_registered)
     return AssessmentInfoOut(
         company_name=account.company_name,
         prospect_name=prospect.name,
@@ -322,6 +338,13 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
             )
             for p in pillars
         ],
+        is_registered=prospect.is_registered,
+        prospect_role=None,
+        infrastructure_location=prospect.infrastructure_location,
+        tech_stack_description=prospect.tech_stack_description,
+        current_tools=prospect.current_tools,
+        key_challenges_input=prospect.key_challenges_input,
+        existing_assessments=existing,
     )
 
 
