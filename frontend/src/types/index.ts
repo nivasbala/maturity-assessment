@@ -81,6 +81,18 @@ export interface Paginated<T> {
   size: number
 }
 
+// ── Prospect ──────────────────────────────────────────────────────────────────
+
+export interface Prospect {
+  id: string
+  account_id: string
+  email: string
+  name: string | null
+  short_url_token: string
+  full_url: string
+  created_at: string
+}
+
 // ── Internal / Account types ──────────────────────────────────────────────────
 
 export interface AccountListItem {

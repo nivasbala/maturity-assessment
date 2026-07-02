@@ -31,3 +31,4 @@ class Account(Base):
 
     internal_user = relationship("User", back_populates="accounts")
     assessments = relationship("Assessment", back_populates="account")
+    prospects = relationship("Prospect", back_populates="account", cascade="all, delete-orphan")

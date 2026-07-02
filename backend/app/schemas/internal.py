@@ -56,6 +56,25 @@ class AccountDetailOut(BaseModel):
     pillar_statuses: list[PillarStatusRow]
 
 
+# ── Prospect ──────────────────────────────────────────────────────────────────
+
+class ProspectCreate(BaseModel):
+    email: str = Field(min_length=1, max_length=255)
+    name: str | None = Field(default=None, max_length=255)
+
+
+class ProspectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    account_id: UUID
+    email: str
+    name: str | None
+    short_url_token: str
+    full_url: str
+    created_at: datetime
+
+
 # ── Assessment creation ────────────────────────────────────────────────────────
 
 class AssessmentCreateRequest(BaseModel):

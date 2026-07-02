@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.models.account import Account
 from app.models.assessment import Assessment, AssessmentAnswer
 from app.models.pillar import Pillar
+from app.models.prospect import Prospect
 from app.models.report import Report
 from app.models.user import User
 from app.schemas.admin import Paginated
@@ -28,6 +29,8 @@ from app.schemas.internal import (
     AssessmentDetailOut,
     AssessmentListItemOut,
     PillarStatusRow,
+    ProspectCreate,
+    ProspectOut,
     ReportOut,
 )
 
@@ -526,3 +529,88 @@ async def get_account_aggregate(
         completed_count=len(scores),
         scores=scores,
     )
+
+
+# ── Prospects ─────────────────────────────────────────────────────────────────
+
+async def create_prospect(
+    db: AsyncSession,
+    account_id: UUID,
+    current_user: User,
+    body: ProspectCreate,
+) -> ProspectOut:
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    # Generate a unique short URL token
+    for _ in range(5):
+        token = _generate_short_token()
+        existing = (
+            await db.execute(select(Prospect).where(Prospect.short_url_token == token))
+        ).scalar_one_or_none()
+        if not existing:
+            break
+        logger.warning("Prospect short URL token collision — regenerating")
+    else:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not generate unique token")
+
+    prospect = Prospect(
+        account_id=account_id,
+        email=body.email,
+        name=body.name,
+        short_url_token=token,
+    )
+    db.add(prospect)
+    await db.commit()
+    await db.refresh(prospect)
+
+    full_url = f"{settings.base_url}/assess/{token}"
+    logger.info("create_prospect: prospect_id=%s account_id=%s token=%s", prospect.id, account_id, token)
+    return ProspectOut(
+        id=prospect.id,
+        account_id=prospect.account_id,
+        email=prospect.email,
+        name=prospect.name,
+        short_url_token=prospect.short_url_token,
+        full_url=full_url,
+        created_at=prospect.created_at,
+    )
+
+
+async def list_prospects(
+    db: AsyncSession,
+    account_id: UUID,
+    current_user: User,
+) -> list[ProspectOut]:
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    prospects = (
+        await db.execute(
+            select(Prospect)
+            .where(Prospect.account_id == account_id)
+            .order_by(Prospect.created_at.desc())
+        )
+    ).scalars().all()
+
+    logger.info("list_prospects: account_id=%s count=%d", account_id, len(prospects))
+    return [
+        ProspectOut(
+            id=p.id,
+            account_id=p.account_id,
+            email=p.email,
+            name=p.name,
+            short_url_token=p.short_url_token,
+            full_url=f"{settings.base_url}/assess/{p.short_url_token}",
+            created_at=p.created_at,
+        )
+        for p in prospects
+    ]

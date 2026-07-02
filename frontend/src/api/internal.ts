@@ -9,6 +9,7 @@ import type {
   AssessmentListItem,
   Paginated,
   Pillar,
+  Prospect,
   Report,
 } from '../types'
 
@@ -58,3 +59,11 @@ export const getAssessmentReport = (assessmentId: string) =>
 
 export const getActivePillars = () =>
   api.get<{ items: Pillar[] }>('/pillars', { params: { size: 50 } }).then((r) => r.data.items)
+
+// ── Prospects ─────────────────────────────────────────────────────────────────
+
+export const listProspects = (accountId: string) =>
+  api.get<Prospect[]>(`/accounts/${accountId}/prospects`).then((r) => r.data)
+
+export const createProspect = (accountId: string, data: { email: string; name?: string | null }) =>
+  api.post<Prospect>(`/accounts/${accountId}/prospects`, data).then((r) => r.data)
