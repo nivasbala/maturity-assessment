@@ -1,5 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import {
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+  RadialBarChart, RadialBar, ResponsiveContainer,
+} from 'recharts'
 import { getReport } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ReportPublic } from '../../types'
@@ -12,14 +16,84 @@ const LOADING_MESSAGES = [
   'Generating your report…',
 ]
 
+function ScoreChart({ report }: { report: ReportPublic }) {
+  const breakdown = report.pillar_breakdown as Record<string, number>
+  const subAreas = Object.entries(breakdown)
+
+  if (subAreas.length >= 3) {
+    const data = subAreas.map(([name, value]) => ({ subject: name, score: value, fullMark: 4 }))
+    return (
+      <ResponsiveContainer width="100%" height={260}>
+        <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
+          <PolarGrid stroke="#e5e7eb" />
+          <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: '#6b7280' }} />
+          <PolarRadiusAxis domain={[0, 4]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+          <Radar name="Score" dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.25} />
+        </RadarChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  // Single score — radial gauge
+  const pct = ((report.pillar_score - 1) / 3) * 100
+  const data = [{ name: report.pillar_name, value: pct, fill: '#2563eb' }]
+  return (
+    <div className="relative">
+      <ResponsiveContainer width="100%" height={220}>
+        <RadialBarChart
+          cx="50%" cy="65%"
+          innerRadius="60%" outerRadius="90%"
+          startAngle={180} endAngle={0}
+          data={data}
+          barSize={20}
+        >
+          <RadialBar dataKey="value" cornerRadius={6} background={{ fill: '#e5e7eb' }} />
+        </RadialBarChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 pointer-events-none">
+        <span className="text-4xl font-bold text-[#1B2B4B] dark:text-gray-100">
+          {report.pillar_score.toFixed(1)}
+        </span>
+        <span className="text-sm text-gray-400 dark:text-gray-500">out of 4.0</span>
+      </div>
+    </div>
+  )
+}
+
+async function downloadPdf(el: HTMLElement, companyName: string, pillarName: string) {
+  const html2canvas = (await import('html2canvas')).default
+  const { jsPDF } = await import('jspdf')
+
+  const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#f9fafb' })
+  const imgData = canvas.toDataURL('image/png')
+
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  const pageHeight = pdf.internal.pageSize.getHeight()
+  const imgWidth = pageWidth
+  const imgHeight = (canvas.height * pageWidth) / canvas.width
+
+  let y = 0
+  while (y < imgHeight) {
+    if (y > 0) pdf.addPage()
+    pdf.addImage(imgData, 'PNG', 0, -y, imgWidth, imgHeight)
+    y += pageHeight
+  }
+
+  const safe = (s: string) => s.replace(/[^a-zA-Z0-9-_ ]/g, '').trim().replace(/\s+/g, '-')
+  pdf.save(`${safe(companyName)}-${safe(pillarName)}-maturity-report.pdf`)
+}
+
 export default function ReportPage() {
   const { token, assessmentId } = useParams<{ token: string; assessmentId: string }>()
   const navigate = useNavigate()
+  const reportRef = useRef<HTMLDivElement>(null)
 
   const [report, setReport] = useState<ReportPublic | null>(null)
   const [error, setError] = useState('')
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0)
   const [polling, setPolling] = useState(true)
+  const [pdfGenerating, setPdfGenerating] = useState(false)
 
   useEffect(() => {
     if (!polling) return
@@ -109,12 +183,22 @@ export default function ReportPage() {
 
   const badgeClass = MATURITY_COLORS[report.maturity_label] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
 
+  const handleDownloadPdf = async () => {
+    if (!reportRef.current || !report) return
+    setPdfGenerating(true)
+    try {
+      await downloadPdf(reportRef.current, report.company_name, report.pillar_name)
+    } finally {
+      setPdfGenerating(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <ProspectHeader />
       <div className="flex-1 py-10 px-4">
-      <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header */}
+      <div ref={reportRef} className="max-w-3xl mx-auto space-y-8">
+        {/* 1. Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{report.company_name}</p>
           <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-4">{report.pillar_name}</h1>
@@ -138,7 +222,7 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Executive Summary */}
+        {/* 2. Executive Summary */}
         {report.executive_summary && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
             <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Executive Summary</h2>
@@ -148,7 +232,16 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Strengths */}
+        {/* 3. Radar / Score Chart */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+          <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Maturity Score</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Score range: 1 (Initial) → 4 (Optimized)
+          </p>
+          <ScoreChart report={report} />
+        </div>
+
+        {/* 4. Strengths */}
         {report.strengths.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
             <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Strengths</h2>
@@ -168,7 +261,7 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Gap Analysis */}
+        {/* 5. Gap Analysis */}
         {report.gap_analysis.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
             <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Gap Analysis</h2>
@@ -207,7 +300,7 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Next Steps */}
+        {/* 6. Next Steps */}
         {report.next_steps.length > 0 && (
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
             <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Recommended Next Steps</h2>
@@ -232,7 +325,7 @@ export default function ReportPage() {
           </div>
         )}
 
-        {/* Footer actions */}
+        {/* 7. Footer actions */}
         <div className="flex items-center justify-between pb-8">
           <button
             onClick={() => navigate(`/assess/${token}/pillars`)}
@@ -242,10 +335,11 @@ export default function ReportPage() {
           </button>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => window.print()}
-              className="text-sm font-medium border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950 px-5 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+              onClick={handleDownloadPdf}
+              disabled={pdfGenerating}
+              className="text-sm font-medium border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
             >
-              Download PDF
+              {pdfGenerating ? 'Generating PDF…' : 'Download PDF'}
             </button>
             <button
               onClick={() => navigate(`/assess/${token}/pillars`)}
