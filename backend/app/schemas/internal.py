@@ -171,6 +171,7 @@ class AnswerRow(BaseModel):
 class AssessmentAnswersOut(BaseModel):
     assessment_id: UUID
     account_id: UUID
+    prospect_id: UUID | None
     pillar_id: UUID
     pillar_name: str
     company_name: str

@@ -389,9 +389,23 @@ async def get_assessment_answers(
         for ans in sorted(assessment.answers, key=lambda a: a.question.display_order)
     ]
 
+    prospect_id = None
+    if assessment.prospect_email:
+        prospect = (
+            await db.execute(
+                select(Prospect).where(
+                    Prospect.account_id == assessment.account_id,
+                    Prospect.email == assessment.prospect_email,
+                )
+            )
+        ).scalar_one_or_none()
+        if prospect:
+            prospect_id = prospect.id
+
     return AssessmentAnswersOut(
         assessment_id=assessment.id,
         account_id=assessment.account_id,
+        prospect_id=prospect_id,
         pillar_id=assessment.pillar_id,
         pillar_name=assessment.pillar.name,
         company_name=assessment.account.company_name,

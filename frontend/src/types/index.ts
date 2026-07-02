@@ -214,6 +214,7 @@ export interface AnswerRow {
 export interface AssessmentAnswers {
   assessment_id: string
   account_id: string
+  prospect_id: string | null
   pillar_id: string
   pillar_name: string
   company_name: string
