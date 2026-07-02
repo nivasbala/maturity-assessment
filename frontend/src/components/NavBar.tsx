@@ -8,7 +8,7 @@ export default function NavBar() {
 
   const handleLogout = async () => {
     await clearAuth()
-    navigate('/login')
+    navigate('/')
   }
 
   if (!user) return null
