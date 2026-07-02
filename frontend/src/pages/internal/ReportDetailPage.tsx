@@ -118,8 +118,28 @@ export default function ReportDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <p className="text-gray-500 dark:text-gray-400">Loading…</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
+          <div className="mb-6">
+            <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+              Loading report…
+            </h2>
+          </div>
+          <div className="flex justify-center mb-6">
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
+              <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+            </div>
+          </div>
+          <div className="flex justify-center mt-4">
+            <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                Fetching assessment data…
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
