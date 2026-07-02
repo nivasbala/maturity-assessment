@@ -375,64 +375,57 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     prospect.registered_at = datetime.now(timezone.utc)
     await db.commit()
 
-    # Re-run Agent 1 in background with enriched prospect context if any context fields provided.
-    # The first Agent 1 run at prospect creation only had company_name + company_website.
-    # Registration adds infrastructure_location, tech_stack_description, current_tools,
-    # key_challenges_input — re-run so these inform the research profile used by Agent 2.
-    context_provided = any([
-        body.infrastructure_location,
-        body.tech_stack_description,
-        body.current_tools,
-        body.key_challenges_input,
-    ])
-    if context_provided:
-        from app.agents.research_agent import run_research_agent_for_prospect  # noqa: PLC0415
-        prospect.research_started_at = datetime.now(timezone.utc)
-        await db.commit()
-        prospect_id_for_rerun = prospect.id
-        company_name_for_rerun = account.company_name
-        company_website_for_rerun = account.company_website
-        infra = prospect.infrastructure_location
-        tech = prospect.tech_stack_description
-        tools = prospect.current_tools
-        challenges = prospect.key_challenges_input
+    # Always fire Agent 1 at registration so the research loading screen has something to poll.
+    # Clears any stale cache and re-runs with the latest prospect context (including any
+    # optional fields the prospect filled in: infrastructure_location, tech_stack_description,
+    # current_tools, key_challenges_input).
+    from app.agents.research_agent import run_research_agent_for_prospect  # noqa: PLC0415
+    prospect.research_started_at = datetime.now(timezone.utc)
+    await db.commit()
+    prospect_id_for_rerun = prospect.id
+    company_name_for_rerun = account.company_name
+    company_website_for_rerun = account.company_website
+    infra = prospect.infrastructure_location
+    tech = prospect.tech_stack_description
+    tools = prospect.current_tools
+    challenges = prospect.key_challenges_input
 
-        async def _rerun_agent1() -> None:
-            async with AsyncSessionLocal() as fresh_db:
-                p = (await fresh_db.execute(
-                    select(Prospect).where(Prospect.id == prospect_id_for_rerun)
-                )).scalar_one_or_none()
-                if p:
-                    p.research_cache = None
-                    p.research_cached_at = None
-                    await fresh_db.commit()
-                try:
-                    await run_research_agent_for_prospect(
-                        prospect_id_for_rerun,
-                        company_name_for_rerun,
-                        company_website_for_rerun,
-                        fresh_db,
-                        infrastructure_location=infra,
-                        tech_stack_description=tech,
-                        current_tools=tools,
-                        key_challenges_input=challenges,
-                    )
-                    logger.info(
-                        "register_prospect: Agent 1 re-run completed for prospect_id=%s",
-                        prospect_id_for_rerun,
-                    )
-                except Exception:
-                    logger.error(
-                        "register_prospect: Agent 1 re-run failed for prospect_id=%s",
-                        prospect_id_for_rerun,
-                        exc_info=True,
-                    )
+    async def _rerun_agent1() -> None:
+        async with AsyncSessionLocal() as fresh_db:
+            p = (await fresh_db.execute(
+                select(Prospect).where(Prospect.id == prospect_id_for_rerun)
+            )).scalar_one_or_none()
+            if p:
+                p.research_cache = None
+                p.research_cached_at = None
+                await fresh_db.commit()
+            try:
+                await run_research_agent_for_prospect(
+                    prospect_id_for_rerun,
+                    company_name_for_rerun,
+                    company_website_for_rerun,
+                    fresh_db,
+                    infrastructure_location=infra,
+                    tech_stack_description=tech,
+                    current_tools=tools,
+                    key_challenges_input=challenges,
+                )
+                logger.info(
+                    "register_prospect: Agent 1 completed for prospect_id=%s",
+                    prospect_id_for_rerun,
+                )
+            except Exception:
+                logger.error(
+                    "register_prospect: Agent 1 failed for prospect_id=%s",
+                    prospect_id_for_rerun,
+                    exc_info=True,
+                )
 
-        asyncio.create_task(_rerun_agent1())
-        logger.info(
-            "register_prospect: prospect_id=%s — context provided, Agent 1 re-run fired in background",
-            prospect.id,
-        )
+    asyncio.create_task(_rerun_agent1())
+    logger.info(
+        "register_prospect: prospect_id=%s — Agent 1 fired in background",
+        prospect.id,
+    )
 
     # Build session token payload
     session_data: dict = {

@@ -161,7 +161,11 @@ export default function LandingPage() {
       sessionStorage.setItem('tech_stack_description', techStackDescription.trim())
       sessionStorage.setItem('current_tools', currentTools.trim())
       sessionStorage.setItem('key_challenges_input', keyChallengesInput.trim())
-      navigate(`/assess/${token}/pillars`)
+      if (info?.company_name) {
+        sessionStorage.setItem('prospect_company_name', info.company_name)
+      }
+      // Navigate to research loading screen — Agent 1 is now running in background
+      navigate(`/assess/${token}/researching`)
     } catch (e) {
       setFormError(extractApiError(e, 'Registration failed. Please try again.'))
     } finally {
