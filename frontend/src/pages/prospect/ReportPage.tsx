@@ -35,20 +35,17 @@ export default function ReportPage() {
     async function fetchReport() {
       try {
         const data = await getReport(token!, assessmentId!)
-        if (data.executive_summary || attempts >= MAX) {
-          setReport(data)
-          setPolling(false)
-        } else {
-          attempts++
-          setTimeout(fetchReport, 3000)
-        }
+        // Stop polling on any successful response — submit is synchronous so
+        // the report is complete by the time we navigate here.
+        setReport(data)
+        setPolling(false)
       } catch (e) {
-        const msg = extractApiError(e, 'Failed to load report.')
+        // 404 means report not yet available (e.g. direct URL visit during submit)
         if (attempts < MAX) {
           attempts++
           setTimeout(fetchReport, 3000)
         } else {
-          setError(msg)
+          setError(extractApiError(e, 'Failed to load report.'))
           setPolling(false)
         }
       }
@@ -80,9 +77,31 @@ export default function ReportPage() {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
         <ProspectHeader />
-        <div className="flex-1 flex flex-col items-center justify-center">
-          <div className="animate-spin h-10 w-10 border-4 border-brand border-t-transparent rounded-full mb-6" />
-          <p className="text-gray-600 dark:text-gray-400 font-medium text-lg">{LOADING_MESSAGES[loadingMsgIdx]}</p>
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
+            <div className="mb-6">
+              <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+                Generating your report…
+              </h2>
+            </div>
+            <div className="flex justify-center mb-6">
+              <div className="relative w-14 h-14">
+                <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
+                <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+              </div>
+            </div>
+            <div className="flex justify-center mt-4">
+              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {LOADING_MESSAGES[loadingMsgIdx]}
+                </span>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              This usually takes 15–45 seconds
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -109,6 +128,15 @@ export default function ReportPage() {
             </span>
           </div>
         </div>
+
+        {/* Agent 3 failure fallback */}
+        {!report.executive_summary && report.strengths.length === 0 && (
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
+            <p className="text-sm text-yellow-800 dark:text-yellow-300 font-medium">
+              Report narrative is still being generated. Please refresh in a moment or contact your Datadog representative if this persists.
+            </p>
+          </div>
+        )}
 
         {/* Executive Summary */}
         {report.executive_summary && (
@@ -206,6 +234,12 @@ export default function ReportPage() {
 
         {/* Footer actions */}
         <div className="flex items-center justify-between pb-8">
+          <button
+            onClick={() => navigate(`/assess/${token}/pillars`)}
+            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          >
+            ← Back to Pillar Selection
+          </button>
           <button
             onClick={() => navigate(`/assess/${token}/pillars`)}
             className="text-sm font-medium text-brand border border-brand px-5 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"

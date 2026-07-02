@@ -40,6 +40,9 @@ export const createAssessment = (accountId: string, pillarId: string) =>
     .post<AssessmentCreated>(`/accounts/${accountId}/assessments`, { pillar_id: pillarId })
     .then((r) => r.data)
 
+export const deleteAssessment = (accountId: string, assessmentId: string) =>
+  api.delete(`/accounts/${accountId}/assessments/${assessmentId}`)
+
 // ── Assessments ───────────────────────────────────────────────────────────────
 
 export const getAssessmentDetail = (assessmentId: string) =>

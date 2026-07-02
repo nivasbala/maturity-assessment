@@ -26,7 +26,7 @@ class Assessment(Base):
     account = relationship("Account", back_populates="assessments")
     pillar = relationship("Pillar", back_populates="assessments")
     answers = relationship("AssessmentAnswer", back_populates="assessment", cascade="all, delete-orphan")
-    report = relationship("Report", back_populates="assessment", uselist=False)
+    report = relationship("Report", back_populates="assessment", uselist=False, passive_deletes=True)
 
 
 class AssessmentAnswer(Base):

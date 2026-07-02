@@ -428,6 +428,38 @@ async def get_assessment_report(
     )
 
 
+async def delete_assessment(
+    db: AsyncSession,
+    account_id: UUID,
+    assessment_id: UUID,
+    current_user: User,
+) -> None:
+    account = (
+        await db.execute(select(Account).where(Account.id == account_id))
+    ).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    assessment = (
+        await db.execute(
+            select(Assessment).where(
+                Assessment.id == assessment_id,
+                Assessment.account_id == account_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+
+    await db.delete(assessment)
+    await db.commit()
+    logger.info(
+        "delete_assessment: assessment_id=%s account_id=%s user_id=%s",
+        assessment_id, account_id, current_user.id,
+    )
+
+
 async def delete_account(
     db: AsyncSession,
     account_id: UUID,

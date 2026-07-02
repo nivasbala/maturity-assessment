@@ -116,7 +116,7 @@ export default function AssessmentPage() {
               onClick={() => navigate(`/assess/${token}/pillars`)}
               className="mt-1 text-xs text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
             >
-              ← Back to pillars
+              ← Back to Pillar Selection
             </button>
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function AssessmentPage() {
               disabled={currentIndex === 0}
               className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1"
             >
-              ← Back
+              ← Previous
             </button>
 
             {!isLastQuestion ? (

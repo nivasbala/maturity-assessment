@@ -201,7 +201,7 @@ export default function PillarSelectPage() {
                 onClick={() => navigate(`/assess/${token}/research-summary`)}
                 className="mt-2 text-xs text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
               >
-                ← Back
+                ← Back to Company Profile
               </button>
             </div>
           </div>

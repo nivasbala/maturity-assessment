@@ -236,7 +236,7 @@ async def select_questions(
             ("human", "Select the {question_count} most diagnostic questions now."),
         ]
     )
-    chain = prompt | get_llm() | StrOutputParser()
+    chain = prompt | get_llm(json_mode=True) | StrOutputParser()
     raw = await chain.ainvoke(
         {
             "persona_label": persona_label,
@@ -256,11 +256,12 @@ async def select_questions(
         }
     )
 
-    # Parse and validate
+    # Parse and validate — extract the JSON array even if the model adds preamble
     raw = raw.strip()
-    if raw.startswith("```"):
-        lines = raw.split("\n")
-        raw = "\n".join(lines[1:-1] if lines[-1].strip().startswith("```") else lines[1:]).strip()
+    start = raw.find("[")
+    end = raw.rfind("]")
+    if start != -1 and end != -1 and end > start:
+        raw = raw[start : end + 1]
 
     selected_ids: list[str] = json.loads(raw)
     if not isinstance(selected_ids, list):
