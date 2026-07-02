@@ -13,6 +13,8 @@ import SubmittingPage from './pages/prospect/SubmittingPage'
 import AccountsListPage from './pages/internal/AccountsListPage'
 import AccountDetailPage from './pages/internal/AccountDetailPage'
 import ReportDetailPage from './pages/internal/ReportDetailPage'
+import ProspectsListPage from './pages/internal/ProspectsListPage'
+import ProspectDetailPage from './pages/internal/ProspectDetailPage'
 import UsersPage from './pages/admin/UsersPage'
 import PillarsPage from './pages/admin/PillarsPage'
 import QuestionsPage from './pages/admin/QuestionsPage'
@@ -49,6 +51,8 @@ export default function App() {
               <Route path="/dashboard" element={<AccountsListPage />} />
               <Route path="/dashboard/accounts/:id" element={<AccountDetailPage />} />
               <Route path="/dashboard/assessments/:id" element={<ReportDetailPage />} />
+              <Route path="/prospects" element={<ProspectsListPage />} />
+              <Route path="/prospects/:id" element={<ProspectDetailPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
               <Route path="/admin/pillars" element={<PillarsPage />} />
               <Route path="/admin/pillars/:id/questions" element={<QuestionsPage />} />

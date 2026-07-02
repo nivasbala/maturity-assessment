@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { getAssessmentAnswers, getAssessmentReport } from '../../api/internal'
 import { useAuth } from '../../contexts/AuthContext'
 import type { AssessmentAnswers, Report } from '../../types'
@@ -94,6 +94,8 @@ export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const locationState = location.state as { from?: string; fromLabel?: string } | null
 
   const [answers, setAnswers] = useState<AssessmentAnswers | null>(null)
   const [report, setReport] = useState<Report | null>(null)
@@ -140,10 +142,10 @@ export default function ReportDetailPage() {
 
         {/* Back */}
         <button
-          onClick={() => navigate(`/dashboard/accounts/${answers.account_id}`)}
+          onClick={() => navigate(locationState?.from ?? `/dashboard/accounts/${answers.account_id}`)}
           className="text-sm text-brand hover:underline"
         >
-          ← Back to {answers.company_name}
+          ← Back to {locationState?.fromLabel ?? answers.company_name}
         </button>
 
         {/* Header */}
