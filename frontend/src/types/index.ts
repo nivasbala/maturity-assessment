@@ -274,6 +274,7 @@ export interface AvailablePillar {
 
 export interface AssessmentInfo {
   company_name: string
+  prospect_name: string | null
   prospect_email: string
   suggested_pillars: string[]
   available_pillars: AvailablePillar[]

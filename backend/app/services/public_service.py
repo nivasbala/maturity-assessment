@@ -265,6 +265,7 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
     logger.info("get_assessment_info: token=%s account_id=%s", token, account.id)
     return AssessmentInfoOut(
         company_name=account.company_name,
+        prospect_name=prospect.name,
         prospect_email=prospect.email,
         suggested_pillars=account.suggested_pillars or [],
         available_pillars=[

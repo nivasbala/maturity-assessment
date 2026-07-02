@@ -51,6 +51,11 @@ export default function LandingPage() {
       .then((data) => {
         setInfo(data)
         if (data.prospect_email) setEmail(data.prospect_email)
+        if (data.prospect_name) {
+          const parts = data.prospect_name.trim().split(' ')
+          setFirstName((prev) => prev || parts[0] || '')
+          setLastName((prev) => prev || parts.slice(1).join(' ') || '')
+        }
       })
       .catch((e) => setLoadError(extractApiError(e, 'Failed to load assessment.')))
   }, [token])
