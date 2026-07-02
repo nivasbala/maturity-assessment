@@ -1,28 +1,19 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createAccount, getAccounts, getActivePillars } from '../../api/internal'
-import type { AccountListItem, Pillar } from '../../types'
+import { createAccount, getAccounts } from '../../api/internal'
+import type { AccountListItem } from '../../types'
 
 function NewAccountModal({
-  pillars,
   onClose,
   onCreated,
 }: {
-  pillars: Pillar[]
   onClose: () => void
   onCreated: (account: AccountListItem) => void
 }) {
   const [companyName, setCompanyName] = useState('')
   const [companyWebsite, setCompanyWebsite] = useState('')
-  const [selectedPillars, setSelectedPillars] = useState<string[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-
-  const togglePillar = (id: string) => {
-    setSelectedPillars((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    )
-  }
 
   const handleSubmit = async () => {
     if (!companyName.trim()) {
@@ -35,7 +26,6 @@ function NewAccountModal({
       const account = await createAccount({
         company_name: companyName.trim(),
         company_website: companyWebsite.trim() || null,
-        suggested_pillars: selectedPillars,
       })
       onCreated(account)
     } catch {
@@ -65,7 +55,7 @@ function NewAccountModal({
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
               placeholder="Acme Corp"
             />
           </div>
@@ -78,31 +68,10 @@ function NewAccountModal({
               type="text"
               value={companyWebsite}
               onChange={(e) => setCompanyWebsite(e.target.value)}
-              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-brand"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
               placeholder="https://acmecorp.com"
             />
           </div>
-
-          {pillars.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Suggested Pillars
-              </label>
-              <div className="space-y-2">
-                {pillars.map((p) => (
-                  <label key={p.id} className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedPillars.includes(p.id)}
-                      onChange={() => togglePillar(p.id)}
-                      className="rounded border-gray-300 text-brand focus:ring-brand"
-                    />
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{p.name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="mt-6 flex justify-end gap-3">
@@ -115,7 +84,7 @@ function NewAccountModal({
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 text-sm text-white bg-brand rounded hover:bg-blue-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded disabled:opacity-50"
           >
             {loading ? 'Creating…' : 'Create Account'}
           </button>
@@ -128,7 +97,6 @@ function NewAccountModal({
 export default function AccountsListPage() {
   const navigate = useNavigate()
   const [accounts, setAccounts] = useState<AccountListItem[]>([])
-  const [pillars, setPillars] = useState<Pillar[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
@@ -139,11 +107,10 @@ export default function AccountsListPage() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([getAccounts(page, PAGE_SIZE), getActivePillars()])
-      .then(([data, pillarList]) => {
+    getAccounts(page, PAGE_SIZE)
+      .then((data) => {
         setAccounts(data.items)
         setTotal(data.total)
-        setPillars(pillarList)
       })
       .catch(() => setError('Failed to load accounts'))
       .finally(() => setLoading(false))
@@ -166,7 +133,6 @@ export default function AccountsListPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">Accounts</h1>
@@ -174,7 +140,7 @@ export default function AccountsListPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="px-4 py-2 bg-brand text-white text-sm font-medium rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white text-sm font-medium rounded focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
           >
             New Account
           </button>
@@ -186,23 +152,21 @@ export default function AccountsListPage() {
           </div>
         )}
 
-        {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Company</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Website</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Suggested Pillars</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillars Sent</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillars Completed</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Prospects</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Registered</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Date Created</th>
               </tr>
             </thead>
             <tbody>
               {accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
+                  <td colSpan={5} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
                     No accounts yet. Click "New Account" to get started.
                   </td>
                 </tr>
@@ -221,7 +185,7 @@ export default function AccountsListPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="text-brand hover:underline"
+                          className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
                         >
                           {a.company_website.replace(/^https?:\/\//, '')}
                         </a>
@@ -229,11 +193,8 @@ export default function AccountsListPage() {
                         '—'
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                      {a.suggested_pillars.length > 0 ? a.suggested_pillars.length : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.pillars_sent}</td>
-                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.pillars_completed}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.prospects_total}</td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{a.prospects_registered}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(a.created_at).toLocaleDateString()}
                     </td>
@@ -243,7 +204,6 @@ export default function AccountsListPage() {
             </tbody>
           </table>
 
-          {/* Pagination */}
           {total > PAGE_SIZE && (
             <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
               <span>
@@ -272,7 +232,6 @@ export default function AccountsListPage() {
 
       {showModal && (
         <NewAccountModal
-          pillars={pillars}
           onClose={() => setShowModal(false)}
           onCreated={handleCreated}
         />

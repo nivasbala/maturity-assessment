@@ -10,20 +10,20 @@ from app.core.database import Base
 class Assessment(Base):
     __tablename__ = "assessments"
 
-    __table_args__ = (UniqueConstraint("account_id", "pillar_id", name="uq_assessment_account_pillar"),)
+    __table_args__ = (UniqueConstraint("account_id", "prospect_id", "pillar_id", name="uq_assessment_account_prospect_pillar"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     account_id = Column(UUID(as_uuid=True), ForeignKey("accounts.id"), nullable=False)
+    prospect_id = Column(UUID(as_uuid=True), ForeignKey("prospects.id"), nullable=False)
     pillar_id = Column(UUID(as_uuid=True), ForeignKey("pillars.id"), nullable=False)
-    short_url_token = Column(String(12), nullable=False, unique=True)
-    prospect_name = Column(String(255), nullable=True)
-    prospect_email = Column(String(255), nullable=True)
-    prospect_role = Column(String(100), nullable=True)
     status = Column(String(50), nullable=False, default="pending")  # pending | in_progress | completed
-    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    started_at = Column(DateTime(timezone=True), nullable=True)
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
 
     account = relationship("Account", back_populates="assessments")
+    prospect = relationship("Prospect", back_populates="assessments")
     pillar = relationship("Pillar", back_populates="assessments")
     answers = relationship("AssessmentAnswer", back_populates="assessment", cascade="all, delete-orphan")
     report = relationship("Report", back_populates="assessment", uselist=False, passive_deletes=True)

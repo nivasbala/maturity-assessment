@@ -60,65 +60,51 @@ async def test_get_research_summary_not_ready_when_cache_null():
     """Returns is_ready=False when research_cache is NULL (Agent 1 still running)."""
     from app.services.public_service import get_research_summary
 
-    account_id = uuid4()
+    prospect_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
+    session = {"prospect_id": str(prospect_id)}
 
-    from datetime import datetime, timezone
-
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.research_cache = None
-    mock_account.research_started_at = datetime.now(timezone.utc)  # recent — within 60s window
-    mock_account.created_at = datetime.now(timezone.utc)
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id
+    mock_prospect.research_cache = None
+    mock_prospect.registered_at = datetime.now(timezone.utc)  # recent — within 60s window
+    mock_prospect.created_at = datetime.now(timezone.utc)
 
     db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
 
-    result = await get_research_summary(token, session, db)
+    with patch("app.services.public_service._get_prospect_by_token", AsyncMock(return_value=mock_prospect)):
+        result = await get_research_summary(token, session, db)
 
     assert result.is_ready is False
 
 
 @pytest.mark.asyncio
-async def test_get_research_summary_not_ready_uses_research_started_at_not_account_created_at():
-    """Timeout window is anchored to research_started_at, not account.created_at.
+async def test_get_research_summary_not_ready_uses_registered_at_not_created_at():
+    """Timeout window is anchored to registered_at when set, not created_at.
 
     An old account (created_at days ago) should still return is_ready=False when
-    research_started_at is recent, proving the proxy fix is in effect.
+    registered_at is recent, proving the anchor logic is in effect.
     """
     from datetime import timedelta
 
     from app.services.public_service import get_research_summary
 
-    account_id = uuid4()
+    prospect_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
+    session = {"prospect_id": str(prospect_id)}
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.research_cache = None
-    # Account created 2 days ago — would exceed the 60s window if created_at were used.
-    mock_account.created_at = datetime.now(timezone.utc) - timedelta(days=2)
-    # Agent 1 fired a moment ago.
-    mock_account.research_started_at = datetime.now(timezone.utc)
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id
+    mock_prospect.research_cache = None
+    # Prospect created 2 days ago — would exceed the 60s window if created_at were used.
+    mock_prospect.created_at = datetime.now(timezone.utc) - timedelta(days=2)
+    # Registered a moment ago — should anchor the timeout.
+    mock_prospect.registered_at = datetime.now(timezone.utc)
 
     db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
 
-    result = await get_research_summary(token, session, db)
+    with patch("app.services.public_service._get_prospect_by_token", AsyncMock(return_value=mock_prospect)):
+        result = await get_research_summary(token, session, db)
 
     assert result.is_ready is False  # still waiting; not yet expired
 
@@ -128,12 +114,9 @@ async def test_get_research_summary_ready_with_full_profile():
     """Returns is_ready=True with all profile fields when cache is populated."""
     from app.services.public_service import get_research_summary
 
-    account_id = uuid4()
+    prospect_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
+    session = {"prospect_id": str(prospect_id)}
 
     cache = {
         "company_name": "Acme Corp",
@@ -151,18 +134,17 @@ async def test_get_research_summary_ready_with_full_profile():
     }
 
     mock_account = MagicMock()
-    mock_account.id = account_id
     mock_account.company_name = "Acme Corp"
-    mock_account.research_cache = cache
 
-    mock_assessment.account = mock_account
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id
+    mock_prospect.research_cache = cache
+    mock_prospect.account = mock_account
 
     db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
 
-    result = await get_research_summary(token, session, db)
+    with patch("app.services.public_service._get_prospect_by_token", AsyncMock(return_value=mock_prospect)):
+        result = await get_research_summary(token, session, db)
 
     assert result.is_ready is True
     assert result.industry == "saas"
@@ -172,26 +154,24 @@ async def test_get_research_summary_ready_with_full_profile():
 
 
 @pytest.mark.asyncio
-async def test_get_research_summary_access_denied_for_wrong_account():
-    """Returns 403 when session account_id does not match the assessment's account."""
+async def test_get_research_summary_access_denied_for_wrong_prospect():
+    """Returns 403 when session prospect_id does not match the prospect from the token."""
     from app.services.public_service import get_research_summary
     from fastapi import HTTPException
 
-    account_id = uuid4()
-    other_account_id = uuid4()
+    prospect_id = uuid4()
+    other_prospect_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(other_account_id)}
+    session = {"prospect_id": str(other_prospect_id)}  # different from the token's prospect
 
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id  # different from session
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id  # token resolves to this prospect
 
     db = AsyncMock()
-    result = MagicMock()
-    result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = result
 
-    with pytest.raises(HTTPException) as exc_info:
-        await get_research_summary(token, session, db)
+    with patch("app.services.public_service._get_prospect_by_token", AsyncMock(return_value=mock_prospect)):
+        with pytest.raises(HTTPException) as exc_info:
+            await get_research_summary(token, session, db)
     assert exc_info.value.status_code == 403
 
 
@@ -200,62 +180,50 @@ async def test_get_research_summary_access_denied_for_wrong_account():
 
 @pytest.mark.asyncio
 async def test_confirm_research_sets_timestamp():
-    """confirm_research sets research_confirmed_at on the account."""
+    """confirm_research sets research_confirmed_at on the prospect."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
-    account_id = uuid4()
+    prospect_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
+    session = {"prospect_id": str(prospect_id)}
     body = ConfirmResearchRequest(corrections=None)
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.prospect_corrections = None
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id
+    mock_prospect.prospect_corrections = None
 
     db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
 
-    result = await confirm_research(token, session, body, db)
+    with patch("app.services.public_service._get_prospect_by_token", AsyncMock(return_value=mock_prospect)):
+        result = await confirm_research(token, session, body, db)
 
     assert result.confirmed is True
-    assert mock_account.research_confirmed_at is not None
+    assert mock_prospect.research_confirmed_at is not None
     db.commit.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_confirm_research_saves_corrections_when_provided():
-    """confirm_research saves non-empty corrections to account.prospect_corrections."""
+    """confirm_research saves non-empty corrections to prospect.prospect_corrections."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
-    account_id = uuid4()
+    prospect_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
+    session = {"prospect_id": str(prospect_id)}
     body = ConfirmResearchRequest(corrections="We are on Azure, not AWS.")
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.prospect_corrections = None
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id
+    mock_prospect.prospect_corrections = None
 
     db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
 
-    await confirm_research(token, session, body, db)
+    with patch("app.services.public_service._get_prospect_by_token", AsyncMock(return_value=mock_prospect)):
+        await confirm_research(token, session, body, db)
 
-    assert mock_account.prospect_corrections == "We are on Azure, not AWS."
+    assert mock_prospect.prospect_corrections == "We are on Azure, not AWS."
 
 
 @pytest.mark.asyncio
@@ -264,28 +232,22 @@ async def test_confirm_research_does_not_overwrite_when_corrections_empty():
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
-    account_id = uuid4()
+    prospect_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
+    session = {"prospect_id": str(prospect_id)}
     body = ConfirmResearchRequest(corrections="   ")  # whitespace only → treated as empty
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.prospect_corrections = "previous corrections"
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id
+    mock_prospect.prospect_corrections = "previous corrections"
 
     db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
 
-    await confirm_research(token, session, body, db)
+    with patch("app.services.public_service._get_prospect_by_token", AsyncMock(return_value=mock_prospect)):
+        await confirm_research(token, session, body, db)
 
     # Should not have overwritten existing value
-    assert mock_account.prospect_corrections == "previous corrections"
+    assert mock_prospect.prospect_corrections == "previous corrections"
 
 
 # ── Agent 1: minimal profile schema ──────────────────────────────────────────

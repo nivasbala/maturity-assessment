@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { getAssessmentInfo, registerProspect } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
@@ -7,27 +7,21 @@ import { PERSONAS } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
 
 const INPUT_CLS = 'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent'
+const INPUT_READONLY_CLS = 'w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 cursor-not-allowed'
 const TEXTAREA_CLS = `${INPUT_CLS} resize-none`
 
 export default function LandingPage() {
   const { token } = useParams<{ token: string }>()
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
   const [info, setInfo] = useState<AssessmentInfo | null>(null)
   const [loadError, setLoadError] = useState('')
 
-  // Seed from URL query params (?name=Jane+Smith&email=jane@co.com) first,
-  // then fall back to sessionStorage for returning visitors.
-  const urlName = searchParams.get('name') ?? ''
-  const urlEmail = searchParams.get('email') ?? ''
-  const urlParts = urlName.split(' ')
   const savedName = sessionStorage.getItem('prospect_name') ?? ''
   const savedParts = savedName.split(' ')
 
-  const [firstName, setFirstName] = useState(urlParts[0] || savedParts[0] || '')
-  const [lastName, setLastName] = useState(urlParts.slice(1).join(' ') || savedParts.slice(1).join(' ') || '')
-  const [email, setEmail] = useState(urlEmail || sessionStorage.getItem('prospect_email') || '')
+  const [firstName, setFirstName] = useState(savedParts[0] || '')
+  const [lastName, setLastName] = useState(savedParts.slice(1).join(' ') || '')
   const [role, setRole] = useState(sessionStorage.getItem('prospect_role') ?? '')
   const [gateAnswers, setGateAnswers] = useState<Record<string, boolean | null>>({})
   const [submitting, setSubmitting] = useState(false)
@@ -85,10 +79,6 @@ export default function LandingPage() {
       setFormError('First and last name are required.')
       return
     }
-    if (!email.trim()) {
-      setFormError('Email is required.')
-      return
-    }
     if (!role) {
       setFormError('Please select your role.')
       return
@@ -102,14 +92,12 @@ export default function LandingPage() {
 
     setSubmitting(true)
     try {
-      // gatedPillars ordered by display_order from backend (P3 first, P4 second)
       const gateByIndex = gatedPillars.map((gp) => gateAnswers[gp.id] ?? null)
       const p3GateFinal = gateByIndex[0] ?? null
       const p4GateFinal = gateByIndex[1] ?? null
 
       const result = await registerProspect(token!, {
         prospect_name: `${firstName.trim()} ${lastName.trim()}`,
-        prospect_email: email.trim(),
         prospect_role: role,
         p3_gate_answered_yes: p3GateFinal,
         p4_gate_answered_yes: p4GateFinal,
@@ -124,7 +112,7 @@ export default function LandingPage() {
       sessionStorage.setItem('p4_gate', JSON.stringify(p4GateFinal))
       sessionStorage.setItem('prospect_name', `${firstName.trim()} ${lastName.trim()}`)
       sessionStorage.setItem('prospect_role', role)
-      sessionStorage.setItem('prospect_email', email.trim())
+      sessionStorage.setItem('prospect_email', info?.prospect_email ?? '')
       sessionStorage.setItem('infrastructure_location', infrastructureLocation.trim())
       sessionStorage.setItem('tech_stack_description', techStackDescription.trim())
       sessionStorage.setItem('current_tools', currentTools.trim())
@@ -165,7 +153,6 @@ export default function LandingPage() {
       <div className="flex-1 flex items-center justify-center py-6 px-4">
         <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
 
-          {/* Header */}
           <div className="mb-5">
             <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
               {info.company_name}
@@ -178,7 +165,6 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Two-column form */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
             {/* Left: identity + gate questions */}
@@ -207,13 +193,15 @@ export default function LandingPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Work Email</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Work Email
+                </label>
                 <input
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={INPUT_CLS}
-                  placeholder="jane@company.com"
+                  value={info.prospect_email}
+                  readOnly
+                  className={INPUT_READONLY_CLS}
+                  title="Email is pre-set from your invitation"
                 />
               </div>
 
@@ -231,7 +219,6 @@ export default function LandingPage() {
                 </select>
               </div>
 
-              {/* Gate questions */}
               {gatedPillars.map((gp) => (
                 <GateQuestion
                   key={gp.id}
@@ -308,7 +295,6 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Error + submit */}
           <div className="mt-5 space-y-3">
             {formError && (
               <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">

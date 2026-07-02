@@ -4,11 +4,13 @@ Public Assessment Service
 Handles the unauthenticated prospect flow:
   1. GET /assess/{token}     — assessment info + available pillars
   2. POST /register          — prospect registration + session token (fires Agent 1)
-  3. POST /select-pillar     — question selection (Agent 2 LLM, falls back to rule-based)
-  4. POST /submit            — save answers, score, create report (LangGraph orchestrator)
-  5. GET /report/{id}        — fetch completed report
+  3. GET /research-summary   — poll until Agent 1 completes
+  4. POST /confirm-research  — save optional corrections
+  5. POST /select-pillar     — question selection (Agent 2 LLM, falls back to rule-based)
+  6. POST /submit            — save answers, score, create report (LangGraph orchestrator)
+  7. GET /report/{id}        — fetch completed report
 
-Agent 1 fires non-blocking at /register time.
+Agent 1 fires non-blocking at /register time (using prospect context).
 Agent 2 runs synchronously at /select-pillar time (~3-8s); falls back to rule-based on failure.
 LangGraph orchestrator (Agent 3) runs synchronously at /submit time.
 """
@@ -16,7 +18,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import secrets
 from datetime import datetime, timezone
 from uuid import UUID
 
@@ -34,6 +35,7 @@ from app.core.security import create_session_token
 from app.models.account import Account
 from app.models.assessment import Assessment, AssessmentAnswer
 from app.models.pillar import Pillar
+from app.models.prospect import Prospect
 from app.models.question import AnswerOption, Question, QuestionPersona
 from app.models.report import Report
 from app.schemas.public import (
@@ -70,35 +72,21 @@ VALID_PERSONAS = {
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-async def _get_assessment_by_token(token: str, db: AsyncSession) -> Assessment:
-    assessment = (
+async def _get_prospect_by_token(token: str, db: AsyncSession) -> Prospect:
+    prospect = (
         await db.execute(
-            select(Assessment)
-            .options(selectinload(Assessment.account))
-            .where(Assessment.short_url_token == token)
+            select(Prospect)
+            .options(selectinload(Prospect.account))
+            .where(Prospect.short_url_token == token)
         )
     ).scalar_one_or_none()
-    if not assessment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
-    return assessment
-
-
-def _generate_short_token() -> str:
-    return secrets.token_urlsafe(6)
-
-
-async def _ensure_unique_token(db: AsyncSession) -> str:
-    token = _generate_short_token()
-    while (
-        await db.execute(select(Assessment).where(Assessment.short_url_token == token))
-    ).scalar_one_or_none():
-        logger.warning("Short URL token collision — regenerating")
-        token = _generate_short_token()
-    return token
+    if not prospect:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment link not found")
+    return prospect
 
 
 async def _run_agent1_background(
-    account_id: UUID,
+    prospect_id: UUID,
     company_name: str,
     company_website: str | None,
     infrastructure_location: str | None = None,
@@ -110,7 +98,7 @@ async def _run_agent1_background(
     async with AsyncSessionLocal() as db:
         try:
             await run_research_agent(
-                account_id,
+                prospect_id,
                 company_name,
                 company_website,
                 db,
@@ -119,11 +107,11 @@ async def _run_agent1_background(
                 current_tools=current_tools,
                 key_challenges_input=key_challenges_input,
             )
-            logger.info("Agent 1 completed for account_id=%s", account_id)
+            logger.info("Agent 1 completed for prospect_id=%s", prospect_id)
         except NotImplementedError:
-            logger.info("Agent 1 not yet implemented — skipping for account_id=%s", account_id)
+            logger.info("Agent 1 not yet implemented — skipping for prospect_id=%s", prospect_id)
         except Exception:
-            logger.error("Agent 1 background task failed for account_id=%s", account_id, exc_info=True)
+            logger.error("Agent 1 background task failed for prospect_id=%s", prospect_id, exc_info=True)
 
 
 def _validate_pillar_gate(pillar: Pillar, session: dict) -> None:
@@ -132,8 +120,6 @@ def _validate_pillar_gate(pillar: Pillar, session: dict) -> None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Pillar is inactive")
     if not pillar.is_gated:
         return
-
-    # Determine which gated pillar this is by display_order (P3=3, P4=4)
     if pillar.display_order == 3:
         gate_answer = session.get("p3_gate")
         if gate_answer is False:
@@ -150,27 +136,12 @@ async def _select_questions_fallback(
     persona: str,
     target: int = 12,
 ) -> list[Question]:
-    """Rule-based question selection targeting `target` questions.
-
-    Selection order:
-      1. General questions (is_general=TRUE) up to target — highest priority.
-      2. Persona-eligible questions (via question_personas) up to fill remaining slots.
-      3. If still short, backfill from any other active non-general questions for the pillar.
-
-    This is the fallback used when Agent 2 is unavailable (Task 9 wires in the LLM agent).
-    """
+    """Rule-based question selection targeting `target` questions."""
     general_qs = (
         await db.execute(
             select(Question)
-            .options(
-                selectinload(Question.answer_options),
-                selectinload(Question.personas),
-            )
-            .where(
-                Question.pillar_id == pillar_id,
-                Question.is_general.is_(True),
-                Question.is_active.is_(True),
-            )
+            .options(selectinload(Question.answer_options), selectinload(Question.personas))
+            .where(Question.pillar_id == pillar_id, Question.is_general.is_(True), Question.is_active.is_(True))
             .order_by(Question.display_order)
         )
     ).scalars().all()
@@ -178,10 +149,7 @@ async def _select_questions_fallback(
     persona_qs = (
         await db.execute(
             select(Question)
-            .options(
-                selectinload(Question.answer_options),
-                selectinload(Question.personas),
-            )
+            .options(selectinload(Question.answer_options), selectinload(Question.personas))
             .join(QuestionPersona, Question.id == QuestionPersona.question_id)
             .where(
                 Question.pillar_id == pillar_id,
@@ -196,7 +164,6 @@ async def _select_questions_fallback(
     general_ids = {q.id for q in general_qs}
     pure_persona = [q for q in persona_qs if q.id not in general_ids]
 
-    # Start with general questions up to target; fill remaining slots from persona questions
     selected: list[Question] = list(general_qs[:target])
     selected_ids = {q.id for q in selected}
     slots_remaining = target - len(selected)
@@ -209,15 +176,11 @@ async def _select_questions_fallback(
             selected_ids.add(q.id)
             slots_remaining -= 1
 
-    # If still short of target, backfill from any other active non-general questions
     if slots_remaining > 0:
         all_other_qs = (
             await db.execute(
                 select(Question)
-                .options(
-                    selectinload(Question.answer_options),
-                    selectinload(Question.personas),
-                )
+                .options(selectinload(Question.answer_options), selectinload(Question.personas))
                 .where(
                     Question.pillar_id == pillar_id,
                     Question.is_general.is_(False),
@@ -227,7 +190,6 @@ async def _select_questions_fallback(
                 .order_by(Question.display_order)
             )
         ).scalars().all()
-
         for q in all_other_qs:
             if slots_remaining <= 0:
                 break
@@ -237,10 +199,7 @@ async def _select_questions_fallback(
 
     logger.info(
         "_select_questions_fallback: pillar_id=%s persona=%s total=%d (target=%d)",
-        pillar_id,
-        persona,
-        len(selected),
-        target,
+        pillar_id, persona, len(selected), target,
     )
     return selected
 
@@ -249,78 +208,64 @@ async def _select_questions_fallback(
 
 
 async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut:
-    """GET /assess/{token} — return company info and all available active pillars."""
-    assessment = await _get_assessment_by_token(token, db)
-    account = assessment.account
+    """GET /assess/{token} — return company info, prospect email, and all available active pillars."""
+    prospect = await _get_prospect_by_token(token, db)
+    account = prospect.account
 
     pillars = (
         await db.execute(
-            select(Pillar)
-            .where(Pillar.is_active.is_(True))
-            .order_by(Pillar.display_order)
+            select(Pillar).where(Pillar.is_active.is_(True)).order_by(Pillar.display_order)
         )
     ).scalars().all()
 
-    logger.info("get_assessment_info: token=%s account_id=%s", token, account.id)
+    logger.info("get_assessment_info: token=%s prospect_id=%s", token, prospect.id)
     return AssessmentInfoOut(
         company_name=account.company_name,
-        suggested_pillars=account.suggested_pillars or [],
+        prospect_email=prospect.email,
+        suggested_pillars=prospect.suggested_pillars or [],
         available_pillars=[
-            AvailablePillar(
-                id=p.id,
-                name=p.name,
-                description=p.description,
-                is_gated=p.is_gated,
-                gate_question=p.gate_question,
-            )
+            AvailablePillar(id=p.id, name=p.name, description=p.description, is_gated=p.is_gated, gate_question=p.gate_question)
             for p in pillars
         ],
     )
 
 
 async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession) -> RegisterOut:
-    """POST /assess/{token}/register — register prospect, issue session token, fire Agent 1."""
+    """POST /assess/{token}/register — update prospect record, issue session token, fire Agent 1."""
     if body.prospect_role not in VALID_PERSONAS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"Invalid prospect_role. Must be one of: {', '.join(sorted(VALID_PERSONAS))}",
         )
 
-    assessment = await _get_assessment_by_token(token, db)
-    account = assessment.account
+    prospect = await _get_prospect_by_token(token, db)
+    account = prospect.account
 
-    # Update assessment and account in one commit
-    assessment.prospect_name = body.prospect_name
-    assessment.prospect_email = body.prospect_email
-    assessment.prospect_role = body.prospect_role
-    account.infrastructure_location = body.infrastructure_location or account.infrastructure_location
-    account.tech_stack_description = body.tech_stack_description or account.tech_stack_description
-    account.current_tools = body.current_tools or account.current_tools
-    account.key_challenges_input = body.key_challenges_input or account.key_challenges_input
+    # Update Prospect record with registration data
+    prospect.name = body.prospect_name
+    prospect.job_title = body.prospect_role
+    prospect.infrastructure_location = body.infrastructure_location or prospect.infrastructure_location
+    prospect.tech_stack_description = body.tech_stack_description or prospect.tech_stack_description
+    prospect.current_tools = body.current_tools or prospect.current_tools
+    prospect.key_challenges_input = body.key_challenges_input or prospect.key_challenges_input
+    prospect.is_registered = True
+    prospect.registered_at = datetime.now(timezone.utc)
     await db.commit()
 
-    # Build session token payload
     session_data: dict = {
-        "account_id": str(account.id),
+        "prospect_id": str(prospect.id),
         "short_url_token": token,
         "prospect_name": body.prospect_name,
-        "prospect_email": body.prospect_email,
         "prospect_role": body.prospect_role,
         "p3_gate": body.p3_gate_answered_yes,
         "p4_gate": body.p4_gate_answered_yes,
     }
     session_token = create_session_token(session_data)
 
-    # Record when Agent 1 is about to fire so get_research_summary can use it as the
-    # polling timeout anchor (account.created_at is the account-creation time, which
-    # may be days before the prospect registers).
-    account.research_started_at = datetime.now(timezone.utc)
-    await db.commit()
-
-    # Fire Agent 1 in background (non-blocking) with both web + prospect context
+    # Fire Agent 1 background with both web + prospect context
     asyncio.create_task(
         _run_agent1_background(
-            account.id,
+            prospect.id,
             account.company_name,
             account.company_website,
             infrastructure_location=body.infrastructure_location,
@@ -329,56 +274,41 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
             key_challenges_input=body.key_challenges_input,
         )
     )
-    logger.info("register_prospect: account_id=%s persona=%s — Agent 1 fired", account.id, body.prospect_role)
-
+    logger.info("register_prospect: prospect_id=%s persona=%s — Agent 1 fired", prospect.id, body.prospect_role)
     return RegisterOut(session_token=session_token)
 
 
 async def get_research_summary(token: str, session: dict, db: AsyncSession) -> ResearchSummaryOut:
     """GET /assess/{token}/research-summary — poll until Agent 1 completes."""
-    assessment = await _get_assessment_by_token(token, db)
-    account_id = UUID(session["account_id"])
-    if assessment.account_id != account_id:
+    prospect = await _get_prospect_by_token(token, db)
+    prospect_id = UUID(session["prospect_id"])
+    if prospect.id != prospect_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    account = assessment.account
-    if not account.research_cache:
-        # Use research_started_at (set at /register when Agent 1 fires) as the timeout
-        # anchor — account.created_at is the internal-user account creation time, which
-        # may be days before the prospect registers.  Fall back to created_at only for
-        # legacy rows that predate the research_started_at column.
-        anchor = account.research_started_at or account.created_at
+    if not prospect.research_cache:
+        anchor = prospect.registered_at or prospect.created_at
         if anchor.tzinfo is None:
             anchor = anchor.replace(tzinfo=timezone.utc)
         elapsed_seconds = (datetime.now(timezone.utc) - anchor).total_seconds()
         if elapsed_seconds < 60:
-            logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
+            logger.info("get_research_summary: Agent 1 still running for prospect_id=%s", prospect_id)
             return ResearchSummaryOut(is_ready=False)
         logger.warning(
-            "get_research_summary: 60s timeout reached for account_id=%s — returning empty profile",
-            account_id,
+            "get_research_summary: 60s timeout reached for prospect_id=%s — returning empty profile",
+            prospect_id,
         )
         return ResearchSummaryOut(
             is_ready=True,
-            company_name=account.company_name,
-            industry="",
-            company_size="",
-            products_summary="",
-            target_customers="",
-            builds_ai_products=False,
-            cloud_providers=[],
-            key_challenges=[],
-            business_outcomes=[],
-            operational_scale=[],
+            company_name=prospect.account.company_name,
             data_confidence="low",
             research_notes="Research summary is not available. You can still proceed with your assessment.",
         )
 
-    cache = account.research_cache
-    logger.info("get_research_summary: returning ready profile for account_id=%s", account_id)
+    cache = prospect.research_cache
+    logger.info("get_research_summary: returning ready profile for prospect_id=%s", prospect_id)
     return ResearchSummaryOut(
         is_ready=True,
-        company_name=cache.get("company_name", account.company_name),
+        company_name=cache.get("company_name", prospect.account.company_name),
         industry=cache.get("industry", ""),
         company_size=cache.get("company_size", ""),
         products_summary=cache.get("products_summary", ""),
@@ -399,20 +329,19 @@ async def confirm_research(
     body: ConfirmResearchRequest,
     db: AsyncSession,
 ) -> ConfirmResearchOut:
-    """POST /assess/{token}/confirm-research — save corrections and timestamp."""
-    assessment = await _get_assessment_by_token(token, db)
-    account_id = UUID(session["account_id"])
-    if assessment.account_id != account_id:
+    """POST /assess/{token}/confirm-research — save corrections and timestamp on prospect."""
+    prospect = await _get_prospect_by_token(token, db)
+    prospect_id = UUID(session["prospect_id"])
+    if prospect.id != prospect_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    account = assessment.account
-    account.research_confirmed_at = datetime.now(timezone.utc)
+    prospect.research_confirmed_at = datetime.now(timezone.utc)
     if body.corrections and body.corrections.strip():
-        account.prospect_corrections = body.corrections.strip()
-        logger.info("confirm_research: corrections saved for account_id=%s", account_id)
+        prospect.prospect_corrections = body.corrections.strip()
+        logger.info("confirm_research: corrections saved for prospect_id=%s", prospect_id)
     await db.commit()
 
-    logger.info("confirm_research: confirmed for account_id=%s", account_id)
+    logger.info("confirm_research: confirmed for prospect_id=%s", prospect_id)
     return ConfirmResearchOut(confirmed=True)
 
 
@@ -422,7 +351,7 @@ async def select_pillar(
     pillar_id: UUID,
     db: AsyncSession,
 ) -> SelectPillarOut:
-    """POST /assess/{token}/select-pillar — validate gate, select 12 questions, return to prospect."""
+    """POST /assess/{token}/select-pillar — validate gate, select questions, return to prospect."""
     pillar = (
         await db.execute(select(Pillar).where(Pillar.id == pillar_id))
     ).scalar_one_or_none()
@@ -431,14 +360,26 @@ async def select_pillar(
 
     _validate_pillar_gate(pillar, session)
 
-    account_id = UUID(session["account_id"])
+    prospect_id = UUID(session["prospect_id"])
     persona = session["prospect_role"]
 
-    # Find or create assessment for this account + pillar
+    prospect = (
+        await db.execute(select(Prospect).where(Prospect.id == prospect_id))
+    ).scalar_one_or_none()
+    if not prospect:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prospect not found")
+
+    if not prospect.research_confirmed_at:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Research summary must be confirmed before selecting a pillar",
+        )
+
+    # Find or create assessment for this prospect + pillar
     existing = (
         await db.execute(
             select(Assessment).where(
-                Assessment.account_id == account_id,
+                Assessment.prospect_id == prospect_id,
                 Assessment.pillar_id == pillar_id,
             )
         )
@@ -449,14 +390,10 @@ async def select_pillar(
         if assessment.status == "pending":
             assessment.status = "in_progress"
     else:
-        new_token = await _ensure_unique_token(db)
         assessment = Assessment(
-            account_id=account_id,
+            account_id=prospect.account_id,
+            prospect_id=prospect_id,
             pillar_id=pillar_id,
-            short_url_token=new_token,
-            prospect_name=session.get("prospect_name"),
-            prospect_email=session.get("prospect_email"),
-            prospect_role=persona,
             status="in_progress",
         )
         db.add(assessment)
@@ -466,11 +403,10 @@ async def select_pillar(
         await db.refresh(assessment)
     except IntegrityError:
         await db.rollback()
-        # Race condition: another request created this assessment simultaneously
         assessment = (
             await db.execute(
                 select(Assessment).where(
-                    Assessment.account_id == account_id,
+                    Assessment.prospect_id == prospect_id,
                     Assessment.pillar_id == pillar_id,
                 )
             )
@@ -480,34 +416,21 @@ async def select_pillar(
         await db.refresh(assessment)
 
     # Agent 2: LLM question selection — falls back to rule-based on any failure
-    account = (
-        await db.execute(select(Account).where(Account.id == account_id))
-    ).scalar_one_or_none()
-    if not account:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
-
-    if not account.research_confirmed_at:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Research summary must be confirmed before selecting a pillar",
-        )
-
     try:
         questions = await select_questions(
             pillar_id,
             persona,
-            account.research_cache,
+            prospect.research_cache,
             db,
-            infrastructure_location=account.infrastructure_location,
-            tech_stack_description=account.tech_stack_description,
-            current_tools=account.current_tools,
-            prospect_corrections=account.prospect_corrections,
-            key_challenges_input=account.key_challenges_input,
+            infrastructure_location=prospect.infrastructure_location,
+            tech_stack_description=prospect.tech_stack_description,
+            current_tools=prospect.current_tools,
+            prospect_corrections=prospect.prospect_corrections,
+            key_challenges_input=prospect.key_challenges_input,
         )
         logger.info(
             "select_pillar: Agent 2 selected %d questions for assessment_id=%s",
-            len(questions),
-            assessment.id,
+            len(questions), assessment.id,
         )
     except Exception:
         logger.warning(
@@ -519,10 +442,7 @@ async def select_pillar(
 
     logger.info(
         "select_pillar: assessment_id=%s pillar=%s persona=%s questions=%d",
-        assessment.id,
-        pillar_id,
-        persona,
-        len(questions),
+        assessment.id, pillar_id, persona, len(questions),
     )
 
     return SelectPillarOut(
@@ -532,11 +452,7 @@ async def select_pillar(
                 id=q.id,
                 text=q.text,
                 answer_options=[
-                    AnswerOptionPublic(
-                        id=ao.id,
-                        text=ao.text,
-                        display_order=ao.display_order,
-                    )
+                    AnswerOptionPublic(id=ao.id, text=ao.text, display_order=ao.display_order)
                     for ao in sorted(q.answer_options, key=lambda a: a.display_order)
                 ],
             )
@@ -552,20 +468,22 @@ async def submit_assessment(
     db: AsyncSession,
 ) -> SubmitOut:
     """POST /assess/{token}/submit — validate, save answers, score, create report."""
-    account_id = UUID(session["account_id"])
+    prospect_id = UUID(session["prospect_id"])
     persona = session["prospect_role"]
 
-    # Verify assessment belongs to this session's account
     assessment = (
         await db.execute(
             select(Assessment)
-            .options(selectinload(Assessment.account))
+            .options(
+                selectinload(Assessment.account),
+                selectinload(Assessment.prospect),
+            )
             .where(Assessment.id == body.assessment_id)
         )
     ).scalar_one_or_none()
     if not assessment:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
-    if assessment.account_id != account_id:
+    if assessment.prospect_id != prospect_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
     pillar = (
@@ -578,7 +496,6 @@ async def submit_assessment(
             detail=f"Exactly {expected_count} answers required",
         )
 
-    # Validate answer_option_ids belong to the correct questions
     question_ids = {a.question_id for a in body.answers}
     valid_options = {
         ao.id
@@ -603,9 +520,8 @@ async def submit_assessment(
     ).scalars().all()
     for ea in existing_answers:
         await db.delete(ea)
-    await db.flush()  # ensure deletes execute before inserts
+    await db.flush()
 
-    # Save answers
     for answer in body.answers:
         db.add(
             AssessmentAnswer(
@@ -614,14 +530,11 @@ async def submit_assessment(
                 answer_option_id=answer.answer_option_id,
             )
         )
-
     await db.flush()
 
-    # Compute score synchronously
     answer_pairs = [(a.question_id, a.answer_option_id) for a in body.answers]
     pillar_score, maturity_level, maturity_label = await compute_pillar_score(db, answer_pairs, persona)
 
-    # Create or update report record (score stored immediately per spec)
     existing_report = (
         await db.execute(select(Report).where(Report.assessment_id == body.assessment_id))
     ).scalar_one_or_none()
@@ -645,16 +558,15 @@ async def submit_assessment(
         )
         db.add(report)
 
-    # Capture account fields before commit — db.commit() expires all ORM objects, so
-    # accessing assessment.account.* after the commit raises MissingGreenlet in async SA.
+    # Capture fields before commit — ORM objects expire after commit in async SA
     acct = assessment.account
+    prospect = assessment.prospect
     acct_id = acct.id
     acct_company_name = acct.company_name
     acct_company_website = acct.company_website
-    acct_research_cache = acct.research_cache
-    acct_prospect_corrections = acct.prospect_corrections
+    prospect_research_cache = prospect.research_cache if prospect else None
+    prospect_corrections = prospect.prospect_corrections if prospect else None
 
-    # Mark assessment complete
     assessment.status = "completed"
     assessment.completed_at = datetime.now(timezone.utc)
     await db.commit()
@@ -662,16 +574,13 @@ async def submit_assessment(
 
     logger.info(
         "submit_assessment: assessment_id=%s score=%.2f level=%d — report_id=%s — running Agent 3",
-        body.assessment_id,
-        pillar_score,
-        maturity_level,
-        report.id,
+        body.assessment_id, pillar_score, maturity_level, report.id,
     )
 
-    # LangGraph orchestrator: Agent 3 (Report Agent) — user waits ~15-45s
     narrative = await run_assessment_orchestrator(
         db=db,
         account_id=acct_id,
+        prospect_id=prospect_id,
         company_name=acct_company_name,
         company_website=acct_company_website,
         persona=persona,
@@ -680,42 +589,38 @@ async def submit_assessment(
         pre_computed_score=pillar_score,
         pre_computed_maturity_level=maturity_level,
         pre_computed_maturity_label=maturity_label,
-        company_profile=acct_research_cache,
-        prospect_corrections=acct_prospect_corrections,
+        company_profile=prospect_research_cache,
+        prospect_corrections=prospect_corrections,
     )
 
-    # Update report with LLM narrative and research snapshot (score already committed above)
     report.executive_summary = narrative.get("executive_summary", "")
     report.strengths = narrative.get("strengths", [])
     report.gap_analysis = narrative.get("gap_analysis", [])
     report.next_steps = narrative.get("next_steps", [])
-    report.research_data = acct_research_cache or {}
+    report.research_data = prospect_research_cache or {}
     await db.commit()
     await db.refresh(report)
 
-    logger.info(
-        "submit_assessment: report narrative saved for report_id=%s", report.id
-    )
-
+    logger.info("submit_assessment: report narrative saved for report_id=%s", report.id)
     return SubmitOut(report_id=report.id)
 
 
 async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> ReportPublicOut:
     """GET /assess/{token}/report/{assessment_id} — return completed report."""
-    assessment = await _get_assessment_by_token(token, db)
-    account = assessment.account
+    prospect = await _get_prospect_by_token(token, db)
+    account = prospect.account
 
-    # The report can be for any assessment under this account (multi-pillar flow)
     target_assessment = (
         await db.execute(
             select(Assessment)
             .options(
                 selectinload(Assessment.pillar),
                 selectinload(Assessment.report),
+                selectinload(Assessment.prospect),
             )
             .where(
                 Assessment.id == assessment_id,
-                Assessment.account_id == account.id,
+                Assessment.prospect_id == prospect.id,
             )
         )
     ).scalar_one_or_none()
@@ -741,6 +646,6 @@ async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> Repor
         created_at=report.created_at,
         company_name=account.company_name,
         pillar_name=target_assessment.pillar.name,
-        prospect_name=target_assessment.prospect_name,
-        prospect_role=target_assessment.prospect_role,
+        prospect_name=prospect.name,
+        prospect_role=prospect.job_title,
     )

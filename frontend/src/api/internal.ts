@@ -4,11 +4,13 @@ import type {
   AccountListItem,
   AggregateView,
   AssessmentAnswers,
-  AssessmentCreated,
   AssessmentDetail,
   AssessmentListItem,
   Paginated,
   Pillar,
+  ProspectCreated,
+  ProspectDetail,
+  ProspectListItem,
   Report,
 } from '../types'
 
@@ -20,7 +22,6 @@ export const getAccounts = (page = 1, size = 25) =>
 export const createAccount = (data: {
   company_name: string
   company_website?: string | null
-  suggested_pillars?: string[]
 }) => api.post<AccountListItem>('/accounts', data).then((r) => r.data)
 
 export const getAccountDetail = (id: string) =>
@@ -32,18 +33,30 @@ export const deleteAccount = (id: string) =>
 export const getAccountAggregate = (id: string) =>
   api.get<AggregateView>(`/accounts/${id}/aggregate`).then((r) => r.data)
 
+// ── Prospects ─────────────────────────────────────────────────────────────────
+
+export const createProspect = (accountId: string, data: {
+  email: string
+  suggested_pillars?: string[]
+}) =>
+  api.post<ProspectCreated>(`/accounts/${accountId}/prospects`, data).then((r) => r.data)
+
+export const listProspects = (accountId: string) =>
+  api.get<ProspectListItem[]>(`/accounts/${accountId}/prospects`).then((r) => r.data)
+
+export const getProspectDetail = (accountId: string, prospectId: string) =>
+  api.get<ProspectDetail>(`/accounts/${accountId}/prospects/${prospectId}`).then((r) => r.data)
+
+export const deleteProspect = (accountId: string, prospectId: string) =>
+  api.delete(`/accounts/${accountId}/prospects/${prospectId}`)
+
+// ── Assessments ───────────────────────────────────────────────────────────────
+
 export const getAccountAssessments = (accountId: string) =>
   api.get<AssessmentListItem[]>(`/accounts/${accountId}/assessments`).then((r) => r.data)
 
-export const createAssessment = (accountId: string, pillarId: string) =>
-  api
-    .post<AssessmentCreated>(`/accounts/${accountId}/assessments`, { pillar_id: pillarId })
-    .then((r) => r.data)
-
 export const deleteAssessment = (accountId: string, assessmentId: string) =>
   api.delete(`/accounts/${accountId}/assessments/${assessmentId}`)
-
-// ── Assessments ───────────────────────────────────────────────────────────────
 
 export const getAssessmentDetail = (assessmentId: string) =>
   api.get<AssessmentDetail>(`/assessments/${assessmentId}`).then((r) => r.data)

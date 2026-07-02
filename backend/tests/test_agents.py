@@ -499,6 +499,7 @@ class TestOrchestrator:
             result = await run_assessment_orchestrator(
                 db=mock_db,
                 account_id=uuid.uuid4(),
+                prospect_id=uuid.uuid4(),
                 company_name="Acme",
                 company_website=None,
                 persona="sre_platform_engineer",
@@ -535,6 +536,7 @@ class TestOrchestrator:
             result = await run_assessment_orchestrator(
                 db=mock_db,
                 account_id=uuid.uuid4(),
+                prospect_id=uuid.uuid4(),
                 company_name="Acme",
                 company_website="acme.com",
                 persona="vp_engineering",

@@ -11,7 +11,6 @@ from pydantic import BaseModel, ConfigDict, Field
 class AccountCreate(BaseModel):
     company_name: str = Field(min_length=1, max_length=255)
     company_website: str | None = Field(default=None, max_length=500)
-    suggested_pillars: list[UUID] = []
 
 
 class AccountListOut(BaseModel):
@@ -21,27 +20,58 @@ class AccountListOut(BaseModel):
     company_name: str
     company_website: str | None
     internal_user_id: UUID
-    suggested_pillars: list[UUID]
     created_at: datetime
-    pillars_sent: int = 0
-    pillars_completed: int = 0
+    prospects_total: int = 0
+    prospects_registered: int = 0
 
 
-class PillarStatusRow(BaseModel):
-    pillar_id: UUID
-    pillar_name: str
-    display_order: int
-    is_gated: bool
-    is_active: bool
-    assessment_id: UUID | None
-    status: str | None  # pending | in_progress | completed | None (not sent)
-    prospect_name: str | None
-    prospect_email: str | None
-    prospect_role: str | None
-    pillar_score: float | None
-    maturity_label: str | None
+# ── Prospect ──────────────────────────────────────────────────────────────────
+
+class ProspectCreate(BaseModel):
+    email: str = Field(min_length=1, max_length=255)
+    suggested_pillars: list[UUID] = []
+
+
+class ProspectCreatedOut(BaseModel):
+    prospect_id: UUID
+    email: str
+    short_url_token: str
+    full_url: str
+    is_registered: bool
+
+
+class ProspectListItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    email: str
+    name: str | None
+    job_title: str | None
     short_url_token: str | None
+    is_registered: bool
+    registered_at: datetime | None
+    created_at: datetime
+    assessments_total: int = 0
+    assessments_completed: int = 0
 
+
+class ProspectDetailOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    account_id: UUID
+    email: str
+    name: str | None
+    job_title: str | None
+    suggested_pillars: list[UUID]
+    short_url_token: str | None
+    is_registered: bool
+    registered_at: datetime | None
+    created_at: datetime
+    pillar_statuses: list[PillarStatusRow]
+
+
+# ── Account detail ─────────────────────────────────────────────────────────────
 
 class AccountDetailOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -51,34 +81,34 @@ class AccountDetailOut(BaseModel):
     company_website: str | None
     internal_user_id: UUID
     internal_user_name: str
-    suggested_pillars: list[UUID]
     created_at: datetime
-    pillar_statuses: list[PillarStatusRow]
+    prospects: list[ProspectListItem]
 
 
-# ── Assessment creation ────────────────────────────────────────────────────────
+# ── Pillar status (for ProspectDetailOut) ─────────────────────────────────────
 
-class AssessmentCreateRequest(BaseModel):
+class PillarStatusRow(BaseModel):
     pillar_id: UUID
+    pillar_name: str
+    display_order: int
+    is_gated: bool
+    is_active: bool
+    assessment_id: UUID | None
+    status: str | None  # pending | in_progress | completed | None (not started)
+    pillar_score: float | None
+    maturity_label: str | None
 
 
-class AssessmentCreatedOut(BaseModel):
-    assessment_id: UUID
-    short_url_token: str
-    full_url: str
-
+# ── Assessment schemas ─────────────────────────────────────────────────────────
 
 class AssessmentListItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     account_id: UUID
+    prospect_id: UUID
     pillar_id: UUID
     pillar_name: str
-    short_url_token: str
-    prospect_name: str | None
-    prospect_email: str | None
-    prospect_role: str | None
     status: str
     pillar_score: float | None
     maturity_label: str | None
@@ -86,17 +116,15 @@ class AssessmentListItemOut(BaseModel):
     completed_at: datetime | None
 
 
-# ── Assessment detail ─────────────────────────────────────────────────────────
-
 class AssessmentDetailOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     account_id: UUID
+    prospect_id: UUID
     pillar_id: UUID
     pillar_name: str
     company_name: str
-    short_url_token: str
     prospect_name: str | None
     prospect_email: str | None
     prospect_role: str | None

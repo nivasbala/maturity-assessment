@@ -64,11 +64,8 @@ export interface Account {
 export interface Assessment {
   id: string
   account_id: string
+  prospect_id: string
   pillar_id: string
-  short_url_token: string
-  prospect_name: string | null
-  prospect_email: string | null
-  prospect_role: string | null
   status: 'pending' | 'in_progress' | 'completed'
   created_at: string
   completed_at: string | null
@@ -88,10 +85,30 @@ export interface AccountListItem {
   company_name: string
   company_website: string | null
   internal_user_id: string
-  suggested_pillars: string[]
   created_at: string
-  pillars_sent: number
-  pillars_completed: number
+  prospects_total: number
+  prospects_registered: number
+}
+
+export interface ProspectListItem {
+  id: string
+  email: string
+  name: string | null
+  job_title: string | null
+  short_url_token: string | null
+  is_registered: boolean
+  registered_at: string | null
+  created_at: string
+  assessments_total: number
+  assessments_completed: number
+}
+
+export interface ProspectCreated {
+  prospect_id: string
+  email: string
+  short_url_token: string
+  full_url: string
+  is_registered: boolean
 }
 
 export interface PillarStatusRow {
@@ -102,12 +119,8 @@ export interface PillarStatusRow {
   is_active: boolean
   assessment_id: string | null
   status: 'pending' | 'in_progress' | 'completed' | null
-  prospect_name: string | null
-  prospect_email: string | null
-  prospect_role: string | null
   pillar_score: number | null
   maturity_label: string | null
-  short_url_token: string | null
 }
 
 export interface AccountDetail {
@@ -116,26 +129,30 @@ export interface AccountDetail {
   company_website: string | null
   internal_user_id: string
   internal_user_name: string
-  suggested_pillars: string[]
   created_at: string
-  pillar_statuses: PillarStatusRow[]
+  prospects: ProspectListItem[]
 }
 
-export interface AssessmentCreated {
-  assessment_id: string
-  short_url_token: string
-  full_url: string
+export interface ProspectDetail {
+  id: string
+  account_id: string
+  email: string
+  name: string | null
+  job_title: string | null
+  suggested_pillars: string[]
+  short_url_token: string | null
+  is_registered: boolean
+  registered_at: string | null
+  created_at: string
+  pillar_statuses: PillarStatusRow[]
 }
 
 export interface AssessmentListItem {
   id: string
   account_id: string
+  prospect_id: string
   pillar_id: string
   pillar_name: string
-  short_url_token: string
-  prospect_name: string | null
-  prospect_email: string | null
-  prospect_role: string | null
   status: 'pending' | 'in_progress' | 'completed'
   pillar_score: number | null
   maturity_label: string | null
@@ -162,10 +179,10 @@ export interface AggregateView {
 export interface AssessmentDetail {
   id: string
   account_id: string
+  prospect_id: string
   pillar_id: string
   pillar_name: string
   company_name: string
-  short_url_token: string
   prospect_name: string | null
   prospect_email: string | null
   prospect_role: string | null
@@ -247,13 +264,13 @@ export interface AvailablePillar {
 
 export interface AssessmentInfo {
   company_name: string
+  prospect_email: string
   suggested_pillars: string[]
   available_pillars: AvailablePillar[]
 }
 
 export interface RegisterRequest {
   prospect_name: string
-  prospect_email: string
   prospect_role: string
   p3_gate_answered_yes?: boolean | null
   p4_gate_answered_yes?: boolean | null

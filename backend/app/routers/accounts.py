@@ -13,11 +13,14 @@ from app.schemas.internal import (
     AccountDetailOut,
     AccountListOut,
     AggregateOut,
-    AssessmentCreateRequest,
-    AssessmentCreatedOut,
     AssessmentListItemOut,
+    ProspectCreate,
+    ProspectCreatedOut,
+    ProspectDetailOut,
+    ProspectListItem,
 )
 from app.services import account_service
+from app.services import prospect_service
 
 logger = logging.getLogger(__name__)
 
@@ -61,15 +64,57 @@ async def get_account_aggregate(
     return await account_service.get_account_aggregate(db, account_id, current_user)
 
 
-@router.post("/{account_id}/assessments", response_model=AssessmentCreatedOut, status_code=201)
-async def create_assessment(
+@router.delete("/{account_id}", status_code=204)
+async def delete_account(
     account_id: UUID,
-    body: AssessmentCreateRequest,
     current_user: User = Depends(require_internal_user),
     db: AsyncSession = Depends(get_db),
-) -> AssessmentCreatedOut:
-    return await account_service.create_assessment(db, account_id, current_user, body.pillar_id)
+) -> None:
+    await account_service.delete_account(db, account_id, current_user)
 
+
+# ── Prospect endpoints ────────────────────────────────────────────────────────
+
+@router.post("/{account_id}/prospects", response_model=ProspectCreatedOut, status_code=201)
+async def create_prospect(
+    account_id: UUID,
+    body: ProspectCreate,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProspectCreatedOut:
+    return await prospect_service.create_prospect(db, account_id, current_user, body)
+
+
+@router.get("/{account_id}/prospects", response_model=list[ProspectListItem])
+async def list_prospects(
+    account_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[ProspectListItem]:
+    return await prospect_service.list_prospects(db, account_id, current_user)
+
+
+@router.get("/{account_id}/prospects/{prospect_id}", response_model=ProspectDetailOut)
+async def get_prospect_detail(
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProspectDetailOut:
+    return await prospect_service.get_prospect_detail(db, account_id, prospect_id, current_user)
+
+
+@router.delete("/{account_id}/prospects/{prospect_id}", status_code=204)
+async def delete_prospect(
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await prospect_service.delete_prospect(db, account_id, prospect_id, current_user)
+
+
+# ── Assessment endpoints (kept for internal report viewing) ──────────────────
 
 @router.get("/{account_id}/assessments", response_model=list[AssessmentListItemOut])
 async def list_account_assessments(
@@ -78,15 +123,6 @@ async def list_account_assessments(
     db: AsyncSession = Depends(get_db),
 ) -> list[AssessmentListItemOut]:
     return await account_service.list_account_assessments(db, account_id, current_user)
-
-
-@router.delete("/{account_id}", status_code=204)
-async def delete_account(
-    account_id: UUID,
-    current_user: User = Depends(require_internal_user),
-    db: AsyncSession = Depends(get_db),
-) -> None:
-    await account_service.delete_account(db, account_id, current_user)
 
 
 @router.delete("/{account_id}/assessments/{assessment_id}", status_code=204)

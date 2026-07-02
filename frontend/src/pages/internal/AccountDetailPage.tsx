@@ -1,29 +1,133 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { createAssessment, deleteAccount, deleteAssessment, getAccountDetail } from '../../api/internal'
-import type { AccountDetail, AssessmentCreated, PillarStatusRow } from '../../types'
+import { createProspect, deleteAccount, getAccountDetail, getActivePillars } from '../../api/internal'
+import type { AccountDetail, Pillar, ProspectCreated } from '../../types'
 
-function UrlModal({
+const BASE_URL = window.location.origin
+
+function AddProspectModal({
+  accountId,
+  pillars,
+  onClose,
+  onCreated,
+}: {
+  accountId: string
+  pillars: Pillar[]
+  onClose: () => void
+  onCreated: (result: ProspectCreated) => void
+}) {
+  const [email, setEmail] = useState('')
+  const [selectedPillars, setSelectedPillars] = useState<string[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  const togglePillar = (id: string) =>
+    setSelectedPillars((prev) => (prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]))
+
+  const handleSubmit = async () => {
+    if (!email.trim()) {
+      setError('Email is required')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await createProspect(accountId, {
+        email: email.trim(),
+        suggested_pillars: selectedPillars,
+      })
+      onCreated(result)
+    } catch (err: unknown) {
+      const anyErr = err as { response?: { status?: number } }
+      if (anyErr?.response?.status === 409) {
+        setError('A prospect with this email already exists for this account.')
+      } else {
+        setError('Failed to create prospect. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Add Prospect</h2>
+
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Prospect Email <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder="jane@company.com"
+            />
+          </div>
+
+          {pillars.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Suggested Pillars <span className="text-xs font-normal text-gray-500">(optional)</span>
+              </label>
+              <div className="space-y-2">
+                {pillars.map((p) => (
+                  <label key={p.id} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={selectedPillars.includes(p.id)}
+                      onChange={() => togglePillar(p.id)}
+                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{p.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded disabled:opacity-50"
+          >
+            {loading ? 'Creating…' : 'Create Prospect'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ProspectCreatedModal({
   result,
   onClose,
 }: {
-  result: AssessmentCreated
+  result: ProspectCreated
   onClose: () => void
 }) {
   const [copied, setCopied] = useState(false)
-  const [prospectName, setProspectName] = useState('')
-  const [prospectEmail, setProspectEmail] = useState('')
-
-  const buildUrl = () => {
-    const params = new URLSearchParams()
-    if (prospectName.trim()) params.set('name', prospectName.trim())
-    if (prospectEmail.trim()) params.set('email', prospectEmail.trim())
-    const qs = params.toString()
-    return qs ? `${result.full_url}?${qs}` : result.full_url
-  }
+  const fullUrl = `${BASE_URL}/assess/${result.short_url_token}`
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(buildUrl()).then(() => {
+    navigator.clipboard.writeText(fullUrl).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
@@ -32,44 +136,19 @@ function UrlModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Assessment URL Generated</h2>
+        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Prospect Created</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Optionally enter the prospect's details to pre-fill their registration form.
+          Share this link with <span className="font-medium text-gray-700 dark:text-gray-300">{result.email}</span> to start their assessment.
         </p>
-
-        <div className="grid grid-cols-2 gap-3 mb-4">
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prospect name</label>
-            <input
-              type="text"
-              value={prospectName}
-              onChange={(e) => setProspectName(e.target.value)}
-              placeholder="Jane Smith"
-              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Prospect email</label>
-            <input
-              type="email"
-              value={prospectEmail}
-              onChange={(e) => setProspectEmail(e.target.value)}
-              placeholder="jane@company.com"
-              className="w-full border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand"
-            />
-          </div>
-        </div>
-
         <div className="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-3 flex items-center gap-2">
-          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 break-all font-mono">{buildUrl()}</span>
+          <span className="flex-1 text-sm text-gray-800 dark:text-gray-200 break-all font-mono">{fullUrl}</span>
           <button
             onClick={handleCopy}
-            className="shrink-0 px-3 py-1 text-sm bg-brand text-white rounded hover:bg-blue-700 focus:outline-none"
+            className="shrink-0 px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded focus:outline-none"
           >
             {copied ? '✓ Copied' : 'Copy'}
           </button>
         </div>
-
         <div className="mt-4 flex justify-end">
           <button
             onClick={onClose}
@@ -101,7 +180,7 @@ function DeleteConfirmModal({
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Are you sure you want to delete{' '}
           <span className="font-medium text-gray-800 dark:text-gray-200">{companyName}</span>?
-          This will permanently delete all assessments and reports for this account.
+          This will permanently delete all prospects, assessments, and reports.
         </p>
         <div className="flex justify-end gap-3">
           <button
@@ -124,102 +203,36 @@ function DeleteConfirmModal({
   )
 }
 
-function DeleteAssessmentModal({
-  pillarName,
-  onConfirm,
-  onCancel,
-  deleting,
-}: {
-  pillarName: string
-  onConfirm: () => void
-  onCancel: () => void
-  deleting: boolean
-}) {
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Delete Report</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Are you sure you want to delete the{' '}
-          <span className="font-medium text-gray-800 dark:text-gray-200">{pillarName}</span>{' '}
-          report? This will permanently remove all answers and the generated report. The pillar will return to "Generate URL" status.
-        </p>
-        <div className="flex justify-end gap-3">
-          <button
-            onClick={onCancel}
-            disabled={deleting}
-            className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={deleting}
-            className="px-4 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded disabled:opacity-50"
-          >
-            {deleting ? 'Deleting…' : 'Delete Report'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatusBadge({ status }: { status: PillarStatusRow['status'] }) {
-  if (!status) return <span className="text-gray-400 text-sm">Not Sent</span>
-  const map: Record<string, { label: string; className: string }> = {
-    pending: { label: 'Sent', className: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400' },
-    in_progress: { label: 'In Progress', className: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' },
-    completed: { label: 'Completed', className: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' },
-  }
-  const style = map[status] ?? { label: status, className: 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${style.className}`}>
-      {style.label}
-    </span>
-  )
-}
-
 export default function AccountDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [account, setAccount] = useState<AccountDetail | null>(null)
+  const [pillars, setPillars] = useState<Pillar[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [generating, setGenerating] = useState<string | null>(null)
-  const [urlResult, setUrlResult] = useState<AssessmentCreated | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [createdProspect, setCreatedProspect] = useState<ProspectCreated | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [deletingAssessment, setDeletingAssessment] = useState<{ id: string; pillarName: string } | null>(null)
-  const [deletingAssessmentInProgress, setDeletingAssessmentInProgress] = useState(false)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
-    getAccountDetail(id)
-      .then(setAccount)
+    Promise.all([getAccountDetail(id), getActivePillars()])
+      .then(([acct, pillarList]) => {
+        setAccount(acct)
+        setPillars(pillarList)
+      })
       .catch(() => setError('Failed to load account'))
       .finally(() => setLoading(false))
   }, [id])
 
-  const handleGenerateUrl = async (pillarId: string) => {
-    if (!id) return
-    setGenerating(pillarId)
-    setActionError(null)
-    try {
-      const result = await createAssessment(id, pillarId)
-      setUrlResult(result)
-      const updated = await getAccountDetail(id)
-      setAccount(updated)
-    } catch (err: unknown) {
-      const anyErr = err as { response?: { status?: number } }
-      if (anyErr?.response?.status === 409) {
-        setActionError('An assessment already exists for this pillar.')
-      } else {
-        setActionError('Failed to generate URL. Please try again.')
-      }
-    } finally {
-      setGenerating(null)
+  const handleProspectCreated = async (result: ProspectCreated) => {
+    setShowAddModal(false)
+    setCreatedProspect(result)
+    if (id) {
+      const updated = await getAccountDetail(id).catch(() => null)
+      if (updated) setAccount(updated)
     }
   }
 
@@ -235,34 +248,6 @@ export default function AccountDetailPage() {
     } finally {
       setDeleting(false)
     }
-  }
-
-  const handleDeleteAssessment = async () => {
-    if (!id || !deletingAssessment) return
-    setDeletingAssessmentInProgress(true)
-    try {
-      await deleteAssessment(id, deletingAssessment.id)
-      setDeletingAssessment(null)
-      const updated = await getAccountDetail(id)
-      setAccount(updated)
-    } catch {
-      setActionError('Failed to delete report. Please try again.')
-      setDeletingAssessment(null)
-    } finally {
-      setDeletingAssessmentInProgress(false)
-    }
-  }
-
-  const handleCopyUrl = (token: string, prospectName?: string | null, prospectEmail?: string | null) => {
-    const base = `${window.location.origin}/assess/${token}`
-    const params = new URLSearchParams()
-    if (prospectName) params.set('name', prospectName)
-    if (prospectEmail) params.set('email', prospectEmail)
-    const qs = params.toString()
-    const url = qs ? `${base}?${qs}` : base
-    navigator.clipboard.writeText(url).catch(() => {
-      setActionError(`Failed to copy. URL: ${url}`)
-    })
   }
 
   if (loading) {
@@ -286,7 +271,7 @@ export default function AccountDetailPage() {
       <div className="px-6 py-8">
         <button
           onClick={() => navigate('/dashboard')}
-          className="text-sm text-brand hover:underline mb-4 flex items-center gap-1"
+          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 flex items-center gap-1"
         >
           ← Accounts
         </button>
@@ -294,21 +279,21 @@ export default function AccountDetailPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
           <div className="flex items-start justify-between">
             <div>
-            <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">{account.company_name}</h1>
-            {account.company_website && (
-              <a
-                href={account.company_website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-brand hover:underline mt-1 block"
-              >
-                {account.company_website}
-              </a>
-            )}
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-              Created by {account.internal_user_name} on{' '}
-              {new Date(account.created_at).toLocaleDateString()}
-            </p>
+              <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">{account.company_name}</h1>
+              {account.company_website && (
+                <a
+                  href={account.company_website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mt-1 block"
+                >
+                  {account.company_website}
+                </a>
+              )}
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Created by {account.internal_user_name} on{' '}
+                {new Date(account.created_at).toLocaleDateString()}
+              </p>
             </div>
             <button
               onClick={() => setShowDeleteModal(true)}
@@ -326,89 +311,98 @@ export default function AccountDetailPage() {
         )}
 
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100">Pillar Assessments</h2>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100">
+              Prospects{' '}
+              <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+                ({account.prospects.length})
+              </span>
+            </h2>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
+            >
+              + Add Prospect
+            </button>
           </div>
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillar</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Prospect</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Role</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Score</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Email</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Name</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Action</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Assessments</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">URL</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Created</th>
               </tr>
             </thead>
             <tbody>
-              {account.pillar_statuses.map((row) => (
-                <tr key={row.pillar_id} className="border-b border-gray-100 dark:border-gray-700">
-                  <td className="px-4 py-3 font-medium text-[#1B2B4B] dark:text-gray-100">
-                    {row.pillar_name}
-                    {row.is_gated && (
-                      <span className="ml-2 text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded">
-                        Gated
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{row.prospect_name ?? '—'}</td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{row.prospect_role ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    {row.pillar_score !== null ? (
-                      <span className="font-medium text-[#1B2B4B] dark:text-gray-100">
-                        {row.pillar_score.toFixed(1)} / 4.0
-                      </span>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={row.status} />
-                  </td>
-                  <td className="px-4 py-3">
-                    {row.status === 'completed' && row.assessment_id ? (
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => navigate(`/dashboard/assessments/${row.assessment_id}`)}
-                          className="text-sm text-brand hover:underline"
-                        >
-                          View Report
-                        </button>
-                        <button
-                          onClick={() => setDeletingAssessment({ id: row.assessment_id!, pillarName: row.pillar_name })}
-                          className="text-sm text-red-500 dark:text-red-400 hover:underline"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    ) : (row.status === 'pending' || row.status === 'in_progress') && row.short_url_token ? (
-                      <button
-                        onClick={() => handleCopyUrl(row.short_url_token!, row.prospect_name, row.prospect_email)}
-                        className="text-sm text-brand hover:underline"
-                      >
-                        Copy URL
-                      </button>
-                    ) : !row.status && row.is_active ? (
-                      <button
-                        onClick={() => handleGenerateUrl(row.pillar_id)}
-                        disabled={generating === row.pillar_id}
-                        className="text-sm text-brand hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {generating === row.pillar_id ? 'Generating…' : 'Generate URL'}
-                      </button>
-                    ) : !row.status && !row.is_active ? (
-                      <span className="text-xs text-gray-400 dark:text-gray-500 italic">Inactive</span>
-                    ) : null}
+              {account.prospects.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
+                    No prospects yet. Click "+ Add Prospect" to get started.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                account.prospects.map((p) => (
+                  <tr
+                    key={p.id}
+                    onClick={() => navigate(`/dashboard/accounts/${id}/prospects/${p.id}`)}
+                    className="border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 py-3 font-medium text-[#1B2B4B] dark:text-gray-100">{p.email}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {p.is_registered ? (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400">
+                          Registered
+                        </span>
+                      ) : (
+                        <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                          Pending
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                      {p.assessments_completed}/{p.assessments_total}
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      {p.short_url_token && (
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(`${BASE_URL}/assess/${p.short_url_token}`)
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                        >
+                          Copy URL
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
+                      {new Date(p.created_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {urlResult && (
-        <UrlModal result={urlResult} onClose={() => setUrlResult(null)} />
+      {showAddModal && (
+        <AddProspectModal
+          accountId={id!}
+          pillars={pillars}
+          onClose={() => setShowAddModal(false)}
+          onCreated={handleProspectCreated}
+        />
+      )}
+
+      {createdProspect && (
+        <ProspectCreatedModal
+          result={createdProspect}
+          onClose={() => setCreatedProspect(null)}
+        />
       )}
 
       {showDeleteModal && (
@@ -417,15 +411,6 @@ export default function AccountDetailPage() {
           onConfirm={handleDelete}
           onCancel={() => setShowDeleteModal(false)}
           deleting={deleting}
-        />
-      )}
-
-      {deletingAssessment && (
-        <DeleteAssessmentModal
-          pillarName={deletingAssessment.pillarName}
-          onConfirm={handleDeleteAssessment}
-          onCancel={() => setDeletingAssessment(null)}
-          deleting={deletingAssessmentInProgress}
         />
       )}
     </div>

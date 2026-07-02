@@ -48,10 +48,10 @@ def make_assessment_detail(assessment_id, account_id, user_id):
     return {
         "id": str(assessment_id),
         "account_id": str(account_id),
+        "prospect_id": str(uuid4()),
         "pillar_id": str(uuid4()),
         "pillar_name": "Full-Stack Observability",
         "company_name": "Stripe",
-        "short_url_token": "AbCdEfGh",
         "prospect_name": "Alice",
         "prospect_email": "alice@stripe.com",
         "prospect_role": "SRE",

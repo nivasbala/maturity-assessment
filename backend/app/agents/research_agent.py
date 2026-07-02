@@ -37,11 +37,11 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.llm_factory import get_llm
-from app.models.account import Account
+from app.models.prospect import Prospect
 
 logger = logging.getLogger(__name__)
 
-# Per-account lock prevents concurrent Agent 1 runs for the same account.
+# Per-prospect lock prevents concurrent Agent 1 runs for the same prospect.
 _research_locks: dict[str, asyncio.Lock] = {}
 
 _SYSTEM_PROMPT = """\
@@ -145,12 +145,12 @@ RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
 }}"""
 
 
-def _should_refresh(account: Account) -> bool:
-    if account.research_cache is None:
+def _should_refresh(prospect: Prospect) -> bool:
+    if prospect.research_cache is None:
         return True
-    if account.research_cached_at is None:
+    if prospect.research_cached_at is None:
         return True
-    age = datetime.now(timezone.utc) - account.research_cached_at
+    age = datetime.now(timezone.utc) - prospect.research_cached_at
     return age > timedelta(days=7)
 
 
@@ -158,7 +158,7 @@ from app.core.json_utils import extract_json_object as _extract_json_object
 
 
 async def run_research_agent(
-    account_id: UUID,
+    prospect_id: UUID,
     company_name: str,
     company_website: str | None,
     db: AsyncSession,
@@ -167,15 +167,15 @@ async def run_research_agent(
     current_tools: str | None = None,
     key_challenges_input: str | None = None,
 ) -> dict[str, Any]:
-    """Research the company and store the result in accounts.research_cache.
+    """Research the company and store the result in prospects.research_cache.
 
     Returns the cache dict so the caller can use it immediately if needed.
     Raises no exceptions — failures are logged and a minimal profile returned.
     """
-    lock = _research_locks.setdefault(str(account_id), asyncio.Lock())
+    lock = _research_locks.setdefault(str(prospect_id), asyncio.Lock())
     async with lock:
         return await _run_research_agent_locked(
-            account_id,
+            prospect_id,
             company_name,
             company_website,
             db,
@@ -187,7 +187,7 @@ async def run_research_agent(
 
 
 async def _run_research_agent_locked(
-    account_id: UUID,
+    prospect_id: UUID,
     company_name: str,
     company_website: str | None,
     db: AsyncSession,
@@ -196,17 +196,17 @@ async def _run_research_agent_locked(
     current_tools: str | None,
     key_challenges_input: str | None = None,
 ) -> dict[str, Any]:
-    account = (
-        await db.execute(select(Account).where(Account.id == account_id))
+    prospect = (
+        await db.execute(select(Prospect).where(Prospect.id == prospect_id))
     ).scalar_one_or_none()
 
-    if not account:
-        logger.warning("run_research_agent: account %s not found", account_id)
+    if not prospect:
+        logger.warning("run_research_agent: prospect %s not found", prospect_id)
         return _build_minimal_profile(company_name)
 
-    if not _should_refresh(account):
-        logger.info("run_research_agent: cache hit for account_id=%s", account_id)
-        return account.research_cache  # type: ignore[return-value]
+    if not _should_refresh(prospect):
+        logger.info("run_research_agent: cache hit for prospect_id=%s", prospect_id)
+        return prospect.research_cache  # type: ignore[return-value]
 
     # DuckDuckGo web search — 2-3 queries for richer coverage, run in a thread
     # to avoid blocking the async event loop with synchronous HTTP calls.
@@ -291,10 +291,10 @@ async def _run_research_agent_locked(
         )
         profile = json.loads(_extract_json_object(raw))
 
-        account.research_cache = profile
-        account.research_cached_at = datetime.now(timezone.utc)
+        prospect.research_cache = profile
+        prospect.research_cached_at = datetime.now(timezone.utc)
         await db.commit()
-        logger.info("run_research_agent: cached profile for account_id=%s", account_id)
+        logger.info("run_research_agent: cached profile for prospect_id=%s", prospect_id)
         return profile  # type: ignore[return-value]
 
     except Exception:
@@ -305,13 +305,13 @@ async def _run_research_agent_locked(
         )
         fallback = _build_minimal_profile(company_name)
         try:
-            account.research_cache = fallback
-            account.research_cached_at = datetime.now(timezone.utc)
+            prospect.research_cache = fallback
+            prospect.research_cached_at = datetime.now(timezone.utc)
             await db.commit()
         except Exception:
             logger.error(
-                "run_research_agent: failed to persist fallback cache for account_id=%s",
-                account_id,
+                "run_research_agent: failed to persist fallback cache for prospect_id=%s",
+                prospect_id,
                 exc_info=True,
             )
         return fallback

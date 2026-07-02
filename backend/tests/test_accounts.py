@@ -205,33 +205,34 @@ async def test_create_account_missing_name_returns_422():
 
 
 # ---------------------------------------------------------------------------
-# POST /api/accounts/{id}/assessments — short URL generation
+# POST /api/accounts/{id}/prospects — short URL generation
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_create_assessment_returns_short_url():
+async def test_create_prospect_returns_short_url():
     user = make_user()
     app = build_app(user)
 
     account_id = uuid4()
-    pillar_id = uuid4()
-    assessment_id = uuid4()
+    prospect_id = uuid4()
 
     mock_out = {
-        "assessment_id": str(assessment_id),
+        "prospect_id": str(prospect_id),
+        "email": "jane@acme.com",
         "short_url_token": "AbCdEfGh",
-        "full_url": f"http://localhost/assess/AbCdEfGh",
+        "full_url": "http://localhost/assess/AbCdEfGh",
+        "is_registered": False,
     }
 
     with patch(
-        "app.routers.accounts.account_service.create_assessment", new_callable=AsyncMock
+        "app.services.prospect_service.create_prospect", new_callable=AsyncMock
     ) as mock_create:
         mock_create.return_value = mock_out
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
-                f"/api/accounts/{account_id}/assessments",
-                json={"pillar_id": str(pillar_id)},
+                f"/api/accounts/{account_id}/prospects",
+                json={"email": "jane@acme.com", "suggested_pillars": []},
             )
 
     assert resp.status_code == 201
@@ -242,28 +243,27 @@ async def test_create_assessment_returns_short_url():
 
 
 # ---------------------------------------------------------------------------
-# POST /api/accounts/{id}/assessments — 409 on duplicate
+# POST /api/accounts/{id}/prospects — 409 on duplicate email
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_create_assessment_409_on_duplicate():
+async def test_create_prospect_409_on_duplicate():
     from fastapi import HTTPException
 
     user = make_user()
     app = build_app(user)
 
     account_id = uuid4()
-    pillar_id = uuid4()
 
     with patch(
-        "app.routers.accounts.account_service.create_assessment", new_callable=AsyncMock
+        "app.services.prospect_service.create_prospect", new_callable=AsyncMock
     ) as mock_create:
         mock_create.side_effect = HTTPException(status_code=409, detail="Already exists")
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.post(
-                f"/api/accounts/{account_id}/assessments",
-                json={"pillar_id": str(pillar_id)},
+                f"/api/accounts/{account_id}/prospects",
+                json={"email": "jane@acme.com", "suggested_pillars": []},
             )
 
     assert resp.status_code == 409

@@ -37,6 +37,7 @@ def test_all_tables_registered():
     expected = {
         "users",
         "accounts",
+        "prospects",
         "pillars",
         "questions",
         "question_personas",
@@ -110,27 +111,11 @@ def test_accounts_columns():
     assert "company_name" in cols
     assert "company_website" in cols
     assert "internal_user_id" in cols
-    assert "suggested_pillars" in cols
-    assert "research_cache" in cols
-    assert "research_cached_at" in cols
-
-
-def test_accounts_research_cache_is_jsonb():
-    col = Account.__table__.columns["research_cache"]
-    assert isinstance(col.type, JSONB)
-
-
-def test_accounts_suggested_pillars_is_array():
-    col = Account.__table__.columns["suggested_pillars"]
-    assert isinstance(col.type, ARRAY)
+    assert "updated_at" in cols
 
 
 def test_accounts_company_website_nullable():
     assert Account.__table__.columns["company_website"].nullable
-
-
-def test_accounts_research_cached_at_nullable():
-    assert Account.__table__.columns["research_cached_at"].nullable
 
 
 def test_accounts_fk_to_users():
@@ -140,6 +125,51 @@ def test_accounts_fk_to_users():
 
 def test_accounts_has_assessments_relationship():
     assert hasattr(Account, "assessments")
+
+
+def test_accounts_has_prospects_relationship():
+    assert hasattr(Account, "prospects")
+
+
+# ---------------------------------------------------------------------------
+# prospects
+# ---------------------------------------------------------------------------
+
+
+def test_prospects_table_name():
+    from app.models.prospect import Prospect
+    assert Prospect.__tablename__ == "prospects"
+
+
+def test_prospects_columns():
+    from app.models.prospect import Prospect
+    cols = Prospect.__table__.columns
+    for name in ["id", "account_id", "email", "short_url_token", "is_registered", "research_cache", "suggested_pillars", "created_at"]:
+        assert name in cols, f"missing prospect column: {name}"
+
+
+def test_prospects_short_url_token_unique():
+    from app.models.prospect import Prospect
+    col = Prospect.__table__.columns["short_url_token"]
+    assert col.unique
+
+
+def test_prospects_account_fk():
+    from app.models.prospect import Prospect
+    fk_tables = {fk.column.table.name for fk in Prospect.__table__.foreign_keys}
+    assert "accounts" in fk_tables
+
+
+def test_prospects_research_cache_is_jsonb():
+    from app.models.prospect import Prospect
+    col = Prospect.__table__.columns["research_cache"]
+    assert isinstance(col.type, JSONB)
+
+
+def test_prospects_suggested_pillars_is_array():
+    from app.models.prospect import Prospect
+    col = Prospect.__table__.columns["suggested_pillars"]
+    assert isinstance(col.type, ARRAY)
 
 
 # ---------------------------------------------------------------------------
@@ -283,25 +313,20 @@ def test_assessments_table_name():
 
 def test_assessments_columns():
     cols = Assessment.__table__.columns
-    for name in ["id", "account_id", "pillar_id", "short_url_token", "prospect_name",
-                 "prospect_email", "prospect_role", "status", "created_at", "completed_at"]:
-        assert name in cols
+    for name in ["id", "account_id", "prospect_id", "pillar_id", "status", "created_at", "completed_at"]:
+        assert name in cols, f"missing assessment column: {name}"
 
 
-def test_assessments_unique_token():
-    col = Assessment.__table__.columns["short_url_token"]
-    assert col.unique
-
-
-def test_assessments_unique_account_pillar():
+def test_assessments_unique_account_prospect_pillar():
     constraint_names = {c.name for c in Assessment.__table__.constraints if isinstance(c, UniqueConstraint)}
-    assert "uq_assessment_account_pillar" in constraint_names
+    assert "uq_assessment_account_prospect_pillar" in constraint_names
 
 
 def test_assessments_fks():
     fk_tables = {fk.column.table.name for fk in Assessment.__table__.foreign_keys}
     assert "accounts" in fk_tables
     assert "pillars" in fk_tables
+    assert "prospects" in fk_tables
 
 
 def test_assessments_completed_at_nullable():

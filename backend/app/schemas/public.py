@@ -16,17 +16,18 @@ class AvailablePillar(BaseModel):
 
 class AssessmentInfoOut(BaseModel):
     company_name: str
+    prospect_email: str
     suggested_pillars: list[UUID]
     available_pillars: list[AvailablePillar]
 
 
 class RegisterRequest(BaseModel):
     prospect_name: str = Field(min_length=1, max_length=255)
-    prospect_email: str = Field(min_length=1, max_length=255)
+    # prospect_email is NOT accepted — email is immutable, pre-set on the Prospect record
     prospect_role: str = Field(min_length=1, max_length=100)
     p3_gate_answered_yes: bool | None = None
     p4_gate_answered_yes: bool | None = None
-    # Optional prospect context — stored on account, passed to Agent 1
+    # Optional prospect context — stored on Prospect, passed to Agent 1
     infrastructure_location: str | None = None
     tech_stack_description: str | None = None
     current_tools: str | None = None
