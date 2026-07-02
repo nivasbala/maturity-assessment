@@ -32,6 +32,7 @@ from app.schemas.internal import (
     ProspectAssessmentRow,
     ProspectCreate,
     ProspectDetailOut,
+    ProspectListItemOut,
     ProspectOut,
     ReportOut,
 )
@@ -623,6 +624,44 @@ async def list_prospects(
             created_at=p.created_at,
         )
         for p in prospects
+    ]
+
+
+async def list_all_prospects(
+    db: AsyncSession,
+    current_user: User,
+) -> list[ProspectListItemOut]:
+    if current_user.role == "admin":
+        rows = (
+            await db.execute(
+                select(Prospect, Account.company_name)
+                .join(Account, Account.id == Prospect.account_id)
+                .order_by(Prospect.created_at.desc())
+            )
+        ).all()
+    else:
+        rows = (
+            await db.execute(
+                select(Prospect, Account.company_name)
+                .join(Account, Account.id == Prospect.account_id)
+                .where(Account.internal_user_id == current_user.id)
+                .order_by(Prospect.created_at.desc())
+            )
+        ).all()
+
+    logger.info("list_all_prospects: user_id=%s count=%d", current_user.id, len(rows))
+    return [
+        ProspectListItemOut(
+            id=p.id,
+            account_id=p.account_id,
+            email=p.email,
+            name=p.name,
+            short_url_token=p.short_url_token,
+            full_url=f"{settings.base_url}/assess/{p.short_url_token}",
+            created_at=p.created_at,
+            company_name=company_name,
+        )
+        for p, company_name in rows
     ]
 
 

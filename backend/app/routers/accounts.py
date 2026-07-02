@@ -18,6 +18,7 @@ from app.schemas.internal import (
     AssessmentListItemOut,
     ProspectCreate,
     ProspectDetailOut,
+    ProspectListItemOut,
     ProspectOut,
 )
 from app.services import account_service
@@ -44,6 +45,14 @@ async def create_account(
     db: AsyncSession = Depends(get_db),
 ) -> AccountListOut:
     return await account_service.create_account(db, current_user, body)
+
+
+@router.get("/prospects", response_model=list[ProspectListItemOut])
+async def list_all_prospects(
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[ProspectListItemOut]:
+    return await account_service.list_all_prospects(db, current_user)
 
 
 @router.get("/{account_id}", response_model=AccountDetailOut)

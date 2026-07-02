@@ -76,6 +76,10 @@ class ProspectOut(BaseModel):
     created_at: datetime
 
 
+class ProspectListItemOut(ProspectOut):
+    company_name: str
+
+
 class ProspectAssessmentRow(BaseModel):
     pillar_id: UUID
     pillar_name: str

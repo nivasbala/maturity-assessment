@@ -108,6 +108,10 @@ export interface ProspectDetail extends Prospect {
   assessments: ProspectAssessmentRow[]
 }
 
+export interface ProspectListItem extends Prospect {
+  company_name: string
+}
+
 // ── Internal / Account types ──────────────────────────────────────────────────
 
 export interface AccountListItem {
