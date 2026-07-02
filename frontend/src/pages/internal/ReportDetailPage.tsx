@@ -104,7 +104,7 @@ function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> })
             </div>
           )}
 
-          {data.cloud_providers.length > 0 && (
+          {(data.cloud_providers?.length ?? 0) > 0 && (
             <div>
               <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Cloud Providers</p>
               <div className="flex flex-wrap gap-1.5">
@@ -115,7 +115,7 @@ function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> })
             </div>
           )}
 
-          {data.key_challenges.length > 0 && (
+          {(data.key_challenges?.length ?? 0) > 0 && (
             <div>
               <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Key Challenges</p>
               <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
@@ -124,7 +124,7 @@ function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> })
             </div>
           )}
 
-          {data.business_outcomes.length > 0 && (
+          {(data.business_outcomes?.length ?? 0) > 0 && (
             <div>
               <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Business Outcomes</p>
               <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
@@ -321,7 +321,7 @@ export default function ReportDetailPage() {
           report ? (
             <>
               {/* Company Research */}
-              {report.research_data && (
+              {report.research_data && report.research_data.company_name && (
                 <ResearchPanel data={report.research_data} />
               )}
 
