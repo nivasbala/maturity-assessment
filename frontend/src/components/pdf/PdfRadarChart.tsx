@@ -1,12 +1,12 @@
 import { Svg, G, Polygon, Line, Circle, Text as SvgText } from '@react-pdf/renderer'
 
 const CX = 110
-const CY = 105
+const CY = 115
 const MAX_R = 72
 const LABEL_R = MAX_R + 20
 const GRID_LEVELS = [1, 2, 3, 4]
 const WIDTH = 220
-const HEIGHT = 210
+const HEIGHT = 230
 
 function radarAngles(n: number): number[] {
   return Array.from({ length: n }, (_, i) => -Math.PI / 2 + (i * 2 * Math.PI) / n)
@@ -17,13 +17,11 @@ function gridPoints(angles: number[], level: number): string {
   return angles.map(a => `${CX + r * Math.cos(a)},${CY + r * Math.sin(a)}`).join(' ')
 }
 
-function dataPoints(angles: number[], values: number[]): string {
-  return angles
-    .map((a, i) => {
-      const r = (Math.max(1, Math.min(4, values[i])) / 4) * MAX_R
-      return `${CX + r * Math.cos(a)},${CY + r * Math.sin(a)}`
-    })
-    .join(' ')
+function clampedCoords(angles: number[], values: number[]): { x: number; y: number }[] {
+  return angles.map((a, i) => {
+    const r = (Math.max(1, Math.min(4, values[i])) / 4) * MAX_R
+    return { x: CX + r * Math.cos(a), y: CY + r * Math.sin(a) }
+  })
 }
 
 function truncate(s: string, max: number): string {
@@ -38,6 +36,8 @@ export function PdfRadarChart({ subAreas }: Props) {
   const n = subAreas.length
   const angles = radarAngles(n)
   const values = subAreas.map(([, v]) => v)
+  const coords = clampedCoords(angles, values)
+  const dataPointsStr = coords.map(({ x, y }) => `${x},${y}`).join(' ')
 
   return (
     <Svg width={WIDTH} height={HEIGHT}>
@@ -71,7 +71,7 @@ export function PdfRadarChart({ subAreas }: Props) {
 
       {/* Data polygon */}
       <Polygon
-        points={dataPoints(angles, values)}
+        points={dataPointsStr}
         fill="#2563eb"
         fillOpacity={0.25}
         stroke="#2563eb"
@@ -80,18 +80,9 @@ export function PdfRadarChart({ subAreas }: Props) {
 
       {/* Data points */}
       <G>
-        {angles.map((a, i) => {
-          const r = (Math.max(1, Math.min(4, values[i])) / 4) * MAX_R
-          return (
-            <Circle
-              key={i}
-              cx={CX + r * Math.cos(a)}
-              cy={CY + r * Math.sin(a)}
-              r={3}
-              fill="#2563eb"
-            />
-          )
-        })}
+        {coords.map(({ x, y }, i) => (
+          <Circle key={i} cx={x} cy={y} r={3} fill="#2563eb" />
+        ))}
       </G>
 
       {/* Axis labels */}
