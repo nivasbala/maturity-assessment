@@ -114,11 +114,104 @@ const HEADING = 'text-[13px] font-bold text-[#1B2B4B] dark:text-gray-100'
 const SKEL = 'h-2 rounded-full bg-gray-200 dark:bg-gray-700'
 
 /* ── Vertical report mockup (What you'll get) ────────────────────────────── */
+function ReportBody() {
+  return (
+    <div className="px-4 py-3 space-y-4">
+      {/* Executive Summary */}
+      <div>
+        <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+          Executive Summary
+        </p>
+        <div className="space-y-1.5">
+          {['100%', '90%', '95%', '82%', '88%'].map((w, i) => (
+            <div key={i} className={SKEL} style={{ width: w }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Pillar Scores */}
+      <div>
+        <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+          Pillar Scores
+        </p>
+        <div className="space-y-2">
+          {[
+            ['Full-Stack Obs.', 85, '#22c55e', '3.4'],
+            ['AIOps', 52, '#f59e0b', '2.1'],
+            ['AI System Obs.', 45, '#ef4444', '1.8'],
+            ['Security', 77, '#22c55e', '3.1'],
+            ['ML & Model Ops', 60, '#f59e0b', '2.4'],
+          ].map(([name, pct, color, score]) => (
+            <div key={String(name)}>
+              <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-400 mb-0.5">
+                <span>{String(name)}</span>
+                <span className="font-semibold" style={{ color: String(color) }}>{String(score)}</span>
+              </div>
+              <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: String(color) }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Gap Analysis */}
+      <div>
+        <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+          Gap Analysis
+        </p>
+        <div className="space-y-1.5">
+          {[
+            ['No distributed tracing', 'Manual log search', 'high', '#ef4444'],
+            ['Alert fatigue unresolved', 'Reactive only', 'high', '#ef4444'],
+            ['No AI model monitoring', 'No tooling', 'medium', '#f59e0b'],
+          ].map(([gap, state, impact, color]) => (
+            <div key={String(gap)} className="border border-gray-100 dark:border-gray-700 rounded px-2 py-1.5">
+              <div className="flex items-center justify-between gap-1 mb-0.5">
+                <span className="text-[10px] font-medium text-gray-700 dark:text-gray-300 truncate">{String(gap)}</span>
+                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full shrink-0" style={{ color: String(color), backgroundColor: `${String(color)}18` }}>
+                  {String(impact)}
+                </span>
+              </div>
+              <span className="text-[9px] text-gray-400 dark:text-gray-500">{String(state)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Next Steps */}
+      <div>
+        <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
+          Prioritised Next Steps
+        </p>
+        <div className="space-y-1.5">
+          {[
+            ['1', 'Centralise log aggregation across all services', '#3b82f6'],
+            ['2', 'Implement distributed tracing end-to-end', '#3b82f6'],
+            ['3', 'Enable AIOps anomaly detection baselines', '#f59e0b'],
+            ['4', 'Shift security scanning left into CI pipeline', '#f59e0b'],
+          ].map(([num, text, color]) => (
+            <div key={String(num)} className="flex items-start gap-1.5">
+              <span className="text-[10px] font-bold shrink-0 w-3" style={{ color: String(color) }}>{String(num)}.</span>
+              <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">{String(text)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* PDF Button */}
+      <div className="border border-brand/30 bg-brand/5 dark:bg-brand/10 rounded-lg py-2 text-center">
+        <span className="text-brand text-[11px] font-semibold">Download PDF Report</span>
+      </div>
+    </div>
+  )
+}
+
 function VerticalReportMockup() {
   return (
-    <div className="w-full max-w-xs mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden">
-      {/* Header */}
-      <div className="bg-[#1B2B4B] px-4 py-3">
+    <div className="w-full max-w-xs mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden" style={{ height: '320px' }}>
+      {/* Sticky header */}
+      <div className="bg-[#1B2B4B] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between mb-1">
           <span className="text-white text-xs font-bold">Observability Maturity Report</span>
         </div>
@@ -130,70 +223,15 @@ function VerticalReportMockup() {
         </div>
       </div>
 
-      {/* Body */}
-      <div className="px-4 py-3 space-y-4">
-        {/* Executive Summary */}
-        <div>
-          <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
-            Executive Summary
-          </p>
-          <div className="space-y-1.5">
-            {['100%', '90%', '95%', '82%', '88%'].map((w, i) => (
-              <div key={i} className={`${SKEL}`} style={{ width: w }} />
-            ))}
-          </div>
+      {/* Animated scroll body */}
+      <div className="relative overflow-hidden" style={{ height: 'calc(320px - 58px)' }}>
+        <div style={{ animation: 'reportScroll 14s ease-in-out infinite' }}>
+          <ReportBody />
+          {/* Duplicate for seamless loop */}
+          <ReportBody />
         </div>
-
-        {/* Pillar Scores */}
-        <div>
-          <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
-            Pillar Scores
-          </p>
-          <div className="space-y-2">
-            {[
-              ['Full-Stack Obs.', 85, '#22c55e', '3.4'],
-              ['AIOps', 52, '#f59e0b', '2.1'],
-              ['AI System Obs.', 45, '#ef4444', '1.8'],
-              ['Security', 77, '#22c55e', '3.1'],
-              ['ML & Model Ops', 60, '#f59e0b', '2.4'],
-            ].map(([name, pct, color, score]) => (
-              <div key={String(name)}>
-                <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-400 mb-0.5">
-                  <span>{String(name)}</span>
-                  <span className="font-semibold" style={{ color }}>{String(score)}</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Next Steps */}
-        <div>
-          <p className="text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1.5">
-            Prioritised Next Steps
-          </p>
-          <div className="space-y-1.5">
-            {[
-              ['1', 'Centralise log aggregation across all services', '#3b82f6'],
-              ['2', 'Implement distributed tracing end-to-end', '#3b82f6'],
-              ['3', 'Enable AIOps anomaly detection baselines', '#f59e0b'],
-              ['4', 'Shift security scanning left into CI pipeline', '#f59e0b'],
-            ].map(([num, text, color]) => (
-              <div key={String(num)} className="flex items-start gap-1.5">
-                <span className="text-[10px] font-bold shrink-0 w-3" style={{ color }}>{String(num)}.</span>
-                <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-snug">{String(text)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* PDF Button */}
-        <div className="border border-brand/30 bg-brand/5 dark:bg-brand/10 rounded-lg py-2 text-center">
-          <span className="text-brand text-[11px] font-semibold">Download PDF Report</span>
-        </div>
+        {/* Fade out at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-10 pointer-events-none bg-gradient-to-t from-white to-transparent dark:from-gray-900" />
       </div>
     </div>
   )
@@ -682,6 +720,14 @@ export default function HomePage() {
           66.7%  { transform: translateX(-50%); }
           93.3%  { transform: translateX(-50%); }
           100%   { transform: translateX(-75%); }
+        }
+        @keyframes reportScroll {
+          0%   { transform: translateY(0); }
+          10%  { transform: translateY(0); }
+          45%  { transform: translateY(-50%); }
+          55%  { transform: translateY(-50%); }
+          90%  { transform: translateY(0); }
+          100% { transform: translateY(0); }
         }
       `}</style>
     </div>
