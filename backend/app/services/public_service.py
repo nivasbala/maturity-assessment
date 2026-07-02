@@ -49,6 +49,8 @@ from app.schemas.public import (
     RegisterRequest,
     ReportPublicOut,
     ResearchSummaryOut,
+    SaveCorrectionsOut,
+    SaveCorrectionsRequest,
     SelectPillarOut,
     SubmitOut,
     SubmitRequest,
@@ -446,6 +448,30 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
         body.prospect_role,
     )
     return RegisterOut(session_token=session_token)
+
+
+async def save_research_corrections(
+    token: str,
+    session: dict,
+    body: SaveCorrectionsRequest,
+    db: AsyncSession,
+) -> SaveCorrectionsOut:
+    """PUT /assess/{token}/research-corrections — save prospect's corrections to their record."""
+    prospect = await _get_prospect_by_token(token, db)
+    prospect_id = UUID(session["prospect_id"])
+    if prospect.id != prospect_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    corrections = body.corrections.strip() if body.corrections else None
+    prospect.prospect_corrections = corrections
+    await db.commit()
+
+    logger.info(
+        "save_research_corrections: saved for prospect_id=%s length=%s",
+        prospect_id,
+        len(corrections) if corrections else 0,
+    )
+    return SaveCorrectionsOut(saved=True)
 
 
 async def get_research_summary(token: str, session: dict, db: AsyncSession) -> ResearchSummaryOut:

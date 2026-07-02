@@ -46,6 +46,19 @@ export const confirmResearch = (
     )
     .then((r) => r.data)
 
+export const saveResearchCorrections = (
+  token: string,
+  sessionToken: string,
+  corrections: string | null,
+) =>
+  api
+    .put<{ saved: boolean }>(
+      `/assess/${token}/research-corrections`,
+      { corrections },
+      { headers: { 'X-Session-Token': sessionToken } },
+    )
+    .then((r) => r.data)
+
 export const selectPillar = (
   token: string,
   sessionToken: string,

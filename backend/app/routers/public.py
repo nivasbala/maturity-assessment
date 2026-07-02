@@ -23,6 +23,8 @@ from app.schemas.public import (
     RegisterRequest,
     ReportPublicOut,
     ResearchSummaryOut,
+    SaveCorrectionsOut,
+    SaveCorrectionsRequest,
     SelectPillarOut,
     SelectPillarRequest,
     SubmitOut,
@@ -55,6 +57,16 @@ async def register_prospect(
     db: AsyncSession = Depends(get_db),
 ) -> RegisterOut:
     return await public_service.register_prospect(token, body, db)
+
+
+@router.put("/assess/{token}/research-corrections", response_model=SaveCorrectionsOut)
+async def save_research_corrections(
+    token: str,
+    body: SaveCorrectionsRequest,
+    session: dict = Depends(_get_session),
+    db: AsyncSession = Depends(get_db),
+) -> SaveCorrectionsOut:
+    return await public_service.save_research_corrections(token, session, body, db)
 
 
 @router.get("/assess/{token}/research-summary", response_model=ResearchSummaryOut)

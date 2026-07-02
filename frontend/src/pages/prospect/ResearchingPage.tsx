@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { getResearchSummary } from '../../api/public'
+import { getResearchSummary, saveResearchCorrections } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ResearchSummary } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
@@ -33,6 +33,8 @@ export default function ResearchingPage() {
   const [additionalInfo, setAdditionalInfo] = useState(
     sessionStorage.getItem('prospect_additional_info') ?? ''
   )
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const [progress, setProgress] = useState(0)
   const [msgIdx, setMsgIdx] = useState(0)
@@ -99,8 +101,24 @@ export default function ResearchingPage() {
     }
   }, [token, sessionToken])
 
-  function handleStartAssessment() {
-    sessionStorage.setItem('prospect_additional_info', additionalInfo.trim())
+  async function handleStartAssessment() {
+    setSaveError('')
+    const trimmed = additionalInfo.trim()
+    sessionStorage.setItem('prospect_additional_info', trimmed)
+
+    // Save corrections to the prospect record if provided
+    if (trimmed) {
+      setSaving(true)
+      try {
+        await saveResearchCorrections(token!, sessionToken, trimmed)
+      } catch (e) {
+        setSaveError(extractApiError(e, 'Failed to save corrections. Please try again.'))
+        setSaving(false)
+        return
+      }
+      setSaving(false)
+    }
+
     navigate(`/assess/${token}/pillars`)
   }
 
@@ -338,11 +356,17 @@ export default function ResearchingPage() {
             </div>
 
             {/* CTA */}
+            {saveError && (
+              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                {saveError}
+              </p>
+            )}
             <button
               onClick={handleStartAssessment}
-              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+              disabled={saving}
+              className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
             >
-              Start Assessment →
+              {saving ? 'Saving…' : 'Start Assessment →'}
             </button>
 
           </div>

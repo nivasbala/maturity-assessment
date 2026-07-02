@@ -73,6 +73,14 @@ class ResearchSummaryOut(BaseModel):
     research_notes: str = ""
 
 
+class SaveCorrectionsRequest(BaseModel):
+    corrections: str | None = None
+
+
+class SaveCorrectionsOut(BaseModel):
+    saved: bool
+
+
 class SelectPillarRequest(BaseModel):
     pillar_id: UUID
 

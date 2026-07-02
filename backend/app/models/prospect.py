@@ -34,6 +34,9 @@ class Prospect(Base):
     current_tools = Column(Text, nullable=True)
     key_challenges_input = Column(Text, nullable=True)
 
+    # Prospect corrections entered on the research results page (before pillar selection)
+    prospect_corrections = Column(Text, nullable=True)
+
     # Research cache (populated by Agent 1 at prospect creation)
     research_cache = Column(JSONB, nullable=True)
     research_cached_at = Column(DateTime(timezone=True), nullable=True)
