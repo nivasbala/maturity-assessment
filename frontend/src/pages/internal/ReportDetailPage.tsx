@@ -140,10 +140,13 @@ export default function ReportDetailPage() {
 
         {/* Back */}
         <button
-          onClick={() => navigate(`/dashboard/accounts/${answers.account_id}`)}
-          className="text-sm text-brand hover:underline"
+          onClick={() => answers.prospect_id
+            ? navigate(`/dashboard/accounts/${answers.account_id}/prospects/${answers.prospect_id}`)
+            : navigate(`/dashboard/accounts/${answers.account_id}`)
+          }
+          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
         >
-          ← Back to {answers.company_name}
+          ← Back to {answers.prospect_name ?? answers.company_name}
         </button>
 
         {/* Header */}
