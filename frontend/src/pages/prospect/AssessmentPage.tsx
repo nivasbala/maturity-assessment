@@ -194,7 +194,7 @@ export default function AssessmentPage() {
           </div>
 
           {/* Navigation inside card */}
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex items-center justify-center gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-700">
             <button
               onClick={goBack}
               disabled={currentIndex === 0}
@@ -203,7 +203,15 @@ export default function AssessmentPage() {
               ← Previous
             </button>
 
-            {isLastQuestion && (
+            {!isLastQuestion ? (
+              <button
+                onClick={goNext}
+                disabled={!selectedOptionId}
+                className="px-5 py-2 text-sm font-semibold bg-brand text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+              >
+                Next →
+              </button>
+            ) : (
               <button
                 onClick={handleSubmit}
                 disabled={!allAnswered}
