@@ -460,7 +460,6 @@ export default function ReportDetailPage() {
             <p className="text-sm text-gray-400 dark:text-gray-500">Report not yet generated.</p>
           </div>
         )}
-
       </div>
     </div>
   )

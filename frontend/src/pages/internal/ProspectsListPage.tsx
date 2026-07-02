@@ -95,7 +95,7 @@ export default function ProspectsListPage() {
                   key={p.id}
                   className="hover:bg-gray-50 dark:hover:bg-gray-700/30 cursor-pointer"
                   onClick={() =>
-                    navigate(`/dashboard/accounts/${p.account_id}/prospects/${p.id}`)
+                    navigate(`/dashboard/accounts/${p.account_id}/prospects/${p.id}`, { state: { from: 'prospects' } })
                   }
                 >
                   <td className="px-4 py-3 text-gray-900 dark:text-white font-medium">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getProspectDetail, resetAssessment } from '../../api/internal'
 import type { ProspectDetail } from '../../types'
 
@@ -27,6 +27,8 @@ function StatusBadge({ status }: { status: string | null }) {
 export default function ProspectDetailPage() {
   const { id, prospectId } = useParams<{ id: string; prospectId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
+  const fromProspectsList = (location.state as { from?: string } | null)?.from === 'prospects'
   const [prospect, setProspect] = useState<ProspectDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -94,10 +96,10 @@ export default function ProspectDetailPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="px-6 py-8 max-w-4xl mx-auto">
         <button
-          onClick={() => navigate(`/dashboard/accounts/${id}`)}
+          onClick={() => fromProspectsList ? navigate('/prospects') : navigate(`/dashboard/accounts/${id}`)}
           className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 mb-4 flex items-center gap-1"
         >
-          ← Account
+          {fromProspectsList ? '← Prospects' : '← Account'}
         </button>
 
         {/* Prospect info card */}
