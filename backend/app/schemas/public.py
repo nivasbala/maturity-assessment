@@ -31,6 +31,8 @@ class AssessmentInfoOut(BaseModel):
     available_pillars: list[AvailablePillar]
     is_registered: bool = False
     prospect_role: str | None = None
+    p3_gate_answered_yes: bool | None = None
+    p4_gate_answered_yes: bool | None = None
     infrastructure_location: str | None = None
     tech_stack_description: str | None = None
     current_tools: str | None = None

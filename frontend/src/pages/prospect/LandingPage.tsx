@@ -61,27 +61,37 @@ export default function LandingPage() {
         if (data.tech_stack_description) setTechStackDescription((prev) => prev || data.tech_stack_description!)
         if (data.current_tools) setCurrentTools((prev) => prev || data.current_tools!)
         if (data.key_challenges_input) setKeyChallengesInput((prev) => prev || data.key_challenges_input!)
+        if (data.prospect_role) setRole((prev) => prev || data.prospect_role!)
       })
       .catch((e) => {
         setLoadError(extractApiError(e, 'Failed to load assessment.'))
       })
   }, [token])
 
-  // Restore gate answers from sessionStorage once pillar IDs are known
+  // Restore gate answers: prefer backend DB values, fall back to sessionStorage
   useEffect(() => {
     if (!info) return
     const gated = info.available_pillars.filter((p) => p.is_gated)
     if (gated.length === 0) return
-    const p3Raw = sessionStorage.getItem('p3_gate')
-    const p4Raw = sessionStorage.getItem('p4_gate')
     const restored: Record<string, boolean | null> = {}
-    if (gated[0] && p3Raw !== null) {
-      const val: boolean | null = JSON.parse(p3Raw)
-      if (val !== null) restored[gated[0].id] = val
+    // Use backend-persisted gate answers if available (returning visitor, fresh session)
+    if (gated[0] && info.p3_gate_answered_yes !== null && info.p3_gate_answered_yes !== undefined) {
+      restored[gated[0].id] = info.p3_gate_answered_yes
+    } else if (gated[0]) {
+      const p3Raw = sessionStorage.getItem('p3_gate')
+      if (p3Raw !== null) {
+        const val: boolean | null = JSON.parse(p3Raw)
+        if (val !== null) restored[gated[0].id] = val
+      }
     }
-    if (gated[1] && p4Raw !== null) {
-      const val: boolean | null = JSON.parse(p4Raw)
-      if (val !== null) restored[gated[1].id] = val
+    if (gated[1] && info.p4_gate_answered_yes !== null && info.p4_gate_answered_yes !== undefined) {
+      restored[gated[1].id] = info.p4_gate_answered_yes
+    } else if (gated[1]) {
+      const p4Raw = sessionStorage.getItem('p4_gate')
+      if (p4Raw !== null) {
+        const val: boolean | null = JSON.parse(p4Raw)
+        if (val !== null) restored[gated[1].id] = val
+      }
     }
     if (Object.keys(restored).length > 0) {
       setGateAnswers((prev) => ({ ...restored, ...prev }))
