@@ -96,7 +96,7 @@ function AgentProgressCard({
       clearInterval(progressId)
       clearInterval(msgId)
     }
-  }, [messages.length])
+  }, [])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -287,12 +287,13 @@ export default function ResearchSummaryPage() {
   }
 
   if (!summary || !summary.is_ready) {
-    return <ResearchProgressPage onBack={handleBack} />
+    return <ResearchProgressPage key="research-agent" onBack={handleBack} />
   }
 
   if (confirming) {
     return (
       <AgentProgressCard
+        key="question-agent"
         label="Question Selection"
         title="Personalizing your questions…"
         messages={QUESTION_MESSAGES}
