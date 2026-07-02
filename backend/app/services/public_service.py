@@ -701,7 +701,7 @@ async def submit_assessment(
 
     # Compute score synchronously
     answer_pairs = [(a.question_id, a.answer_option_id) for a in body.answers]
-    pillar_score, maturity_level, maturity_label = await compute_pillar_score(db, answer_pairs, persona)
+    pillar_score, maturity_level, maturity_label, pillar_breakdown = await compute_pillar_score(db, answer_pairs, persona)
 
     # Create or update report record
     existing_report = (
@@ -712,6 +712,7 @@ async def submit_assessment(
         existing_report.pillar_score = pillar_score
         existing_report.maturity_level = maturity_level
         existing_report.maturity_label = maturity_label
+        existing_report.pillar_breakdown = pillar_breakdown
         report = existing_report
     else:
         report = Report(
@@ -723,7 +724,7 @@ async def submit_assessment(
             strengths=[],
             gap_analysis=[],
             next_steps=[],
-            pillar_breakdown={},
+            pillar_breakdown=pillar_breakdown,
         )
         db.add(report)
 

@@ -86,7 +86,7 @@ async def test_compute_pillar_score_all_level1():
     mock_ao_result.scalars.return_value.all.return_value = [mock_option]
     db.execute.side_effect = [mock_q_result, mock_ao_result]
 
-    score, level, label = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
+    score, level, label, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
     assert score == 1.0
     assert level == 1
     assert label == "Reactive"
@@ -115,7 +115,7 @@ async def test_compute_pillar_score_all_level4():
     mock_ao_result.scalars.return_value.all.return_value = [mock_option]
     db.execute.side_effect = [mock_q_result, mock_ao_result]
 
-    score, level, label = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
+    score, level, label, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
     assert score == 4.0
     assert level == 4
     assert label == "Optimized"
@@ -149,7 +149,7 @@ async def test_compute_pillar_score_mixed():
     mock_ao_result.scalars.return_value.all.return_value = options
     db.execute.side_effect = [mock_q_result, mock_ao_result]
 
-    score, level, label = await compute_pillar_score(db, pairs, "sre_platform_engineer")
+    score, level, label, _ = await compute_pillar_score(db, pairs, "sre_platform_engineer")
     assert 1.0 <= score <= 4.0
     # Average of 1+2+3+4=10 / (4*4=16) * 4 = 2.5
     assert score == 2.5
@@ -184,7 +184,7 @@ async def test_compute_pillar_score_applies_persona_weight():
     mock_ao_result.scalars.return_value.all.return_value = [mock_option]
     db.execute.side_effect = [mock_q_result, mock_ao_result]
 
-    score, level, label = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
+    score, level, label, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
     # numerator = 4 * 2.0 * 1.2 = 9.6; denominator = 4 * 2.0 * 1.2 = 9.6; score = 4.0
     assert score == 4.0
 
