@@ -482,6 +482,47 @@ async def get_assessment_report(
     )
 
 
+async def reset_assessment(
+    db: AsyncSession,
+    assessment_id: UUID,
+    current_user: User,
+) -> None:
+    """Reset an assessment to pending — clears all answers, report, and status fields."""
+    assessment = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.account))
+            .where(Assessment.id == assessment_id)
+        )
+    ).scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+    assert_owns_account(current_user, assessment.account)
+
+    # Delete answers
+    await db.execute(sql_delete(AssessmentAnswer).where(AssessmentAnswer.assessment_id == assessment_id))
+
+    # Delete report if it exists
+    report = (
+        await db.execute(select(Report).where(Report.assessment_id == assessment_id))
+    ).scalar_one_or_none()
+    if report:
+        await db.delete(report)
+
+    # Reset assessment status fields
+    assessment.status = "pending"
+    assessment.started_at = None
+    assessment.completed_at = None
+    assessment.prospect_corrections = None
+    assessment.research_confirmed_at = None
+
+    await db.commit()
+    logger.info(
+        "reset_assessment: assessment_id=%s user_id=%s",
+        assessment_id, current_user.id,
+    )
+
+
 async def delete_assessment(
     db: AsyncSession,
     account_id: UUID,

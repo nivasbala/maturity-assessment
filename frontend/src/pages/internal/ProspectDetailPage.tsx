@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { getAccountAggregate, getProspectDetail } from '../../api/internal'
+import { getAccountAggregate, getProspectDetail, resetAssessment } from '../../api/internal'
 import type { AggregateView, ProspectDetail } from '../../types'
 
 function StatusBadge({ status }: { status: string | null }) {
@@ -32,6 +32,8 @@ export default function ProspectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [resettingId, setResettingId] = useState<string | null>(null)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id || !prospectId) return
@@ -46,6 +48,31 @@ export default function ProspectDetailPage() {
       .catch(() => setError('Failed to load prospect'))
       .finally(() => setLoading(false))
   }, [id, prospectId])
+
+  const handleResetAssessment = async (assessmentId: string, pillarName: string) => {
+    if (!window.confirm(`Reset the "${pillarName}" assessment? This will clear all answers, scores, and the report. The prospect can retake it using the same link.`)) return
+    setResettingId(assessmentId)
+    setResetError(null)
+    try {
+      await resetAssessment(assessmentId)
+      setProspect((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          assessments: prev.assessments.map((a) =>
+            a.assessment_id === assessmentId
+              ? { ...a, status: 'pending', pillar_score: null, maturity_label: null, completed_at: null }
+              : a
+          ),
+        }
+      })
+      setAggregate(null)
+    } catch {
+      setResetError('Failed to reset assessment. Please try again.')
+    } finally {
+      setResettingId(null)
+    }
+  }
 
   const handleCopyUrl = () => {
     if (!prospect) return
@@ -136,6 +163,12 @@ export default function ProspectDetailPage() {
           </div>
         )}
 
+        {resetError && (
+          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded text-sm">
+            {resetError}
+          </div>
+        )}
+
         {/* Assessment table */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
@@ -154,6 +187,7 @@ export default function ProspectDetailPage() {
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Maturity</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Completed</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Report</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -180,6 +214,19 @@ export default function ProspectDetailPage() {
                       >
                         View Report
                       </Link>
+                    ) : (
+                      <span className="text-gray-400 dark:text-gray-500 text-sm">—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {row.assessment_id && (row.status === 'in_progress' || row.status === 'completed') ? (
+                      <button
+                        onClick={() => handleResetAssessment(row.assessment_id!, row.pillar_name)}
+                        disabled={resettingId === row.assessment_id}
+                        className="text-sm text-orange-600 hover:text-orange-700 dark:text-orange-400 dark:hover:text-orange-300 disabled:opacity-40"
+                      >
+                        {resettingId === row.assessment_id ? 'Resetting…' : 'Reset'}
+                      </button>
                     ) : (
                       <span className="text-gray-400 dark:text-gray-500 text-sm">—</span>
                     )}
