@@ -73,12 +73,14 @@ function AgentProgressCard({
   messages,
   timeEstimate,
   onBack,
+  backLabel = '← Back',
 }: {
   label: string
   title: string
   messages: string[]
   timeEstimate: string
   onBack?: () => void
+  backLabel?: string
 }) {
   const [progress, setProgress] = useState(0)
   const [msgIndex, setMsgIndex] = useState(0)
@@ -151,7 +153,7 @@ function AgentProgressCard({
               onClick={onBack}
               className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
             >
-              ← Back to Pillar Selection
+              {backLabel}
             </button>
           )}
         </div>
@@ -168,6 +170,7 @@ function ResearchProgressPage({ onBack }: { onBack: () => void }) {
       messages={RESEARCH_MESSAGES}
       timeEstimate="This usually takes 10–20 seconds"
       onBack={onBack}
+      backLabel="← Back to Pillar Selection"
     />
   )
 }
@@ -294,6 +297,8 @@ export default function ResearchSummaryPage() {
         title="Personalizing your questions…"
         messages={QUESTION_MESSAGES}
         timeEstimate="This usually takes 10–20 seconds"
+        onBack={() => setConfirming(false)}
+        backLabel="← Back to Research Summary"
       />
     )
   }
