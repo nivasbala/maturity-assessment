@@ -36,6 +36,7 @@ export default function ResearchingPage() {
   )
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [sourcesExpanded, setSourcesExpanded] = useState(false)
 
   const [progress, setProgress] = useState(0)
   const [msgIdx, setMsgIdx] = useState(0)
@@ -348,6 +349,41 @@ export default function ResearchingPage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 px-1">
                 Note: {summary.research_notes}
               </p>
+            )}
+
+            {/* Sources */}
+            {summary?.sources && summary.sources.length > 0 && (
+              <div className="px-1">
+                <button
+                  type="button"
+                  onClick={() => setSourcesExpanded((v) => !v)}
+                  className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                >
+                  <svg
+                    className={`w-3 h-3 transition-transform ${sourcesExpanded ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                  {sourcesExpanded ? 'Hide' : 'Show'} sources ({summary.sources.length})
+                </button>
+                {sourcesExpanded && (
+                  <ul className="mt-2 space-y-1">
+                    {summary.sources.map((s, i) => (
+                      <li key={i}>
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline break-all"
+                        >
+                          {s.title || s.url}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
 
             {/* Additional information */}

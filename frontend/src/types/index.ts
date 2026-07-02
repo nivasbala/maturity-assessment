@@ -322,6 +322,7 @@ export interface ResearchSummary {
   data_confidence: 'high' | 'medium' | 'low'
   research_notes: string
   news_insights: string
+  sources: Array<{ title: string; url: string }>
 }
 
 export interface AnswerOptionPublic {

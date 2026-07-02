@@ -289,11 +289,22 @@ async def _run_research_agent_for_prospect_locked(
             f"{r.get('title', '')}: {r.get('body', '')}" for r in news_hits
         ) or "No recent news found."
 
+        # Collect deduplicated sources (title + url) from both passes for UI display
+        seen_source_urls: set[str] = set()
+        collected_sources: list[dict[str, str]] = []
+        for r in general_results + news_hits:
+            url = r.get("href", "")
+            title = r.get("title", "")
+            if url and url not in seen_source_urls:
+                seen_source_urls.add(url)
+                collected_sources.append({"title": title, "url": url})
+
         logger.info(
-            "run_research_agent_for_prospect: search complete company=%s general=%d news=%d",
+            "run_research_agent_for_prospect: search complete company=%s general=%d news=%d sources=%d",
             company_name,
             len(general_results),
             len(news_hits),
+            len(collected_sources),
         )
     except Exception:
         logger.error(
@@ -301,6 +312,7 @@ async def _run_research_agent_for_prospect_locked(
             company_name,
             exc_info=True,
         )
+        collected_sources = []
 
     try:
         prompt = ChatPromptTemplate.from_messages(
@@ -327,6 +339,7 @@ async def _run_research_agent_for_prospect_locked(
             }
         )
         profile = json.loads(_extract_json_object(raw))
+        profile["sources"] = collected_sources
 
         prospect.research_cache = profile
         prospect.research_cached_at = datetime.now(timezone.utc)
@@ -381,4 +394,5 @@ def _build_minimal_profile(company_name: str) -> dict[str, Any]:
         "data_confidence": "low",
         "research_notes": "Research could not be completed.",
         "news_insights": "",
+        "sources": [],
     }

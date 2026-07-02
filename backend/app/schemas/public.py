@@ -72,6 +72,7 @@ class ResearchSummaryOut(BaseModel):
     data_confidence: str = "low"
     research_notes: str = ""
     news_insights: str = ""
+    sources: list[dict] = []
 
 
 class SaveAdditionalNotesRequest(BaseModel):
