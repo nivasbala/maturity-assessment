@@ -1,5 +1,6 @@
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer'
 import type { AssessmentAnswers, Report } from '../../types'
+import { PdfRadarChart } from './PdfRadarChart'
 
 // ── Color maps ─────────────────────────────────────────────────────────────────
 
@@ -92,6 +93,7 @@ const s = StyleSheet.create({
 function ScoreSection({ report }: { report: Report }) {
   const breakdown = report.pillar_breakdown as Record<string, number>
   const subAreas = Object.entries(breakdown)
+  const hasRadar = subAreas.length >= 3
   return (
     <View style={s.card}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
@@ -111,6 +113,11 @@ function ScoreSection({ report }: { report: Report }) {
           </View>
         </View>
       </View>
+      {hasRadar && (
+        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+          <PdfRadarChart subAreas={subAreas} />
+        </View>
+      )}
       {subAreas.length > 1 && subAreas.map(([name, val]) => (
         <View key={name} style={s.subAreaRow}>
           <Text style={s.subAreaLabel} numberOfLines={1}>{name}</Text>
