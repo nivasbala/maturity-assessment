@@ -28,7 +28,7 @@ class RegisterRequest(BaseModel):
     prospect_role: str = Field(min_length=1, max_length=100)
     p3_gate_answered_yes: bool | None = None
     p4_gate_answered_yes: bool | None = None
-    # Optional prospect context — stored on account, passed to Agent 1
+    # Optional prospect context — stored on prospect, passed to Agent 1
     infrastructure_location: str | None = None
     tech_stack_description: str | None = None
     current_tools: str | None = None
@@ -55,14 +55,6 @@ class ResearchSummaryOut(BaseModel):
     research_notes: str = ""
 
 
-class ConfirmResearchRequest(BaseModel):
-    corrections: str | None = None
-
-
-class ConfirmResearchOut(BaseModel):
-    confirmed: bool
-
-
 class SelectPillarRequest(BaseModel):
     pillar_id: UUID
 
@@ -79,9 +71,18 @@ class QuestionPublic(BaseModel):
     answer_options: list[AnswerOptionPublic]
 
 
+class ConfirmResearchRequest(BaseModel):
+    assessment_id: UUID
+    corrections: str | None = None
+
+
+class ConfirmResearchOut(BaseModel):
+    confirmed: bool
+    questions: list[QuestionPublic] = []
+
+
 class SelectPillarOut(BaseModel):
     assessment_id: UUID
-    questions: list[QuestionPublic]
 
 
 class AnswerSubmit(BaseModel):

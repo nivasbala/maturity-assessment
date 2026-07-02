@@ -2,14 +2,15 @@
 Public Assessment Service
 
 Handles the unauthenticated prospect flow:
-  1. GET /assess/{token}     — assessment info + available pillars
-  2. POST /register          — prospect registration + session token (fires Agent 1)
-  3. POST /select-pillar     — question selection (Agent 2 LLM, falls back to rule-based)
-  4. POST /submit            — save answers, score, create report (LangGraph orchestrator)
-  5. GET /report/{id}        — fetch completed report
+  1. GET /assess/{token}     — assessment info + available pillars (410 if already registered)
+  2. POST /register          — prospect registration + session token; saves context on Prospect
+  3. POST /select-pillar     — creates assessment, fires Agent 2 in background, returns assessment_id
+  4. POST /confirm-research  — saves corrections on assessment, waits for Agent 2, returns questions
+  5. POST /submit            — save answers, score, create report (LangGraph orchestrator)
+  6. GET /report/{id}        — fetch completed report
 
-Agent 1 fires non-blocking at /register time.
-Agent 2 runs synchronously at /select-pillar time (~3-8s); falls back to rule-based on failure.
+Agent 1 fires non-blocking at prospect creation (account_service.create_prospect).
+Agent 2 fires non-blocking at /select-pillar; /confirm-research awaits the result.
 LangGraph orchestrator (Agent 3) runs synchronously at /submit time.
 """
 from __future__ import annotations
@@ -28,7 +29,6 @@ from sqlalchemy.orm import selectinload
 
 from app.agents.orchestrator import run_assessment_orchestrator
 from app.agents.question_selection_agent import select_questions
-from app.agents.research_agent import run_research_agent
 from app.core.database import AsyncSessionLocal
 from app.core.security import create_session_token
 from app.models.account import Account
@@ -67,6 +67,10 @@ VALID_PERSONAS = {
     "software_developer",
 }
 
+# Module-level dict of pending Agent 2 futures keyed by str(assessment_id).
+# Used to pass results from background select_pillar task to confirm_research.
+_agent2_futures: dict[str, asyncio.Future] = {}
+
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -98,33 +102,48 @@ async def _ensure_unique_token(db: AsyncSession) -> str:
     return token
 
 
-async def _run_agent1_background(
-    account_id: UUID,
-    company_name: str,
-    company_website: str | None,
+async def _run_agent2_background(
+    assessment_id: UUID,
+    pillar_id: UUID,
+    persona: str,
+    research_cache: dict | None,
+    question_count: int,
+    future: asyncio.Future,
     infrastructure_location: str | None = None,
     tech_stack_description: str | None = None,
     current_tools: str | None = None,
+    prospect_corrections: str | None = None,
     key_challenges_input: str | None = None,
 ) -> None:
-    """Fire Agent 1 in a background coroutine with its own DB session."""
+    """Run Agent 2 in background and resolve the future with selected questions."""
     async with AsyncSessionLocal() as db:
         try:
-            await run_research_agent(
-                account_id,
-                company_name,
-                company_website,
+            questions = await select_questions(
+                pillar_id,
+                persona,
+                research_cache,
                 db,
                 infrastructure_location=infrastructure_location,
                 tech_stack_description=tech_stack_description,
                 current_tools=current_tools,
+                prospect_corrections=prospect_corrections,
                 key_challenges_input=key_challenges_input,
             )
-            logger.info("Agent 1 completed for account_id=%s", account_id)
-        except NotImplementedError:
-            logger.info("Agent 1 not yet implemented — skipping for account_id=%s", account_id)
+            logger.info(
+                "_run_agent2_background: Agent 2 selected %d questions for assessment_id=%s",
+                len(questions),
+                assessment_id,
+            )
+            if not future.done():
+                future.set_result(questions)
         except Exception:
-            logger.error("Agent 1 background task failed for account_id=%s", account_id, exc_info=True)
+            logger.warning(
+                "_run_agent2_background: Agent 2 failed for assessment_id=%s",
+                assessment_id,
+                exc_info=True,
+            )
+            if not future.done():
+                future.set_exception(RuntimeError("Agent 2 failed"))
 
 
 def _validate_pillar_gate(pillar: Pillar, session: dict) -> None:
@@ -134,7 +153,6 @@ def _validate_pillar_gate(pillar: Pillar, session: dict) -> None:
     if not pillar.is_gated:
         return
 
-    # Determine which gated pillar this is by display_order (P3=3, P4=4)
     if pillar.display_order == 3:
         gate_answer = session.get("p3_gate")
         if gate_answer is False:
@@ -158,7 +176,7 @@ async def _select_questions_fallback(
       2. Persona-eligible questions (via question_personas) up to fill remaining slots.
       3. If still short, backfill from any other active non-general questions for the pillar.
 
-    This is the fallback used when Agent 2 is unavailable (Task 9 wires in the LLM agent).
+    Fallback used when Agent 2 is unavailable or times out.
     """
     general_qs = (
         await db.execute(
@@ -197,7 +215,6 @@ async def _select_questions_fallback(
     general_ids = {q.id for q in general_qs}
     pure_persona = [q for q in persona_qs if q.id not in general_ids]
 
-    # Start with general questions up to target; fill remaining slots from persona questions
     selected: list[Question] = list(general_qs[:target])
     selected_ids = {q.id for q in selected}
     slots_remaining = target - len(selected)
@@ -210,7 +227,6 @@ async def _select_questions_fallback(
             selected_ids.add(q.id)
             slots_remaining -= 1
 
-    # If still short of target, backfill from any other active non-general questions
     if slots_remaining > 0:
         all_other_qs = (
             await db.execute(
@@ -246,12 +262,40 @@ async def _select_questions_fallback(
     return selected
 
 
+def _questions_to_public(questions: list[Question]) -> list[QuestionPublic]:
+    return [
+        QuestionPublic(
+            id=q.id,
+            text=q.text,
+            answer_options=[
+                AnswerOptionPublic(
+                    id=ao.id,
+                    text=ao.text,
+                    display_order=ao.display_order,
+                )
+                for ao in sorted(q.answer_options, key=lambda a: a.display_order)
+            ],
+        )
+        for q in questions
+    ]
+
+
 # ── Service functions ─────────────────────────────────────────────────────────
 
 
 async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut:
-    """GET /assess/{token} — return company info and all available active pillars."""
+    """GET /assess/{token} — return company info and all available active pillars.
+
+    Returns 410 Gone if the prospect has already registered (one-time link).
+    """
     prospect = await _get_prospect_by_token(token, db)
+
+    if prospect.is_registered:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="This assessment link has already been used",
+        )
+
     account = prospect.account
 
     pillars = (
@@ -282,7 +326,7 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
 
 
 async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession) -> RegisterOut:
-    """POST /assess/{token}/register — register prospect, issue session token, fire Agent 1."""
+    """POST /assess/{token}/register — register prospect, save context on Prospect, issue session token."""
     if body.prospect_role not in VALID_PERSONAS:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -292,13 +336,15 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     prospect = await _get_prospect_by_token(token, db)
     account = prospect.account
 
-    # Update prospect name and account context in one commit
+    # Save context fields on Prospect record (not Account)
     if body.prospect_name:
         prospect.name = body.prospect_name
-    account.infrastructure_location = body.infrastructure_location or account.infrastructure_location
-    account.tech_stack_description = body.tech_stack_description or account.tech_stack_description
-    account.current_tools = body.current_tools or account.current_tools
-    account.key_challenges_input = body.key_challenges_input or account.key_challenges_input
+    prospect.infrastructure_location = body.infrastructure_location or prospect.infrastructure_location
+    prospect.tech_stack_description = body.tech_stack_description or prospect.tech_stack_description
+    prospect.current_tools = body.current_tools or prospect.current_tools
+    prospect.key_challenges_input = body.key_challenges_input or prospect.key_challenges_input
+    prospect.is_registered = True
+    prospect.registered_at = datetime.now(timezone.utc)
     await db.commit()
 
     # Build session token payload
@@ -314,56 +360,36 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     }
     session_token = create_session_token(session_data)
 
-    # Record when Agent 1 is about to fire so get_research_summary can use it as the
-    # polling timeout anchor (account.created_at is the account-creation time, which
-    # may be days before the prospect registers).
-    account.research_started_at = datetime.now(timezone.utc)
-    await db.commit()
-
-    # Fire Agent 1 in background (non-blocking) with both web + prospect context
-    asyncio.create_task(
-        _run_agent1_background(
-            account.id,
-            account.company_name,
-            account.company_website,
-            infrastructure_location=body.infrastructure_location,
-            tech_stack_description=body.tech_stack_description,
-            current_tools=body.current_tools,
-            key_challenges_input=body.key_challenges_input,
-        )
+    logger.info(
+        "register_prospect: prospect_id=%s persona=%s — context saved, is_registered=True",
+        prospect.id,
+        body.prospect_role,
     )
-    logger.info("register_prospect: account_id=%s persona=%s — Agent 1 fired", account.id, body.prospect_role)
-
     return RegisterOut(session_token=session_token)
 
 
 async def get_research_summary(token: str, session: dict, db: AsyncSession) -> ResearchSummaryOut:
     """GET /assess/{token}/research-summary — poll until Agent 1 completes."""
     prospect = await _get_prospect_by_token(token, db)
-    account_id = UUID(session["account_id"])
-    if prospect.account_id != account_id:
+    prospect_id = UUID(session["prospect_id"])
+    if prospect.id != prospect_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    account = prospect.account
-    if not account.research_cache:
-        # Use research_started_at (set at /register when Agent 1 fires) as the timeout
-        # anchor — account.created_at is the internal-user account creation time, which
-        # may be days before the prospect registers.  Fall back to created_at only for
-        # legacy rows that predate the research_started_at column.
-        anchor = account.research_started_at or account.created_at
+    if not prospect.research_cache:
+        anchor = prospect.research_started_at or prospect.created_at
         if anchor.tzinfo is None:
             anchor = anchor.replace(tzinfo=timezone.utc)
         elapsed_seconds = (datetime.now(timezone.utc) - anchor).total_seconds()
         if elapsed_seconds < 60:
-            logger.info("get_research_summary: Agent 1 still running for account_id=%s", account_id)
+            logger.info("get_research_summary: Agent 1 still running for prospect_id=%s", prospect_id)
             return ResearchSummaryOut(is_ready=False)
         logger.warning(
-            "get_research_summary: 60s timeout reached for account_id=%s — returning empty profile",
-            account_id,
+            "get_research_summary: 60s timeout reached for prospect_id=%s — returning empty profile",
+            prospect_id,
         )
         return ResearchSummaryOut(
             is_ready=True,
-            company_name=account.company_name,
+            company_name=prospect.account.company_name,
             industry="",
             company_size="",
             products_summary="",
@@ -377,11 +403,11 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
             research_notes="Research summary is not available. You can still proceed with your assessment.",
         )
 
-    cache = account.research_cache
-    logger.info("get_research_summary: returning ready profile for account_id=%s", account_id)
+    cache = prospect.research_cache
+    logger.info("get_research_summary: returning ready profile for prospect_id=%s", prospect_id)
     return ResearchSummaryOut(
         is_ready=True,
-        company_name=cache.get("company_name", account.company_name),
+        company_name=cache.get("company_name", prospect.account.company_name),
         industry=cache.get("industry", ""),
         company_size=cache.get("company_size", ""),
         products_summary=cache.get("products_summary", ""),
@@ -396,36 +422,17 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
     )
 
 
-async def confirm_research(
-    token: str,
-    session: dict,
-    body: ConfirmResearchRequest,
-    db: AsyncSession,
-) -> ConfirmResearchOut:
-    """POST /assess/{token}/confirm-research — save corrections and timestamp."""
-    prospect = await _get_prospect_by_token(token, db)
-    account_id = UUID(session["account_id"])
-    if prospect.account_id != account_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
-
-    account = prospect.account
-    account.research_confirmed_at = datetime.now(timezone.utc)
-    if body.corrections and body.corrections.strip():
-        account.prospect_corrections = body.corrections.strip()
-        logger.info("confirm_research: corrections saved for account_id=%s", account_id)
-    await db.commit()
-
-    logger.info("confirm_research: confirmed for account_id=%s", account_id)
-    return ConfirmResearchOut(confirmed=True)
-
-
 async def select_pillar(
     token: str,
     session: dict,
     pillar_id: UUID,
     db: AsyncSession,
 ) -> SelectPillarOut:
-    """POST /assess/{token}/select-pillar — validate gate, select 12 questions, return to prospect."""
+    """POST /assess/{token}/select-pillar — validate gate, create assessment, fire Agent 2 in background.
+
+    Non-blocking: returns {assessment_id} immediately. Agent 2 runs in background.
+    /confirm-research awaits Agent 2 and returns questions.
+    """
     pillar = (
         await db.execute(select(Pillar).where(Pillar.id == pillar_id))
     ).scalar_one_or_none()
@@ -435,13 +442,15 @@ async def select_pillar(
     _validate_pillar_gate(pillar, session)
 
     account_id = UUID(session["account_id"])
+    prospect_id = UUID(session["prospect_id"])
     persona = session["prospect_role"]
 
-    # Find or create assessment for this account + pillar
+    # Find or create assessment for this prospect + pillar
     existing = (
         await db.execute(
             select(Assessment).where(
                 Assessment.account_id == account_id,
+                Assessment.prospect_id == prospect_id,
                 Assessment.pillar_id == pillar_id,
             )
         )
@@ -455,6 +464,7 @@ async def select_pillar(
         new_token = await _ensure_unique_token(db)
         assessment = Assessment(
             account_id=account_id,
+            prospect_id=prospect_id,
             pillar_id=pillar_id,
             short_url_token=new_token,
             prospect_name=session.get("prospect_name"),
@@ -469,11 +479,11 @@ async def select_pillar(
         await db.refresh(assessment)
     except IntegrityError:
         await db.rollback()
-        # Race condition: another request created this assessment simultaneously
         assessment = (
             await db.execute(
                 select(Assessment).where(
                     Assessment.account_id == account_id,
+                    Assessment.prospect_id == prospect_id,
                     Assessment.pillar_id == pillar_id,
                 )
             )
@@ -482,69 +492,110 @@ async def select_pillar(
         await db.commit()
         await db.refresh(assessment)
 
-    # Agent 2: LLM question selection — falls back to rule-based on any failure
-    account = (
-        await db.execute(select(Account).where(Account.id == account_id))
+    # Load prospect context for Agent 2
+    prospect = (
+        await db.execute(select(Prospect).where(Prospect.id == prospect_id))
     ).scalar_one_or_none()
-    if not account:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    if not prospect:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prospect not found")
 
-    if not account.research_confirmed_at:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Research summary must be confirmed before selecting a pillar",
-        )
+    # Fire Agent 2 in background — create a future for confirm_research to await
+    loop = asyncio.get_event_loop()
+    future: asyncio.Future = loop.create_future()
+    _agent2_futures[str(assessment.id)] = future
 
-    try:
-        questions = await select_questions(
+    asyncio.create_task(
+        _run_agent2_background(
+            assessment.id,
             pillar_id,
             persona,
-            account.research_cache,
-            db,
-            infrastructure_location=account.infrastructure_location,
-            tech_stack_description=account.tech_stack_description,
-            current_tools=account.current_tools,
-            prospect_corrections=account.prospect_corrections,
-            key_challenges_input=account.key_challenges_input,
+            prospect.research_cache,
+            pillar.question_count,
+            future,
+            infrastructure_location=prospect.infrastructure_location,
+            tech_stack_description=prospect.tech_stack_description,
+            current_tools=prospect.current_tools,
+            key_challenges_input=prospect.key_challenges_input,
         )
-        logger.info(
-            "select_pillar: Agent 2 selected %d questions for assessment_id=%s",
-            len(questions),
-            assessment.id,
-        )
-    except Exception:
-        logger.warning(
-            "select_pillar: Agent 2 failed — using rule-based fallback for pillar_id=%s",
-            pillar_id,
-            exc_info=True,
-        )
-        questions = await _select_questions_fallback(db, pillar_id, persona, target=pillar.question_count)
+    )
 
     logger.info(
-        "select_pillar: assessment_id=%s pillar=%s persona=%s questions=%d",
+        "select_pillar: assessment_id=%s pillar=%s persona=%s — Agent 2 fired in background",
         assessment.id,
         pillar_id,
         persona,
-        len(questions),
     )
 
-    return SelectPillarOut(
-        assessment_id=assessment.id,
-        questions=[
-            QuestionPublic(
-                id=q.id,
-                text=q.text,
-                answer_options=[
-                    AnswerOptionPublic(
-                        id=ao.id,
-                        text=ao.text,
-                        display_order=ao.display_order,
-                    )
-                    for ao in sorted(q.answer_options, key=lambda a: a.display_order)
-                ],
+    return SelectPillarOut(assessment_id=assessment.id)
+
+
+async def confirm_research(
+    token: str,
+    session: dict,
+    body: ConfirmResearchRequest,
+    db: AsyncSession,
+) -> ConfirmResearchOut:
+    """POST /assess/{token}/confirm-research — save corrections on assessment, await Agent 2, return questions."""
+    prospect = await _get_prospect_by_token(token, db)
+    prospect_id = UUID(session["prospect_id"])
+    if prospect.id != prospect_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    # Load the assessment created by select_pillar
+    assessment = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.pillar))
+            .where(
+                Assessment.id == body.assessment_id,
+                Assessment.prospect_id == prospect_id,
             )
-            for q in questions
-        ],
+        )
+    ).scalar_one_or_none()
+    if not assessment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
+
+    # Save corrections and confirmation timestamp on the assessment record
+    assessment.research_confirmed_at = datetime.now(timezone.utc)
+    if body.corrections and body.corrections.strip():
+        assessment.prospect_corrections = body.corrections.strip()
+        logger.info("confirm_research: corrections saved for assessment_id=%s", assessment.id)
+    await db.commit()
+
+    logger.info("confirm_research: confirmed for assessment_id=%s — awaiting Agent 2", assessment.id)
+
+    # Await Agent 2 future (30s timeout — fallback to rule-based on timeout or error)
+    pillar = assessment.pillar
+    target = pillar.question_count if pillar else 12
+    persona = session["prospect_role"]
+
+    future = _agent2_futures.pop(str(assessment.id), None)
+    questions: list = []
+    if future is not None:
+        try:
+            questions = await asyncio.wait_for(asyncio.shield(future), timeout=30.0)
+            logger.info(
+                "confirm_research: Agent 2 returned %d questions for assessment_id=%s",
+                len(questions),
+                assessment.id,
+            )
+        except (asyncio.TimeoutError, Exception):
+            logger.warning(
+                "confirm_research: Agent 2 timed out or failed for assessment_id=%s — using fallback",
+                assessment.id,
+                exc_info=True,
+            )
+            questions = await _select_questions_fallback(db, assessment.pillar_id, persona, target=target)
+    else:
+        logger.warning(
+            "confirm_research: no Agent 2 future found for assessment_id=%s — using fallback",
+            assessment.id,
+        )
+        questions = await _select_questions_fallback(db, assessment.pillar_id, persona, target=target)
+
+    return ConfirmResearchOut(
+        confirmed=True,
+        questions=_questions_to_public(questions),
     )
 
 
@@ -606,7 +657,7 @@ async def submit_assessment(
     ).scalars().all()
     for ea in existing_answers:
         await db.delete(ea)
-    await db.flush()  # ensure deletes execute before inserts
+    await db.flush()
 
     # Save answers
     for answer in body.answers:
@@ -624,7 +675,7 @@ async def submit_assessment(
     answer_pairs = [(a.question_id, a.answer_option_id) for a in body.answers]
     pillar_score, maturity_level, maturity_label = await compute_pillar_score(db, answer_pairs, persona)
 
-    # Create or update report record (score stored immediately per spec)
+    # Create or update report record
     existing_report = (
         await db.execute(select(Report).where(Report.assessment_id == body.assessment_id))
     ).scalar_one_or_none()
@@ -648,14 +699,15 @@ async def submit_assessment(
         )
         db.add(report)
 
-    # Capture account fields before commit — db.commit() expires all ORM objects, so
-    # accessing assessment.account.* after the commit raises MissingGreenlet in async SA.
+    # Capture account fields before commit — db.commit() expires all ORM objects
     acct = assessment.account
     acct_id = acct.id
     acct_company_name = acct.company_name
     acct_company_website = acct.company_website
     acct_research_cache = acct.research_cache
-    acct_prospect_corrections = acct.prospect_corrections
+
+    # Load prospect_corrections from assessment record (saved at confirm_research)
+    acct_prospect_corrections = assessment.prospect_corrections
 
     # Mark assessment complete
     assessment.status = "completed"
@@ -687,7 +739,7 @@ async def submit_assessment(
         prospect_corrections=acct_prospect_corrections,
     )
 
-    # Update report with LLM narrative and research snapshot (score already committed above)
+    # Update report with LLM narrative
     report.executive_summary = narrative.get("executive_summary", "")
     report.strengths = narrative.get("strengths", [])
     report.gap_analysis = narrative.get("gap_analysis", [])
@@ -708,7 +760,6 @@ async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> Repor
     prospect = await _get_prospect_by_token(token, db)
     account = prospect.account
 
-    # The report can be for any assessment under this account (multi-pillar flow)
     target_assessment = (
         await db.execute(
             select(Assessment)

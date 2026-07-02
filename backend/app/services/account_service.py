@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import secrets
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -10,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.config import settings
+from app.core.database import AsyncSessionLocal
 from app.models.account import Account
 from app.models.assessment import Assessment, AssessmentAnswer
 from app.models.pillar import Pillar
@@ -38,6 +41,29 @@ from app.schemas.internal import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+async def _run_agent1_background_for_prospect(
+    prospect_id: UUID,
+    company_name: str,
+    company_website: str | None,
+) -> None:
+    """Fire Agent 1 in a background coroutine with its own DB session."""
+    from app.agents.research_agent import run_research_agent_for_prospect  # noqa: PLC0415
+
+    async with AsyncSessionLocal() as db:
+        try:
+            await run_research_agent_for_prospect(
+                prospect_id,
+                company_name,
+                company_website,
+                db,
+            )
+            logger.info("Agent 1 completed for prospect_id=%s", prospect_id)
+        except NotImplementedError:
+            logger.info("Agent 1 not yet implemented — skipping for prospect_id=%s", prospect_id)
+        except Exception:
+            logger.error("Agent 1 background task failed for prospect_id=%s", prospect_id, exc_info=True)
 
 
 def assert_owns_account(current_user: User, account: Account) -> None:
@@ -588,13 +614,28 @@ async def create_prospect(
         email=body.email,
         name=body.name,
         short_url_token=token,
+        research_started_at=datetime.now(timezone.utc),
     )
     db.add(prospect)
     await db.commit()
     await db.refresh(prospect)
 
+    # Fire Agent 1 in background (non-blocking) at prospect creation time
+    asyncio.create_task(
+        _run_agent1_background_for_prospect(
+            prospect.id,
+            account.company_name,
+            account.company_website,
+        )
+    )
+    logger.info(
+        "create_prospect: prospect_id=%s account_id=%s token=%s — Agent 1 fired",
+        prospect.id,
+        account_id,
+        token,
+    )
+
     full_url = f"{settings.base_url}/assess/{token}"
-    logger.info("create_prospect: prospect_id=%s account_id=%s token=%s", prospect.id, account_id, token)
     return ProspectOut(
         id=prospect.id,
         account_id=prospect.account_id,

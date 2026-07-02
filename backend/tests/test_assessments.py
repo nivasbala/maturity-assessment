@@ -65,6 +65,7 @@ def make_answers_out(assessment_id, account_id=None):
     return {
         "assessment_id": str(assessment_id),
         "account_id": str(account_id or uuid4()),
+        "prospect_id": None,
         "pillar_id": str(uuid4()),
         "pillar_name": "Full-Stack Observability",
         "company_name": "Stripe",

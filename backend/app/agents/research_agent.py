@@ -38,11 +38,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.llm_factory import get_llm
 from app.models.account import Account
+from app.models.prospect import Prospect
 
 logger = logging.getLogger(__name__)
 
 # Per-account lock prevents concurrent Agent 1 runs for the same account.
 _research_locks: dict[str, asyncio.Lock] = {}
+# Per-prospect lock for prospect-scoped research.
+_prospect_research_locks: dict[str, asyncio.Lock] = {}
 
 _SYSTEM_PROMPT = """\
 You are a business intelligence analyst preparing a company profile for a \
@@ -312,6 +315,170 @@ async def _run_research_agent_locked(
             logger.error(
                 "run_research_agent: failed to persist fallback cache for account_id=%s",
                 account_id,
+                exc_info=True,
+            )
+        return fallback
+
+
+def _should_refresh_prospect(prospect: Prospect) -> bool:
+    if prospect.research_cache is None:
+        return True
+    if prospect.research_cached_at is None:
+        return True
+    age = datetime.now(timezone.utc) - prospect.research_cached_at
+    return age > timedelta(days=7)
+
+
+async def run_research_agent_for_prospect(
+    prospect_id: UUID,
+    company_name: str,
+    company_website: str | None,
+    db: AsyncSession,
+    infrastructure_location: str | None = None,
+    tech_stack_description: str | None = None,
+    current_tools: str | None = None,
+    key_challenges_input: str | None = None,
+) -> dict[str, Any]:
+    """Research the company and store the result in prospects.research_cache.
+
+    Prospect-scoped version of run_research_agent. Returns the cache dict.
+    Raises no exceptions — failures are logged and a minimal profile returned.
+    """
+    lock = _prospect_research_locks.setdefault(str(prospect_id), asyncio.Lock())
+    async with lock:
+        return await _run_research_agent_for_prospect_locked(
+            prospect_id,
+            company_name,
+            company_website,
+            db,
+            infrastructure_location,
+            tech_stack_description,
+            current_tools,
+            key_challenges_input,
+        )
+
+
+async def _run_research_agent_for_prospect_locked(
+    prospect_id: UUID,
+    company_name: str,
+    company_website: str | None,
+    db: AsyncSession,
+    infrastructure_location: str | None,
+    tech_stack_description: str | None,
+    current_tools: str | None,
+    key_challenges_input: str | None = None,
+) -> dict[str, Any]:
+    prospect = (
+        await db.execute(select(Prospect).where(Prospect.id == prospect_id))
+    ).scalar_one_or_none()
+
+    if not prospect:
+        logger.warning("run_research_agent_for_prospect: prospect %s not found", prospect_id)
+        return _build_minimal_profile(company_name)
+
+    if not _should_refresh_prospect(prospect):
+        logger.info("run_research_agent_for_prospect: cache hit for prospect_id=%s", prospect_id)
+        return prospect.research_cache  # type: ignore[return-value]
+
+    # DuckDuckGo web search — same logic as account-scoped version
+    search_results = ""
+    try:
+        from ddgs import DDGS  # noqa: PLC0415
+
+        queries = [
+            f"{company_name} company products customers overview",
+            f"{company_name} engineering technology stack infrastructure",
+        ]
+        if company_website:
+            queries.append(f"{company_name} {company_website} funding size employees")
+
+        def _run_ddgs_search(qs: list[str]) -> list[dict]:
+            import concurrent.futures
+
+            all_results: list[dict] = []
+            seen_urls: set[str] = set()
+            with DDGS() as ddgs, concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+                for q in qs:
+                    try:
+                        future = ex.submit(list, ddgs.text(q, max_results=4))
+                        results = future.result(timeout=10)
+                        for r in results:
+                            url = r.get("href", "")
+                            if url not in seen_urls:
+                                seen_urls.add(url)
+                                all_results.append(r)
+                    except concurrent.futures.TimeoutError:
+                        logger.warning(
+                            "run_research_agent_for_prospect: query %r timed out — skipping", q
+                        )
+                    except Exception as e:
+                        logger.warning(
+                            "run_research_agent_for_prospect: query %r failed — %s", q, e
+                        )
+            return all_results
+
+        all_results = await asyncio.to_thread(_run_ddgs_search, queries)
+        search_results = "\n\n".join(
+            f"{r.get('title', '')}: {r.get('body', '')}" for r in all_results
+        )
+        logger.info(
+            "run_research_agent_for_prospect: search complete for company=%s results=%d",
+            company_name,
+            len(all_results),
+        )
+    except Exception:
+        logger.error(
+            "run_research_agent_for_prospect: search failed for company=%s — proceeding without",
+            company_name,
+            exc_info=True,
+        )
+
+    try:
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", _SYSTEM_PROMPT),
+                (
+                    "human",
+                    "Company name: {company_name}\nWebsite: {company_website}\n\n"
+                    "Return the JSON profile.",
+                ),
+            ]
+        )
+        chain = prompt | get_llm(json_mode=True) | StrOutputParser()
+        raw = await chain.ainvoke(
+            {
+                "company_name": company_name,
+                "company_website": company_website or "not provided",
+                "infrastructure_location": infrastructure_location or "(not provided)",
+                "tech_stack_description": tech_stack_description or "(not provided)",
+                "current_tools": current_tools or "(not provided)",
+                "key_challenges_input": key_challenges_input or "(not provided)",
+                "search_results": search_results or "No search results available.",
+            }
+        )
+        profile = json.loads(_extract_json_object(raw))
+
+        prospect.research_cache = profile
+        prospect.research_cached_at = datetime.now(timezone.utc)
+        await db.commit()
+        logger.info("run_research_agent_for_prospect: cached profile for prospect_id=%s", prospect_id)
+        return profile  # type: ignore[return-value]
+
+    except Exception:
+        logger.error(
+            "run_research_agent_for_prospect: LLM synthesis failed for company=%s",
+            company_name,
+            exc_info=True,
+        )
+        fallback = _build_minimal_profile(company_name)
+        try:
+            prospect.research_cache = fallback
+            prospect.research_cached_at = datetime.now(timezone.utc)
+            await db.commit()
+        except Exception:
+            logger.error(
+                "run_research_agent_for_prospect: failed to persist fallback for prospect_id=%s",
+                prospect_id,
                 exc_info=True,
             )
         return fallback

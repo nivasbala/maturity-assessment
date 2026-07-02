@@ -55,31 +55,44 @@ def test_extract_json_array_no_array_raises():
 # ── Research Summary Service ──────────────────────────────────────────────────
 
 
+def _make_mock_prospect(prospect_id, research_cache=None, research_started_at=None, account_name="Acme Corp"):
+    """Create a mock Prospect with the fields used by get_research_summary."""
+    mock_prospect = MagicMock()
+    mock_prospect.id = prospect_id
+    mock_prospect.research_cache = research_cache
+    mock_prospect.research_started_at = research_started_at or datetime.now(timezone.utc)
+    mock_prospect.created_at = datetime.now(timezone.utc)
+    mock_account = MagicMock()
+    mock_account.company_name = account_name
+    mock_prospect.account = mock_account
+    return mock_prospect
+
+
+def _make_prospect_db(mock_prospect):
+    """Return an AsyncMock DB whose execute always returns the given prospect."""
+    db = AsyncMock()
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = mock_prospect
+    db.execute.return_value = result
+    return db
+
+
 @pytest.mark.asyncio
 async def test_get_research_summary_not_ready_when_cache_null():
     """Returns is_ready=False when research_cache is NULL (Agent 1 still running)."""
     from app.services.public_service import get_research_summary
 
+    prospect_id = uuid4()
     account_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
+    session = {"account_id": str(account_id), "prospect_id": str(prospect_id)}
 
-    from datetime import datetime, timezone
-
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.research_cache = None
-    mock_account.research_started_at = datetime.now(timezone.utc)  # recent — within 60s window
-    mock_account.created_at = datetime.now(timezone.utc)
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
-
-    db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
+    mock_prospect = _make_mock_prospect(
+        prospect_id,
+        research_cache=None,
+        research_started_at=datetime.now(timezone.utc),
+    )
+    db = _make_prospect_db(mock_prospect)
 
     result = await get_research_summary(token, session, db)
 
@@ -87,40 +100,32 @@ async def test_get_research_summary_not_ready_when_cache_null():
 
 
 @pytest.mark.asyncio
-async def test_get_research_summary_not_ready_uses_research_started_at_not_account_created_at():
-    """Timeout window is anchored to research_started_at, not account.created_at.
+async def test_get_research_summary_not_ready_uses_research_started_at_not_created_at():
+    """Timeout window is anchored to research_started_at, not prospect.created_at.
 
-    An old account (created_at days ago) should still return is_ready=False when
-    research_started_at is recent, proving the proxy fix is in effect.
+    An old prospect (created_at days ago) should still return is_ready=False when
+    research_started_at is recent.
     """
     from datetime import timedelta
 
     from app.services.public_service import get_research_summary
 
+    prospect_id = uuid4()
     account_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
+    session = {"account_id": str(account_id), "prospect_id": str(prospect_id)}
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.research_cache = None
-    # Account created 2 days ago — would exceed the 60s window if created_at were used.
-    mock_account.created_at = datetime.now(timezone.utc) - timedelta(days=2)
-    # Agent 1 fired a moment ago.
-    mock_account.research_started_at = datetime.now(timezone.utc)
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
-
-    db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
+    mock_prospect = _make_mock_prospect(
+        prospect_id,
+        research_cache=None,
+        research_started_at=datetime.now(timezone.utc),
+    )
+    mock_prospect.created_at = datetime.now(timezone.utc) - timedelta(days=2)
+    db = _make_prospect_db(mock_prospect)
 
     result = await get_research_summary(token, session, db)
 
-    assert result.is_ready is False  # still waiting; not yet expired
+    assert result.is_ready is False
 
 
 @pytest.mark.asyncio
@@ -128,12 +133,10 @@ async def test_get_research_summary_ready_with_full_profile():
     """Returns is_ready=True with all profile fields when cache is populated."""
     from app.services.public_service import get_research_summary
 
+    prospect_id = uuid4()
     account_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
-
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
+    session = {"account_id": str(account_id), "prospect_id": str(prospect_id)}
 
     cache = {
         "company_name": "Acme Corp",
@@ -150,17 +153,8 @@ async def test_get_research_summary_ready_with_full_profile():
         "research_notes": "",
     }
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.company_name = "Acme Corp"
-    mock_account.research_cache = cache
-
-    mock_assessment.account = mock_account
-
-    db = AsyncMock()
-    assessment_result = MagicMock()
-    assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
+    mock_prospect = _make_mock_prospect(prospect_id, research_cache=cache, account_name="Acme Corp")
+    db = _make_prospect_db(mock_prospect)
 
     result = await get_research_summary(token, session, db)
 
@@ -172,23 +166,19 @@ async def test_get_research_summary_ready_with_full_profile():
 
 
 @pytest.mark.asyncio
-async def test_get_research_summary_access_denied_for_wrong_account():
-    """Returns 403 when session account_id does not match the assessment's account."""
+async def test_get_research_summary_access_denied_for_wrong_prospect():
+    """Returns 403 when session prospect_id does not match the prospect's id."""
     from app.services.public_service import get_research_summary
     from fastapi import HTTPException
 
+    prospect_id = uuid4()
+    other_prospect_id = uuid4()
     account_id = uuid4()
-    other_account_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(other_account_id)}
+    session = {"account_id": str(account_id), "prospect_id": str(other_prospect_id)}
 
-    mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id  # different from session
-
-    db = AsyncMock()
-    result = MagicMock()
-    result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = result
+    mock_prospect = _make_mock_prospect(prospect_id)
+    db = _make_prospect_db(mock_prospect)
 
     with pytest.raises(HTTPException) as exc_info:
         await get_research_summary(token, session, db)
@@ -200,62 +190,98 @@ async def test_get_research_summary_access_denied_for_wrong_account():
 
 @pytest.mark.asyncio
 async def test_confirm_research_sets_timestamp():
-    """confirm_research sets research_confirmed_at on the account."""
+    """confirm_research sets research_confirmed_at on the assessment."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
+    prospect_id = uuid4()
     account_id = uuid4()
+    assessment_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
-    body = ConfirmResearchRequest(corrections=None)
+    session = {
+        "account_id": str(account_id),
+        "prospect_id": str(prospect_id),
+        "prospect_role": "sre_platform_engineer",
+    }
+    body = ConfirmResearchRequest(assessment_id=assessment_id, corrections=None)
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.prospect_corrections = None
+    mock_prospect = _make_mock_prospect(prospect_id)
+
+    mock_pillar = MagicMock()
+    mock_pillar.question_count = 2
 
     mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_assessment.id = assessment_id
+    mock_assessment.prospect_id = prospect_id
+    mock_assessment.pillar_id = uuid4()
+    mock_assessment.pillar = mock_pillar
+    mock_assessment.prospect_corrections = None
+    mock_assessment.research_confirmed_at = None
 
     db = AsyncMock()
+    prospect_result = MagicMock()
+    prospect_result.scalar_one_or_none.return_value = mock_prospect
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
+    db.execute.side_effect = [prospect_result, assessment_result]
 
-    result = await confirm_research(token, session, body, db)
+    with patch(
+        "app.services.public_service._select_questions_fallback",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        result = await confirm_research(token, session, body, db)
 
     assert result.confirmed is True
-    assert mock_account.research_confirmed_at is not None
+    assert mock_assessment.research_confirmed_at is not None
     db.commit.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_confirm_research_saves_corrections_when_provided():
-    """confirm_research saves non-empty corrections to account.prospect_corrections."""
+    """confirm_research saves non-empty corrections to assessment.prospect_corrections."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
+    prospect_id = uuid4()
     account_id = uuid4()
+    assessment_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
-    body = ConfirmResearchRequest(corrections="We are on Azure, not AWS.")
+    session = {
+        "account_id": str(account_id),
+        "prospect_id": str(prospect_id),
+        "prospect_role": "sre_platform_engineer",
+    }
+    body = ConfirmResearchRequest(assessment_id=assessment_id, corrections="We are on Azure, not AWS.")
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.prospect_corrections = None
+    mock_prospect = _make_mock_prospect(prospect_id)
+
+    mock_pillar = MagicMock()
+    mock_pillar.question_count = 2
 
     mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_assessment.id = assessment_id
+    mock_assessment.prospect_id = prospect_id
+    mock_assessment.pillar_id = uuid4()
+    mock_assessment.pillar = mock_pillar
+    mock_assessment.prospect_corrections = None
+    mock_assessment.research_confirmed_at = None
 
     db = AsyncMock()
+    prospect_result = MagicMock()
+    prospect_result.scalar_one_or_none.return_value = mock_prospect
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
+    db.execute.side_effect = [prospect_result, assessment_result]
 
-    await confirm_research(token, session, body, db)
+    with patch(
+        "app.services.public_service._select_questions_fallback",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        await confirm_research(token, session, body, db)
 
-    assert mock_account.prospect_corrections == "We are on Azure, not AWS."
+    assert mock_assessment.prospect_corrections == "We are on Azure, not AWS."
 
 
 @pytest.mark.asyncio
@@ -264,28 +290,46 @@ async def test_confirm_research_does_not_overwrite_when_corrections_empty():
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
 
+    prospect_id = uuid4()
     account_id = uuid4()
+    assessment_id = uuid4()
     token = "test_token"
-    session = {"account_id": str(account_id)}
-    body = ConfirmResearchRequest(corrections="   ")  # whitespace only → treated as empty
+    session = {
+        "account_id": str(account_id),
+        "prospect_id": str(prospect_id),
+        "prospect_role": "sre_platform_engineer",
+    }
+    body = ConfirmResearchRequest(assessment_id=assessment_id, corrections="   ")
 
-    mock_account = MagicMock()
-    mock_account.id = account_id
-    mock_account.prospect_corrections = "previous corrections"
+    mock_prospect = _make_mock_prospect(prospect_id)
+
+    mock_pillar = MagicMock()
+    mock_pillar.question_count = 2
 
     mock_assessment = MagicMock()
-    mock_assessment.account_id = account_id
-    mock_assessment.account = mock_account
+    mock_assessment.id = assessment_id
+    mock_assessment.prospect_id = prospect_id
+    mock_assessment.pillar_id = uuid4()
+    mock_assessment.pillar = mock_pillar
+    mock_assessment.prospect_corrections = "previous corrections"
+    mock_assessment.research_confirmed_at = None
 
     db = AsyncMock()
+    prospect_result = MagicMock()
+    prospect_result.scalar_one_or_none.return_value = mock_prospect
     assessment_result = MagicMock()
     assessment_result.scalar_one_or_none.return_value = mock_assessment
-    db.execute.return_value = assessment_result
+    db.execute.side_effect = [prospect_result, assessment_result]
 
-    await confirm_research(token, session, body, db)
+    with patch(
+        "app.services.public_service._select_questions_fallback",
+        new_callable=AsyncMock,
+        return_value=[],
+    ):
+        await confirm_research(token, session, body, db)
 
     # Should not have overwritten existing value
-    assert mock_account.prospect_corrections == "previous corrections"
+    assert mock_assessment.prospect_corrections == "previous corrections"
 
 
 # ── Agent 1: minimal profile schema ──────────────────────────────────────────
@@ -398,6 +442,37 @@ def test_research_summary_out_not_ready_defaults():
     assert out.data_confidence == "low"
 
 
+# ── ConfirmResearchRequest schema ─────────────────────────────────────────────
+
+
+def test_confirm_research_request_requires_assessment_id():
+    """ConfirmResearchRequest requires assessment_id."""
+    from app.schemas.public import ConfirmResearchRequest
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        ConfirmResearchRequest(corrections="some corrections")
+
+
+def test_confirm_research_out_has_questions_field():
+    """ConfirmResearchOut includes confirmed and questions fields."""
+    from app.schemas.public import ConfirmResearchOut
+
+    out = ConfirmResearchOut(confirmed=True, questions=[])
+    assert out.confirmed is True
+    assert out.questions == []
+
+
+def test_select_pillar_out_has_only_assessment_id():
+    """SelectPillarOut no longer includes questions — only assessment_id."""
+    from app.schemas.public import SelectPillarOut
+    from uuid import uuid4
+
+    out = SelectPillarOut(assessment_id=uuid4())
+    assert hasattr(out, "assessment_id")
+    assert not hasattr(out, "questions")
+
+
 # ── Agent 2: prospect_corrections passed through ──────────────────────────────
 
 
@@ -407,7 +482,6 @@ async def test_select_questions_passes_prospect_context_to_llm():
     from app.agents.question_selection_agent import select_questions
 
     pillar_id = uuid4()
-    account_id = uuid4()
 
     mock_pillar = MagicMock()
     mock_pillar.id = pillar_id
@@ -461,7 +535,6 @@ async def test_select_questions_passes_prospect_context_to_llm():
         mock_chain = MagicMock()
         mock_chain.__or__ = MagicMock(return_value=mock_chain)
         mock_chain.ainvoke = mock_ainvoke
-        # Chain pipeline: prompt | llm | parser
         mock_llm.return_value = MagicMock()
         with patch("app.agents.question_selection_agent.ChatPromptTemplate") as mock_pt:
             with patch("app.agents.question_selection_agent.StrOutputParser") as mock_parser:
@@ -482,7 +555,6 @@ async def test_select_questions_passes_prospect_context_to_llm():
                     prospect_corrections="We also use GCP.",
                 )
 
-    # The invoke was called with the prospect context values
     assert captured_invoke.get("infrastructure_location") == "AWS us-east-1"
     assert captured_invoke.get("tech_stack_description") == "Kubernetes, Python"
     assert captured_invoke.get("current_tools") == "Datadog"
