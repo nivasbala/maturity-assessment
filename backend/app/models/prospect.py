@@ -23,6 +23,9 @@ class Prospect(Base):
 
     # Prospect-provided context (collected at registration)
     job_title = Column(String(255), nullable=True)
+    prospect_role = Column(String(100), nullable=True)
+    p3_gate_answered_yes = Column(Boolean, nullable=True)
+    p4_gate_answered_yes = Column(Boolean, nullable=True)
     infrastructure_location = Column(Text, nullable=True)
     tech_stack_description = Column(Text, nullable=True)
     current_tools = Column(Text, nullable=True)

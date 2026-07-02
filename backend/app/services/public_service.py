@@ -339,7 +339,9 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
             for p in pillars
         ],
         is_registered=prospect.is_registered,
-        prospect_role=None,
+        prospect_role=prospect.prospect_role,
+        p3_gate_answered_yes=prospect.p3_gate_answered_yes,
+        p4_gate_answered_yes=prospect.p4_gate_answered_yes,
         infrastructure_location=prospect.infrastructure_location,
         tech_stack_description=prospect.tech_stack_description,
         current_tools=prospect.current_tools,
@@ -362,6 +364,9 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     # Save context fields on Prospect record (not Account)
     if body.prospect_name:
         prospect.name = body.prospect_name
+    prospect.prospect_role = body.prospect_role
+    prospect.p3_gate_answered_yes = body.p3_gate_answered_yes
+    prospect.p4_gate_answered_yes = body.p4_gate_answered_yes
     prospect.infrastructure_location = body.infrastructure_location or prospect.infrastructure_location
     prospect.tech_stack_description = body.tech_stack_description or prospect.tech_stack_description
     prospect.current_tools = body.current_tools or prospect.current_tools

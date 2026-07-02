@@ -301,6 +301,8 @@ export interface AssessmentInfo {
   available_pillars: AvailablePillar[]
   is_registered: boolean
   prospect_role: string | null
+  p3_gate_answered_yes: boolean | null
+  p4_gate_answered_yes: boolean | null
   infrastructure_location: string | null
   tech_stack_description: string | null
   current_tools: string | null
