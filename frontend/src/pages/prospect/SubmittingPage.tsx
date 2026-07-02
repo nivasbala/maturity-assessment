@@ -153,6 +153,12 @@ export default function SubmittingPage() {
               <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
                 This usually takes 15–45 seconds
               </p>
+              <button
+                onClick={() => navigate(-1)}
+                className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
+              >
+                ← Back to Assessment
+              </button>
             </>
           )}
         </div>
