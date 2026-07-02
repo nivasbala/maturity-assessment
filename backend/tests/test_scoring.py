@@ -102,7 +102,7 @@ async def test_all_level1_returns_1_0() -> None:
     questions = [_make_question(q_id, weight=1.0) for q_id, _ in pairs]
     options = [_make_option(ao_id, 1) for _, ao_id in pairs]
     db = _make_db(questions, options)
-    score, level, label = await compute_pillar_score(db, pairs, "sre_platform_engineer")
+    score, level, label, _ = await compute_pillar_score(db, pairs, "sre_platform_engineer")
     assert score == 1.0
     assert level == 1
     assert label == "Reactive"
@@ -115,7 +115,7 @@ async def test_all_level4_returns_4_0() -> None:
     questions = [_make_question(q_id, weight=1.0) for q_id, _ in pairs]
     options = [_make_option(ao_id, 4) for _, ao_id in pairs]
     db = _make_db(questions, options)
-    score, level, label = await compute_pillar_score(db, pairs, "cto_executive")
+    score, level, label, _ = await compute_pillar_score(db, pairs, "cto_executive")
     assert score == 4.0
     assert level == 4
     assert label == "Optimized"
@@ -129,7 +129,7 @@ async def test_mixed_levels_within_range() -> None:
     questions = [_make_question(q_id) for q_id, _ in pairs]
     options = [_make_option(ao_id, lv) for (_, ao_id), lv in zip(pairs, levels)]
     db = _make_db(questions, options)
-    score, level, label = await compute_pillar_score(db, pairs, "devops_engineer")
+    score, level, label, _ = await compute_pillar_score(db, pairs, "devops_engineer")
     # (1+2+3+4)/(4*4)*4 = 10/16*4 = 2.5
     assert score == 2.5
     assert 1.0 <= score <= 4.0
@@ -147,7 +147,7 @@ async def test_question_weight_15_applied() -> None:
     q = _make_question(q_id, weight=1.5)
     ao = _make_option(ao_id, 2)
     db = _make_db([q], [ao])
-    score, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
+    score, _, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
     # num=2*1.5*1.0=3, den=4*1.5*1.0=6, score=3/6*4=2.0
     assert score == 2.0
 
@@ -159,7 +159,7 @@ async def test_question_weight_20_applied() -> None:
     q = _make_question(q_id, weight=2.0)
     ao = _make_option(ao_id, 3)
     db = _make_db([q], [ao])
-    score, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "ml_ai_engineer")
+    score, _, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "ml_ai_engineer")
     # num=3*2.0*1.0=6, den=4*2.0*1.0=8, score=6/8*4=3.0
     assert score == 3.0
 
@@ -174,7 +174,7 @@ async def test_mixed_question_weights() -> None:
     ao1 = _make_option(ao1_id, 1)  # low
     ao2 = _make_option(ao2_id, 4)  # high — heavier question
     db = _make_db([q1, q2], [ao1, ao2])
-    score, _, _ = await compute_pillar_score(db, [(q1_id, ao1_id), (q2_id, ao2_id)], "sre_platform_engineer")
+    score, _, _, _ = await compute_pillar_score(db, [(q1_id, ao1_id), (q2_id, ao2_id)], "sre_platform_engineer")
     # num=1*1*1 + 4*2*1=9, den=4*1*1 + 4*2*1=12, score=9/12*4=3.0
     assert score == 3.0
 
@@ -190,7 +190,7 @@ async def test_persona_weight_applied_for_non_general() -> None:
     q = _make_question(q_id, weight=1.0, is_general=False, persona_entries=[pe])
     ao = _make_option(ao_id, 2)
     db = _make_db([q], [ao])
-    score, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
+    score, _, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
     # num=2*1.0*1.5=3.0, den=4*1.0*1.5=6.0, score=3/6*4=2.0
     assert score == 2.0
 
@@ -204,7 +204,7 @@ async def test_general_question_ignores_persona_weight() -> None:
     q = _make_question(q_id, weight=1.0, is_general=True, persona_entries=[pe])
     ao = _make_option(ao_id, 4)
     db = _make_db([q], [ao])
-    score, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
+    score, _, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "sre_platform_engineer")
     # num=4*1.0*1.0=4, den=4*1.0*1.0=4, score=4.0
     assert score == 4.0
 
@@ -218,7 +218,7 @@ async def test_unknown_persona_defaults_to_weight_10() -> None:
     ao = _make_option(ao_id, 2)
     db = _make_db([q], [ao])
     # querying as ml_ai_engineer — no matching persona entry
-    score, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "ml_ai_engineer")
+    score, _, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "ml_ai_engineer")
     # falls back to persona_weight=1.0
     # num=2*1.0*1.0=2, den=4*1.0*1.0=4, score=2.0
     assert score == 2.0
@@ -231,7 +231,7 @@ async def test_unknown_persona_defaults_to_weight_10() -> None:
 async def test_empty_answers_returns_minimum() -> None:
     """No answers → (1.0, 1, 'Reactive')."""
     db = AsyncMock()
-    score, level, label = await compute_pillar_score(db, [], "cto_executive")
+    score, level, label, _ = await compute_pillar_score(db, [], "cto_executive")
     assert score == 1.0
     assert level == 1
     assert label == "Reactive"
@@ -249,7 +249,7 @@ async def test_missing_question_record_skipped() -> None:
 
     # DB only returns the good question; bad_q_id is missing
     db = _make_db([good_q], [good_ao])
-    score, level, label = await compute_pillar_score(
+    score, level, label, _ = await compute_pillar_score(
         db, [(good_q_id, good_ao_id), (bad_q_id, bad_ao_id)], "sre_platform_engineer"
     )
     # Only good_q counted → score=4.0
@@ -263,7 +263,7 @@ async def test_score_clamped_to_minimum() -> None:
     q = _make_question(q_id, weight=1.0)
     ao = _make_option(ao_id, 1)
     db = _make_db([q], [ao])
-    score, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "software_developer")
+    score, _, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "software_developer")
     assert score >= 1.0
 
 
@@ -274,7 +274,7 @@ async def test_score_clamped_to_maximum() -> None:
     q = _make_question(q_id, weight=1.0)
     ao = _make_option(ao_id, 4)
     db = _make_db([q], [ao])
-    score, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "software_developer")
+    score, _, _, _ = await compute_pillar_score(db, [(q_id, ao_id)], "software_developer")
     assert score <= 4.0
 
 
@@ -286,6 +286,6 @@ async def test_score_rounded_to_2_decimal_places() -> None:
     # Levels 1, 2, 4 → numerator=7, denominator=12, raw=7/12*4=2.3333...
     options = [_make_option(ao_id, lv) for (_, ao_id), lv in zip(pairs, [1, 2, 4])]
     db = _make_db(questions, options)
-    score, _, _ = await compute_pillar_score(db, pairs, "cto_executive")
+    score, _, _, _ = await compute_pillar_score(db, pairs, "cto_executive")
     assert score == round(score, 2)
     assert isinstance(score, float)
