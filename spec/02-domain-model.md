@@ -20,16 +20,16 @@ last_updated: 2026-06-28
 | Submit assessment answers | ✅ | — | — |
 | View own report on screen | ✅ | — | — |
 | Download own report as PDF | ✅ | — | — |
-| Create accounts | — | ✅ | ✅ |
-| Generate short URLs | — | ✅ | ✅ |
-| View own accounts + assessments | — | ✅ | — |
-| View raw answers for own assessments | — | ✅ | — |
-| View all accounts + assessments | — | — | ✅ |
+| Create accounts (org containers) | — | ✅ | ✅ |
+| Create prospects under accounts | — | ✅ | ✅ |
+| View own accounts + prospects | — | ✅ | — |
+| View raw answers for own prospects' assessments | — | ✅ | — |
+| View all accounts + prospects | — | — | ✅ |
 | CRUD pillars | — | — | ✅ |
 | CRUD questions | — | — | ✅ |
 | CRUD internal users | — | — | ✅ |
 
-**Critical constraint:** An internal user query for accounts, assessments, or reports MUST filter by `accounts.internal_user_id = current_user.id`. This is enforced at the service layer, not just the route layer.
+**Critical constraint:** An internal user query for assessments or reports MUST be scoped to prospects that belong to accounts where `accounts.internal_user_id = current_user.id`. This is enforced at the service layer, not just the route layer.
 
 ---
 
@@ -69,7 +69,9 @@ Not all personas carry equal weight across all pillars. This is reflected in `qu
 
 ## 2. PILLAR DEFINITIONS
 
-All pillars below are in scope for MVP. P4 is seeded with `is_active = FALSE` — it is fully defined and gated but will not appear to prospects until activated via the admin panel once its question bank is populated in `06-question-bank.md`.
+All pillars below are in scope for MVP. P4 is seeded with `is_active = FALSE` — it will not appear to prospects until activated via the admin panel.
+
+Every active pillar is available to every prospect. Prospects do not need to complete all pillars. Internal users can recommend specific pillars (set as `suggested_pillars` on the prospect record) which are highlighted with a "Recommended" badge on the pillar selection page.
 
 Adding a new pillar requires only a new row in the `pillars` database table and questions in the `questions` table. No code changes are required. This is a hard architectural constraint.
 

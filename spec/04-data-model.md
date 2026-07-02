@@ -8,7 +8,7 @@ last_updated: 2026-06-28
 
 > **When to load this file:** Any task that touches the database — migrations, API routes, services, scoring, seeding, or reporting. This is the most cross-referenced file in the spec. When in doubt, load it.
 
-Ten tables. No additional tables for MVP. All foreign keys enforce referential integrity. Soft deletes (`is_active = FALSE`) are used throughout — never hard delete data.
+Eleven tables. No additional tables for MVP. All foreign keys enforce referential integrity. Soft deletes (`is_active = FALSE`) are used throughout — never hard delete data.
 
 ---
 
@@ -16,7 +16,7 @@ Ten tables. No additional tables for MVP. All foreign keys enforce referential i
 
 ```sql
 -- Users: Admin and Internal Users only.
--- Prospects are not system users — they are stored on assessments only.
+-- Prospects are individuals tracked in the prospects table, not system users.
 CREATE TABLE users (
     id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name          VARCHAR(255) NOT NULL,
@@ -28,29 +28,45 @@ CREATE TABLE users (
     updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Accounts: One per prospect company. Created by an internal user.
--- research_cache stores Agent 1 output and is reused across all pillar
--- assessments for the same company. Cache TTL: 7 days.
--- Prospect-provided context fields are collected at registration (all optional)
--- and used as primary inputs to Agent 1 alongside web research.
+-- Accounts: Represent a target company/organisation. Created by an internal user.
+-- An account is a container for one or more Prospects (individuals at that company).
+-- Company-level data only — no personal or context fields.
 CREATE TABLE accounts (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name     VARCHAR(255) NOT NULL,
+    company_website  VARCHAR(500),
+    internal_user_id UUID NOT NULL REFERENCES users(id),
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Prospects: An individual at a target company. Created by an internal/admin user.
+-- Each prospect receives their own short URL and owns their own assessments.
+-- Agent 1 fires when a prospect is first created (non-blocking).
+CREATE TABLE prospects (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_name            VARCHAR(255) NOT NULL,
-    company_website         VARCHAR(500),
-    internal_user_id        UUID NOT NULL REFERENCES users(id),
-    suggested_pillars       UUID[] DEFAULT '{}',        -- pillar IDs the internal user recommends
+    account_id              UUID NOT NULL REFERENCES accounts(id),
+    email                   VARCHAR(255) NOT NULL,       -- set by internal user at creation; immutable
+    name                    VARCHAR(255),                 -- filled in by prospect at registration
+    job_title               VARCHAR(255),                 -- filled in by prospect at registration
     -- Prospect-provided context (optional, collected at registration):
-    infrastructure_location TEXT,   -- where their apps and infrastructure run
-    tech_stack_description  TEXT,   -- description of their tech stack
-    current_tools           TEXT,   -- current toolset in use
-    key_challenges_input    TEXT,   -- prospect-stated key challenges (free-form)
-    -- Research:
-    research_cache          JSONB,                       -- Agent 1 output cached here
+    infrastructure_location TEXT,
+    tech_stack_description  TEXT,
+    current_tools           TEXT,
+    key_challenges_input    TEXT,
+    -- Research (per-prospect; Agent 1 output cached here):
+    research_cache          JSONB,
     research_cached_at      TIMESTAMPTZ,
-    prospect_corrections    TEXT,                        -- free-form corrections submitted at ResearchSummaryPage
-    research_confirmed_at   TIMESTAMPTZ,                 -- set by POST /confirm-research
+    -- Suggested pillars set by the internal user at prospect creation:
+    suggested_pillars       UUID[] DEFAULT '{}',
+    -- Short URL (one per prospect, generated at creation):
+    short_url_token         VARCHAR(12) UNIQUE,
+    -- Registration state:
+    is_registered           BOOLEAN NOT NULL DEFAULT FALSE,
+    registered_at           TIMESTAMPTZ,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(account_id, email)
 );
 
 -- Pillars: Fully data-driven.
@@ -114,21 +130,24 @@ CREATE TABLE answer_options (
     display_order  INTEGER NOT NULL    -- always 1→4 in UI (do not shuffle)
 );
 
--- Assessments: One per prospect per pillar per account.
--- UNIQUE(account_id, pillar_id) enforces one assessment per pillar per company.
+-- Assessments: One per prospect per pillar. Created when a prospect selects a pillar.
+-- account_id is denormalized for query convenience (reachable via prospect.account_id).
+-- UNIQUE(account_id, prospect_id, pillar_id): one assessment per pillar per prospect.
 CREATE TABLE assessments (
-    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id       UUID NOT NULL REFERENCES accounts(id),
-    pillar_id        UUID NOT NULL REFERENCES pillars(id),
-    short_url_token  VARCHAR(12) NOT NULL UNIQUE,    -- 8-char URL-safe random string
-    prospect_name    VARCHAR(255),
-    prospect_email   VARCHAR(255),
-    prospect_role    VARCHAR(100),                    -- maps to persona enum values
-    status           VARCHAR(50) NOT NULL DEFAULT 'pending'
-                         CHECK (status IN ('pending', 'in_progress', 'completed')),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    completed_at     TIMESTAMPTZ,
-    UNIQUE(account_id, pillar_id)
+    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id            UUID NOT NULL REFERENCES accounts(id),     -- denormalized
+    prospect_id           UUID NOT NULL REFERENCES prospects(id),
+    pillar_id             UUID NOT NULL REFERENCES pillars(id),
+    status                VARCHAR(50) NOT NULL DEFAULT 'pending'
+                              CHECK (status IN ('pending', 'in_progress', 'completed')),
+    prospect_corrections  TEXT,           -- corrections added at ResearchSummaryPage for this assessment
+    research_confirmed_at TIMESTAMPTZ,    -- set by POST /confirm-research for this assessment
+    score                 DECIMAL(4,2),
+    started_at            TIMESTAMPTZ,
+    completed_at          TIMESTAMPTZ,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(account_id, prospect_id, pillar_id)
 );
 
 -- Assessment Answers: One row per question answered in a session.
@@ -268,25 +287,27 @@ def generate_short_token() -> str:
     return secrets.token_urlsafe(6)  # produces 8-char URL-safe string
 ```
 
-The token is stored in `assessments.short_url_token`. The full prospect URL is: `{BASE_URL}/assess/{token}`.
+The token is stored in `prospects.short_url_token` and generated when the internal user creates the prospect. The full prospect URL is: `{BASE_URL}/assess/{token}`.
 
 ---
 
 ## 7. AGENT 1 CACHE LOGIC
 
+Agent 1 fires when an internal user **creates a prospect** (non-blocking). By the time the prospect visits their URL and registers, the research is typically already complete.
+
 ```python
 from datetime import datetime, timedelta, timezone
 
-def should_refresh_research(account: Account) -> bool:
-    if account.research_cache is None:
+def should_refresh_research(prospect: Prospect) -> bool:
+    if prospect.research_cache is None:
         return True
-    if account.research_cached_at is None:
+    if prospect.research_cached_at is None:
         return True
-    cache_age = datetime.now(timezone.utc) - account.research_cached_at
+    cache_age = datetime.now(timezone.utc) - prospect.research_cached_at
     return cache_age > timedelta(days=7)
 ```
 
-If `should_refresh_research` returns `False`, skip Agent 1 and use `account.research_cache` directly.
+If `should_refresh_research` returns `False`, skip Agent 1 and use `prospect.research_cache` directly.
 
 ---
 
@@ -333,11 +354,11 @@ research_cache.get("target_customers", "")     # e.g. "enterprise DevOps teams a
 research_cache.get("operational_scale", "")    # e.g. "200+ microservices, 10M DAU"
 
 # Prospect-provided context — also passed directly to Agent 2 alongside the research:
-account.infrastructure_location    # where their apps and infra run (free-form, may be empty)
-account.tech_stack_description     # their tech stack (free-form, may be empty)
-account.current_tools              # current toolset (free-form, may be empty)
-account.key_challenges_input       # prospect-stated key challenges (free-form, may be empty)
-account.prospect_corrections       # corrections/additions from ResearchSummaryPage (may be empty)
+prospect.infrastructure_location    # where their apps and infra run (free-form, may be empty)
+prospect.tech_stack_description     # their tech stack (free-form, may be empty)
+prospect.current_tools              # current toolset (free-form, may be empty)
+prospect.key_challenges_input       # prospect-stated key challenges (free-form, may be empty)
+assessment.prospect_corrections     # corrections added at ResearchSummaryPage for this assessment
 ```
 
 ### Fallback rule (if Agent 2 fails)

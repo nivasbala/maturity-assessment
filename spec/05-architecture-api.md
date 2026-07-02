@@ -18,35 +18,32 @@ Three agents operate across three phases. Agent 1 output feeds both Agent 2 and 
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 1 — REGISTRATION  (triggers Agent 1)
+PHASE 1 — PROSPECT CREATION  (internal user action → triggers Agent 1)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Prospect fills in:
-  Required: name, email, role, gate answers
-  Optional: infrastructure location, tech stack,
-            current tools, key challenges
+Internal user fills in email (+ company from account context)
+and clicks "Create Prospect"
                     │
                     ▼
-           POST /register
+   POST /api/accounts/{id}/prospects
                     │
          ┌──────────┴──────────────────────────────────────┐
          │ returns immediately                              │ background (non-blocking)
          ▼                                                  ▼
- {session_token}                          ┌────────────────────────────────┐
- → prospect polls                         │   Agent 1: Research Agent      │──── cache hit?
-   GET /research-summary                  │                                │         │
-   (loading spinner)                      │  Input 1 — Prospect context    │ Yes: skip    │
-                                          │  (treat as ground truth):      │ No:  run     │
-                                          │  - infrastructure_location     │◄─────────────┘
-                                          │  - tech_stack_description      │
-                                          │  - current_tools               │
-                                          │  - key_challenges_input        │
+ {prospect_id,                            ┌────────────────────────────────┐
+  short_url_token,                        │   Agent 1: Research Agent      │──── cache hit?
+  full_url}                               │                                │         │
+ → internal user copies URL               │  Input 1 — Prospect context    │ Yes: skip    │
+   and shares with prospect               │  (treated as ground truth):    │ No:  run     │
+                                          │  (empty at creation —          │◄─────────────┘
+                                          │   populated after registration)│
                                           │                                │
                                           │  Input 2 — Web research:       │
-                                          │  - "{company}" + website       │
+                                          │  - company_name + website      │
                                           │  - 2–3 DuckDuckGo searches     │
                                           │                                │
-                                          │  Output → research_cache:      │
+                                          │  Output → prospect.            │
+                                          │  research_cache:               │
                                           │  - company_name                │
                                           │  - industry                    │
                                           │  - company_size                │
@@ -60,85 +57,64 @@ Prospect fills in:
                                           │  - data_confidence             │
                                           │  - research_notes              │
                                           └────────────────────────────────┘
-                                            JSONB, 7-day TTL
-                                            shared across all pillars
+                                            JSONB, 7-day TTL per prospect
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 1.5 — RESEARCH SUMMARY VALIDATION
+PHASE 1.5 — PROSPECT REGISTRATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-GET /research-summary returns is_ready=true
+Prospect visits URL → LandingPage shows registration form
+  - Email pre-populated (read-only) from prospect record
+  - Prospect fills in: name, role, gate answers, optional context
                     │
                     ▼
-         ResearchSummaryPage displays:
-         - products_summary, industry, company_size,
-           target_customers (company overview)
-         - cloud_providers, operational_scale
-         - key_challenges[], business_outcomes[]
-         - data_confidence badge (High / Medium / Low)
-         - Optional: correction / additional notes textarea
-                    │
-                    │ prospect reviews; optionally adds corrections
-                    ▼
-         POST /confirm-research
-         (saves prospect_corrections,
-          sets research_confirmed_at)
+         POST /register
+         (updates existing prospect: is_registered=true,
+          saves name, role, context fields; does NOT accept email)
                     │
                     ▼
            Pillar Selection Page
+           (suggested pillars highlighted)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PHASE 2 — QUESTION SELECTION  (Agent 2 — synchronous LLM)
+PHASE 2 — PILLAR SELECTION + RESEARCH REVIEW  (Agent 2 — background)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Prospect selects a pillar
+Prospect selects a pillar card
                     │
                     ▼
-        POST /select-pillar  ← synchronous — prospect waits
-                    │           UI shows "Personalizing your
-                    │           questions…" (~3–8 seconds)
+        POST /select-pillar  ← returns {assessment_id} immediately
+         Creates assessment (pending); starts Agent 2 in BACKGROUND
                     │
-                    ▼
-   DB fetch: general questions + persona-eligible questions
-   for this pillar (with id, text, context_tags per question)
-                    │
-                    ▼
-   ┌────────────────────────────────────────────────────┐
-   │   Agent 2: Question Selection Agent (LLM)          │
-   │   (question_selection_agent.py)                    │
-   │                                                    │
-   │  Input:                                            │
-   │  - prospect persona + pillar context               │
-   │  - research_cache from Agent 1 (company profile)  │
-   │  - prospect-provided context (tech stack, tools,  │
-   │    key challenges, and any corrections)            │
-   │  - candidate questions list:                       │
-   │    • all general questions (must include all)      │
-   │    • all persona-eligible questions for this role  │
-   │    each with: id, text, context_tags               │
-   │                                                    │
-   │  LLM selects which questions are most             │
-   │  diagnostic given:                                 │
-   │    • prospect's directly stated tech context       │
-   │      and key challenges (primary signal)           │
-   │    • company profile: industry, challenges,        │
-   │      outcomes, target customers, scale             │
-   │    • prospect's role and expertise level           │
-   │    • context_tags as structured relevance hints    │
-   │                                                    │
-   │  If research_cache is empty:                       │
-   │    → selects based on prospect context + persona   │
-   │  If Agent 2 fails (timeout/error):                 │
-   │    → rule-based fallback:                          │
-   │      general_count general + remaining persona     │
-   │      by display_order (up to question_count total) │
-   │                                                    │
-   │  Output: ordered list of {question_count} IDs     │
-   └─────────────────────┬──────────────────────────────┘
-                         │
-                         ▼
-            question_count questions returned to prospect
-            (ordered for maximum diagnostic value)
+         ┌──────────┴──────────────────────────────────────┐
+         │ returns immediately                              │ background (non-blocking)
+         ▼                                                  ▼
+ → navigate to ResearchSummaryPage     ┌────────────────────────────────────────────────────┐
+   (Agent 1 ran at prospect creation;  │   Agent 2: Question Selection Agent (LLM)          │
+    research typically already ready)  │   (question_selection_agent.py)                    │
+                                        │                                                    │
+   ResearchSummaryPage:                │  Input:                                            │
+   - shows company profile              │  - prospect persona + pillar context               │
+   - data_confidence badge             │  - research_cache from prospect                    │
+   - optional corrections textarea     │  - prospect context (tech stack, tools,            │
+                                        │    key challenges, any corrections)                │
+                    │                   │  - candidate questions list                        │
+                    │ POST /confirm-    │                                                    │
+                    │ research:         │  LLM selects which questions are most             │
+                    │ - stores          │  diagnostic given:                                 │
+                    │   corrections on  │    • prospect's tech context + key challenges      │
+                    │   assessment      │    • company profile: industry, challenges,        │
+                    │ - sets            │      outcomes, target customers, scale             │
+                    │   confirmed_at    │    • prospect's role and expertise level           │
+                    │ - waits for       │    • context_tags as structured relevance hints    │
+                    │   Agent 2 →       │                                                    │
+                    │   returns         │  If Agent 2 fails (timeout/error):                 │
+                    │   questions       │    → rule-based fallback:                          │
+                    │                   │      general_count general + remaining persona     │
+                    ▼                   │      by display_order (up to question_count total) │
+          questions returned            │                                                    │
+          to prospect                   │  Output: ordered list of {question_count} IDs     │
+                                        └────────────────────────────────────────────────────┘
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PHASE 3 — REPORT GENERATION  (Agent 3 — uses Agent 1 cache + answers)
@@ -186,9 +162,9 @@ Prospect answers question_count questions → submits
 **Tool:** DuckDuckGo Search (langchain-community)
 
 **Cache behavior:**
-- Check `accounts.research_cached_at` before running
-- If cache is fresh (< 7 days old), skip Agent 1 and use `accounts.research_cache`
-- If cache is stale or empty, run Agent 1 and update `accounts.research_cache` and `accounts.research_cached_at`
+- Check `prospect.research_cached_at` before running
+- If cache is fresh (< 7 days old), skip Agent 1 and use `prospect.research_cache`
+- If cache is stale or empty, run Agent 1 and update `prospect.research_cache` and `prospect.research_cached_at`
 - If search fails entirely, return a minimal profile from company name alone — do not block report generation
 
 **Two inputs passed into the agent by the calling service:**
@@ -341,7 +317,7 @@ RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
 
 **File:** `backend/app/agents/question_selection_agent.py`
 
-**When it runs:** Synchronously at `/select-pillar` time. The prospect waits while this agent executes (~3–8 seconds). This is a standalone LangChain chain — not part of the LangGraph submit pipeline.
+**When it runs:** In the **background** immediately after `POST /select-pillar`. The assessment is created first; Agent 2 runs while the prospect reviews the research summary. `POST /confirm-research` waits for Agent 2 to complete before returning questions (so Agent 2 must finish within the time the prospect spends reviewing research, typically 30–120s). This is a standalone LangChain chain — not part of the LangGraph submit pipeline.
 
 **Input preparation (before calling the agent):**
 The calling service fetches from the DB:
@@ -368,6 +344,7 @@ You will receive:
    Key challenges they stated:  {key_challenges_input}
    Corrections / additional notes after research review: {prospect_corrections}
    (Empty fields above were not provided by the prospect)
+   Note: prospect context fields come from the prospects table; corrections from assessments.prospect_corrections
 
 5. Candidate questions (JSON):
 {candidate_questions_json}
@@ -478,8 +455,8 @@ Constraints:
 ```
 State: AssessmentReportState
 Nodes:
-  - research_node        → reads from accounts.research_cache
-                           (Agent 1 already fired at /register — do NOT re-trigger)
+  - research_node        → reads from prospect.research_cache
+                           (Agent 1 already fired at prospect creation — do NOT re-trigger)
                            Only re-runs Agent 1 if cache is NULL (edge case: prospect
                            submitted before Agent 1 background task completed)
   - compute_score_node   → runs scoring formula synchronously
@@ -559,23 +536,27 @@ GET    /api/accounts
   → list accounts (own only for internal_user: filter by internal_user_id = me)
 
 POST   /api/accounts
-  Body:    {company_name, company_website?, suggested_pillars?: uuid[]}
+  Body:    {company_name, company_website?}
   Returns: account object
 
 GET    /api/accounts/{id}
-  → account with pillar assessment statuses
+  → account with list of prospects (registration status, assessment count per prospect)
 
 GET    /api/accounts/{id}/aggregate
-  → aggregate score view
-  → Returns 404 if fewer than 2 assessments are completed for this account
+  → aggregate score view across all completed assessments for this account
+  → Returns 404 if fewer than 2 assessments are completed across all prospects
 
-POST   /api/accounts/{id}/assessments
-  Body:    {pillar_id: uuid}
-  Returns: {assessment_id, short_url_token, full_url}
-  Error:   409 if assessment already exists for this account + pillar
+POST   /api/accounts/{id}/prospects
+  Body:    {email: string, suggested_pillars?: uuid[]}
+  Returns: {prospect_id, email, short_url_token, full_url, is_registered: false}
+  Error:   409 if a prospect with this email already exists under this account
+  Side effect: creates prospect record; generates short_url_token; triggers Agent 1 in background
 
-GET    /api/accounts/{id}/assessments
-  → list all assessments for account with status + scores
+GET    /api/accounts/{id}/prospects
+  → list all prospects for account with registration status and assessment summary
+
+GET    /api/accounts/{id}/prospects/{prospect_id}
+  → prospect detail: context fields, assessments list with status + scores
 
 GET    /api/assessments/{id}
   → assessment detail (prospect info + status)
@@ -593,31 +574,31 @@ GET    /api/assessments/{id}/report
 GET    /api/public/assess/{token}
   Returns: {
     company_name: string,
+    prospect_email: string,            -- pre-populate email field (read-only)
     suggested_pillars: uuid[],
     available_pillars: [{id, name, description, is_gated, gate_question}]
   }
-  Error: 404 if token not found
+  Error: 404 if token not found; 410 if prospect is already registered
 
 POST   /api/public/assess/{token}/register
   Body:    {
     prospect_name: string,
-    prospect_email: string,
     prospect_role: string,              -- must match persona enum
     p3_gate_answered_yes?: boolean,     -- required if P3 is active
     p4_gate_answered_yes?: boolean,     -- required if P4 is active
-    -- Optional prospect context (stored on account, passed to Agent 1):
-    infrastructure_location?: string,  -- where their apps and infrastructure run (free-form)
-    tech_stack_description?: string,   -- description of their tech stack (free-form)
-    current_tools?: string,            -- current toolset in use (free-form)
-    key_challenges_input?: string      -- prospect-stated key challenges (free-form)
+    -- Optional prospect context (stored on prospects table, passed to Agent 1 if re-run):
+    infrastructure_location?: string,
+    tech_stack_description?: string,
+    current_tools?: string,
+    key_challenges_input?: string
+    -- NOTE: email is NOT accepted — it is already set on the prospect record and is immutable
   }
-  Returns: {session_token: string}  -- short-lived JWT (2hr), stored client-side in sessionStorage
-  Side effect: saves optional context fields to accounts table if provided
-  Side effect: if p3_gate_answered_yes = false, P3 excluded from subsequent pillar menu
-  Side effect: if p4_gate_answered_yes = false, P4 excluded from subsequent pillar menu
-  Side effect: P4 always excluded if pillar is_active = FALSE (regardless of gate answer)
-  Side effect: triggers Agent 1 in background (non-blocking) — Agent 1 receives both
-               company_name/website AND all prospect-provided context fields
+  Returns: {session_token: string}  -- short-lived JWT (2hr) scoped to prospect_id
+  Error:   409 if prospect is already registered (is_registered = TRUE)
+  Side effect: sets prospect.is_registered = TRUE, prospect.registered_at = now()
+  Side effect: saves optional context fields to prospects table
+  Side effect: saves gate answers to session; gates determine which pillars appear
+  Side effect: if context fields provided, re-runs Agent 1 with enriched prospect context
 
 GET    /api/public/assess/{token}/research-summary
   Headers: X-Session-Token: <session_token>
@@ -637,41 +618,36 @@ GET    /api/public/assess/{token}/research-summary
     data_confidence?: "high" | "medium" | "low",
     research_notes?: string
   }
-  Note: is_ready reflects whether accounts.research_cache is populated.
-        Poll every 3 seconds until is_ready=true.
-        If Agent 1 has not completed after 60s, is_ready=true is returned
-        with empty/null profile fields so the prospect is never blocked.
-
-POST   /api/public/assess/{token}/confirm-research
-  Headers: X-Session-Token: <session_token>
-  Body:    {prospect_corrections?: string}  -- optional free-form correction text
-  Returns: {success: true}
-  Side effect: saves prospect_corrections to accounts table
-  Side effect: sets research_confirmed_at timestamp on accounts table
+  Note: Agent 1 ran at prospect CREATION so is_ready=true is typical by registration time.
+        If Agent 1 still running (unusual), poll every 3 seconds.
+        After 60s returns is_ready=true with empty fields to avoid blocking.
 
 POST   /api/public/assess/{token}/select-pillar
   Headers: X-Session-Token: <session_token>
   Body:    {pillar_id: uuid}
+  Returns: {assessment_id: uuid}    ← returns immediately; questions come from confirm-research
+  Execution: NON-BLOCKING — creates assessment, starts Agent 2 in background
+  Side effect: creates assessment (status: in_progress, prospect_id from session)
+  Side effect: starts Agent 2 asynchronously (runs while prospect reviews research summary)
+  Error:   409 if assessment already exists for this prospect + pillar
+
+POST   /api/public/assess/{token}/confirm-research
+  Headers: X-Session-Token: <session_token>
+  Body:    {assessment_id: uuid, prospect_corrections?: string}
   Returns: {
-    assessment_id: uuid,
     questions: [{
       id: uuid,
       text: string,
       answer_options: [{id, text, display_order}]
     }]
   }
-  Execution: SYNCHRONOUS — endpoint waits for Agent 2 to complete before returning
-  Side effect: sets assessment.status = 'in_progress'
-  Question selection sequence:
-    1. Fetch general questions + persona-eligible questions for this pillar from DB
-    2. Call Agent 2 (Question Selection) with: persona, pillar context,
-       research_cache, prospect-provided context (infrastructure_location,
-       tech_stack_description, current_tools, key_challenges_input,
-       prospect_corrections), and candidate question list
-    3. Agent 2 returns {question_count} ordered question IDs
-    4. If Agent 2 fails: fallback to all general + (question_count − general_count) persona by display_order
-    5. Fetch full question objects (text + answer_options) for the selected question IDs
-    6. Return questions in Agent 2's selected order
+  Execution: SYNCHRONOUS — waits for Agent 2 to complete (typically <2s remaining)
+  Side effect: saves prospect_corrections to assessment
+  Side effect: sets assessment.research_confirmed_at = now()
+  Question selection sequence (Agent 2 was already running in background):
+    1. Wait for background Agent 2 to complete (or use fallback if timed out)
+    2. Fetch full question objects (text + answer_options) for the selected question IDs
+    3. Return questions in Agent 2's selected order
 
 POST   /api/public/assess/{token}/submit
   Headers: X-Session-Token: <session_token>
@@ -735,10 +711,10 @@ Every page in a sequential flow must show the user's current position (step indi
 
 | Page | Back navigation | Forward navigation (action) |
 |---|---|---|
-| LandingPage | None — this is the main URL (entry point) | "Begin Assessment" → ResearchSummaryPage |
-| ResearchSummaryPage | "← Back" → LandingPage | "Confirm & Continue" → PillarSelectPage |
-| PillarSelectPage | "← Back" → ResearchSummaryPage | Select a pillar card → AssessmentPage |
-| AssessmentPage | "← Back" → PillarSelectPage; prev/next between questions within session | "Submit" on last question → ReportPage |
+| LandingPage | None — this is the main URL (entry point) | "Begin Assessment" → PillarSelectPage |
+| PillarSelectPage | "← Back" → LandingPage | Select a pillar card → ResearchSummaryPage |
+| ResearchSummaryPage | "← Back" → PillarSelectPage (cancels in-progress assessment) | "Confirm & Start Assessment" → AssessmentPage |
+| AssessmentPage | "← Back" → PillarSelectPage (abandons in-progress assessment); prev/next between questions | "Submit" on last question → ReportPage |
 | ReportPage | "← Back" → PillarSelectPage | "Take another pillar" → PillarSelectPage |
 
 **Internal user flow navigation:**
@@ -746,8 +722,9 @@ Every page in a sequential flow must show the user's current position (step indi
 | Page | Back navigation | Forward navigation (action) |
 |---|---|---|
 | AccountsListPage | None — root page | Account row → AccountDetailPage |
-| AccountDetailPage | "← Back to accounts" | Pillar row → ReportDetailPage |
-| ReportDetailPage | "← Back to account" | None |
+| AccountDetailPage | "← Back to accounts" | Prospect row → ProspectDetailPage |
+| ProspectDetailPage | "← Back to account" | Assessment row → ReportDetailPage |
+| ReportDetailPage | "← Back to prospect" | None |
 
 The Admin panel uses standard CRUD navigation; breadcrumbs required on all non-list views.
 
@@ -833,42 +810,39 @@ Pages under the `/assess/:token/*` route prefix must **never** contain a link, b
   - Key challenges (textarea): placeholder "e.g. reducing alert noise across 300+ microservices, managing GPU costs for real-time inference" — label: "What are your biggest technology or operational challenges?"
   - Helper text beneath the section: "The more context you provide, the more relevant your questions and report will be"
 - Primary CTA: "Begin Assessment"
-- On submit: POST `/register` (including optional context fields), store session_token in sessionStorage, navigate to research summary page
-
-**Research Summary Page (`/assess/:token/research-summary`)**
-- Shown immediately after registration — prospect cannot skip this step (UI routing enforced)
-- **Loading state** (shown while is_ready=false):
-  - Full-page centered spinner
-  - Static message: "Researching your company…"
-  - Polls GET `/research-summary` every 3 seconds
-- **Profile display** (shown once is_ready=true):
-  - **Company overview:** products_summary (narrative paragraph), industry badge, company_size badge, target_customers
-  - **Infrastructure & cloud:** cloud_providers (tag chips), operational_scale
-  - **Key challenges:** bullet list from key_challenges[]
-  - **Business outcomes:** bullet list from business_outcomes[]
-  - **Data confidence badge:** "High" (green) / "Medium" (yellow) / "Low" (grey)
-    - Tooltip/helper: explains how much public information was found
-- **Optional corrections section** (collapsible, closed by default):
-  - Label: "Something look off? Add corrections or additional context"
-  - Single textarea: {prospect_corrections}
-  - Helper text: "Your corrections will be used to improve question selection and your final report"
-- Primary CTA: "Confirm & Continue"
-- On confirm: POST `/confirm-research` (with optional corrections text), navigate to pillar selection page
-- **Failure state** (if Agent 1 timed out and cache is still empty):
-  - Skip profile display sections; show: "We couldn't find much about [company name] — your assessment will proceed with the context you provided"
-  - CTA still reads "Confirm & Continue" and navigates to pillar selection
+- On submit: POST `/register` (including optional context fields), store session_token in sessionStorage, navigate to **pillar selection page**
+- Note: Email field is pre-populated (read-only) from the prospect record — the prospect cannot change it
 
 **Pillar Selection Page (`/assess/:token/pillars`)**
 - 2-column card grid of available pillars
 - Each card: pillar name, 1-sentence description, "~8 minutes" time estimate
-- Suggested pillars (from `account.suggested_pillars`): highlighted with "Recommended" badge
+- Suggested pillars (from `prospect.suggested_pillars`): highlighted with "Recommended" badge
 - P3 card: hidden if P3 gate answered No
 - P4 card: hidden if P4 gate answered No OR if P4 `is_active = FALSE`
 - Already-completed pillars: disabled card, shows score badge and "Completed" label
 - Each card CTA: "Start Assessment"
-- On click: POST `/select-pillar` (synchronous) — show inline loading state on the card
-  ("Personalizing your questions…") while Agent 2 runs (~3–8 seconds)
-- On response: navigate to Assessment Page with questions
+- On click: POST `/select-pillar` — creates assessment and starts Agent 2 in background; navigate to Research Summary page for this assessment
+
+**Research Summary Page (`/assess/:token/assessment/:assessmentId/research`)**
+- Shown after pillar selection, before questions begin (prospect cannot skip this step)
+- Agent 1 ran at prospect creation — research is typically ready immediately (no spinner needed in most cases)
+- **Loading state** (shown if is_ready=false — rare):
+  - Full-page centered spinner + "Researching your company…"; polls GET `/research-summary` every 3 seconds
+- **Profile display** (shown once is_ready=true):
+  - **Company overview:** products_summary, industry badge, company_size badge, target_customers
+  - **Infrastructure & cloud:** cloud_providers (tag chips), operational_scale
+  - **Key challenges:** bullet list from key_challenges[]
+  - **Business outcomes:** bullet list from business_outcomes[]
+  - **Data confidence badge:** "High" (green) / "Medium" (yellow) / "Low" (grey)
+- **Optional corrections section** (collapsible, closed by default):
+  - Label: "Something look off? Add corrections or additional context"
+  - Textarea: {prospect_corrections}
+  - Helper text: "Your corrections will be used to personalise your questions and final report"
+- Primary CTA: "Confirm & Start Assessment"
+- On confirm: POST `/confirm-research` with `{assessment_id, prospect_corrections?}` — stores corrections on this assessment, waits for Agent 2, then navigates to Assessment Page with questions
+- **Failure state** (if Agent 1 timed out):
+  - Show "We couldn't find much about [company name] — your assessment will proceed with the context you provided"
+  - CTA still confirms and proceeds
 
 **Assessment Page (`/assess/:token/assessment/:assessmentId`)**
 - Progress bar at top: "Question 4 of {question_count}" (dynamic — reflects pillar.question_count)
@@ -909,8 +883,8 @@ PDF download:
 ### 3.4 Internal User Dashboard — Page Specifications
 
 **Accounts List (`/dashboard`)**
-- Table columns: Company Name, Website, Pillars Sent, Pillars Completed, Date Created, Actions
-- "New Account" button → opens modal with fields: Company Name (required), Website (optional), Suggested Pillars (multi-select from active pillars)
+- Table columns: Company Name, Website, Prospects (total), Prospects Registered, Date Created, Actions
+- "New Account" button → opens modal with fields: Company Name (required), Website (optional)
 - Click row → navigate to Account Detail page
 
 **Account Detail (`/dashboard/accounts/:id`)**
@@ -918,28 +892,33 @@ PDF download:
 Account header section:
 - Company name, website (linked), date created, created by (internal user name)
 
-Pillar status grid (one row per active pillar):
+**Prospects section** (primary view):
+- Table of prospects under this account:
 ```
-Pillar Name      | Prospect Name  | Prospect Role | Score    | Status      | Action
-P1 Observability | Sarah Smith    | SRE           | 2.4 / 4  | ✅ Complete  | [View Report]
-P2 AIOps         | —              | —             | —        | ⏳ Sent      | [Copy URL]
-P3 AI Applications | —              | —             | —        | 📋 Not Sent  | [Generate URL]
-P4 ML & Models   | —              | —             | —        | 🔒 Inactive  | [Admin Only]
-P5 Security      | —              | —             | —        | 📋 Not Sent  | [Generate URL]
+Email                 | Name          | Registered | Pillars Done | Actions
+jane@acme.com         | Jane Smith    | ✅ Yes      | 2 / 5        | [View] [Copy URL]
+john@acme.com         | —             | ⏳ Pending  | 0 / 5        | [View] [Copy URL]
 ```
+- "Create Prospect" button → opens inline form:
+  - Company: {account.company_name} (read-only, shown for context)
+  - Email (required): the prospect's email address
+  - Suggested Pillars (optional multi-select from active pillars): pre-selected pillars shown with "Recommended" badge on the prospect's pillar menu
+  - On submit: `POST /api/accounts/{id}/prospects` → displays generated URL with copy-to-clipboard
+  - Error: 409 shown inline if email already exists under this account
+- Click prospect row → Prospect Detail page
 
-P4 row behavior: shown in the grid with "Inactive" status and no Generate URL button when `is_active = FALSE`. When activated by admin, behaves identically to other gated pillars.
-
-"Generate URL" button:
-- Calls POST `/api/accounts/{id}/assessments` with selected pillar_id
-- Returns short URL
-- Opens modal showing the full URL with copy-to-clipboard button
-- Disabled if assessment already exists for this pillar (status: pending or completed)
-
-"Aggregate View" tab:
-- Visible only when 2+ pillar assessments are completed for this account
-- Shows a radar chart with all completed pillar scores overlaid
-- Summary table: pillar name, score, maturity label, prospect name
+**Prospect Detail (`/dashboard/accounts/:id/prospects/:prospectId`)**
+- Prospect header: email, name (if registered), registration status, date created
+- Pillar status grid (all active pillars shown):
+```
+Pillar Name      | Score    | Status        | Action
+P1 Observability | 2.4 / 4  | ✅ Complete    | [View Report]
+P2 AIOps         | —        | ⏳ In Progress | —
+P3 AI Apps       | —        | 📋 Not Started | —
+P4 ML & Models   | —        | 🔒 Inactive    | [Admin Only]
+P5 Security      | —        | 📋 Not Started | —
+```
+- "Aggregate View" tab: visible only when 2+ assessments completed for this prospect; radar chart of completed pillar scores; summary table: pillar name, score, maturity label
 
 **Report Detail (`/dashboard/assessments/:id`)**
 Two tabs:

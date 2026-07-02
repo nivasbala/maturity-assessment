@@ -20,8 +20,9 @@ Build a **Partner Maturity Assessment Platform** that enables Datadog's internal
 
 The application is complete when ALL of the following are true:
 
-- [ ] An internal user can create a prospect account, generate a short URL, and send it to a prospect
-- [ ] A prospect can click the URL, complete registration (including optional tech context), review and confirm the research summary, select a pillar, answer the configured number of questions, and immediately see their maturity report on screen
+- [ ] An internal user can create a prospect account, create one or more prospects with emails, and share the generated URL with each prospect
+- [ ] A prospect can click their unique URL, complete registration (email pre-populated and read-only, plus optional tech context), select a pillar, review the research summary, answer the configured number of questions, and immediately see their maturity report on screen
+- [ ] Two prospects under the same account can each independently complete assessments without affecting each other's data
 - [ ] A prospect can download their report as a PDF
 - [ ] A prospect can optionally take additional pillar assessments after completing one
 - [ ] The research summary validation step shows Agent 1 output and allows prospect to add corrections before proceeding
@@ -75,33 +76,34 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Score correctly applies question_weight and persona_weight in formula
 
 ### 3.5 Agent Behavior
-- [ ] Agent 1 fires at `/register` time (non-blocking) — verify by checking research_cache is populated before select-pillar is called
-- [ ] Agent 1 receives both web research inputs (company_name, website) AND prospect-provided context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input)
+- [ ] Agent 1 fires at **prospect creation** time (non-blocking) — verify by checking prospect.research_cache is populated before prospect registers
+- [ ] Agent 1 receives web research inputs (company_name, company_website from account) at prospect creation; re-runs with enriched prospect context if context fields are provided at registration
 - [ ] Agent 1 output does NOT include technology_signals — prospect tech context is passed separately to Agent 2
 - [ ] Agent 1 output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes
-- [ ] Agent 1 result stored in `accounts.research_cache` after first run
-- [ ] Second pillar assessment for same account uses cached research (no second Agent 1 call)
+- [ ] Agent 1 result stored in `prospects.research_cache` after first run
+- [ ] Second pillar assessment for same prospect uses cached research (no second Agent 1 call)
 - [ ] Cache older than 7 days triggers Agent 1 re-run
-- [ ] Agent 2 receives TWO inputs: (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections)
-- [ ] Agent 2 (Question Selection) runs synchronously at `/select-pillar` time
+- [ ] Agent 2 receives TWO inputs: (1) research_cache from prospect; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections from assessment)
+- [ ] Agent 2 starts in the **background** immediately after `POST /select-pillar`; not synchronous
 - [ ] Agent 2 output is validated: correct count, all IDs from the provided candidate pool
 - [ ] Agent 2 failure triggers rule-based fallback — assessment proceeds without user-facing error
 - [ ] LangGraph orchestrator (submit pipeline) covers Agent 3 only — does NOT call Agent 1 or Agent 2
-- [ ] LangGraph research_node reads from cache; only re-runs Agent 1 if cache is NULL
+- [ ] LangGraph research_node reads from prospect.research_cache; only re-runs Agent 1 if cache is NULL
 - [ ] If Agent 1 fails or cache empty at submit time, Agent 3 still generates report with empty company profile
 - [ ] Changing `LLM_PROVIDER=anthropic` in `.env` and restarting works without code changes for all three agents
 
 ### 3.6 Research Summary Validation
-- [ ] GET /research-summary returns is_ready=false while Agent 1 is running
+- [ ] GET /research-summary returns is_ready=false while Agent 1 is running (rare — Agent 1 ran at prospect creation)
 - [ ] GET /research-summary returns is_ready=true with full profile once Agent 1 completes
-- [ ] ResearchSummaryPage shows loading spinner until is_ready=true
+- [ ] ResearchSummaryPage shown after pillar selection (between select-pillar and assessment questions)
 - [ ] ResearchSummaryPage displays: company overview, key_challenges, business_outcomes, cloud_providers, operational_scale, data_confidence badge
 - [ ] data_confidence badge accurately reflects the quality of available public information
 - [ ] Prospect can submit optional corrections via the correction text area
-- [ ] POST /confirm-research saves prospect_corrections to accounts table
-- [ ] POST /confirm-research sets research_confirmed_at timestamp on accounts table
-- [ ] Corrections are passed to Agent 2 and Agent 3 alongside the research profile
-- [ ] Prospect cannot proceed to pillar selection without passing through the research summary page (UI routing enforced)
+- [ ] POST /confirm-research saves prospect_corrections to **assessments** table (not accounts or prospects)
+- [ ] POST /confirm-research sets research_confirmed_at on the **assessments** table
+- [ ] POST /confirm-research waits for background Agent 2 to complete and returns questions
+- [ ] Corrections are passed to Agent 2 alongside the research profile (via assessment record)
+- [ ] Prospect cannot proceed to questions without passing through the research summary page (UI routing enforced)
 
 ### 3.7 Report Completeness
 - [ ] Report contains: executive_summary, strengths (2–4), gap_analysis (3–6), next_steps (4–6)
@@ -110,10 +112,13 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] PDF download produces a non-empty PDF file
 
 ### 3.8 Internal User Dashboard
-- [ ] Account row shows correct count of sent / completed pillars
-- [ ] Aggregate view visible only when 2+ pillars are completed for an account
+- [ ] Account Detail page lists all prospects under the account with email, registration status, and assessment count
+- [ ] "Create Prospect" form accepts email; on submit creates prospect and displays the generated URL with copy button
+- [ ] 409 error shown if the same email is used twice under the same account
+- [ ] Clicking a prospect navigates to Prospect Detail showing all pillar statuses for that prospect
+- [ ] Aggregate view visible only when 2+ pillar assessments are completed for a single prospect
 - [ ] Raw answers tab shows all pillar.question_count questions with correct selected answer text
-- [ ] "Generate URL" disabled for a pillar that already has an assessment (pending or complete)
+- [ ] Internal user can only see accounts (and their prospects) they created
 
 ### 3.9 Admin CRUD
 - [ ] Creating a new pillar with `is_active=TRUE` makes it appear in the prospect pillar menu
@@ -135,12 +140,13 @@ Each criterion must be explicitly tested before the spec is considered implement
 
 ### 3.11 UI Consistency
 - [ ] LandingPage shows no back navigation — it is the entry point URL sent to the prospect
-- [ ] ResearchSummaryPage shows a back link to LandingPage
-- [ ] PillarSelectPage shows a back link to ResearchSummaryPage
+- [ ] LandingPage email field is pre-populated from the prospect record and is read-only
+- [ ] PillarSelectPage shows a back link to LandingPage
+- [ ] ResearchSummaryPage shows a back link to PillarSelectPage (cancels the in-progress assessment)
 - [ ] AssessmentPage shows a back link to PillarSelectPage, plus prev/next question buttons within the session
 - [ ] ReportPage shows a back link to PillarSelectPage
 - [ ] Navigating back to any page within the prospect flow restores all previously entered form values on that page (LandingPage fields, ResearchSummaryPage corrections, AssessmentPage question answers)
-- [ ] AccountDetailPage shows a back link to AccountsListPage; ReportDetailPage shows a back link to AccountDetailPage
+- [ ] AccountDetailPage shows a back link to AccountsListPage; Prospect Detail shows a back link to AccountDetailPage
 - [ ] All primary action buttons use `bg-blue-600` (light) / `dark:bg-blue-500` (dark) — no other button colors except `bg-red-600` for destructive (delete/remove) actions in the Admin panel
 - [ ] All navigation and back links use `text-blue-600` (light) / `dark:text-blue-400` (dark)
 - [ ] Dark mode renders no black text — every text element uses a paired `text-*` / `dark:text-*` Tailwind class; `text-black` and `dark:text-black` do not appear in any component file

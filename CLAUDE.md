@@ -76,7 +76,7 @@ Key areas to verify:
 - **Question Selection:** Agent 2 dual inputs — (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections); returns pillar.question_count IDs; falls back to rule-based if LLM fails
 - **Gated Pillars (P3 & P4):** P3 hidden when gate answered No; P4 hidden when gate answered No OR when is_active=FALSE
 - **Research Summary:** prospect reviews Agent 1 output before pillar selection; optional corrections saved; data_confidence badge shown; GET /research-summary polls until is_ready=true
-- **Agent Behavior:** Agent 1 fires at `/register` (non-blocking, dual inputs: web + prospect context); Agent 2 runs synchronously at `/select-pillar`; LangGraph orchestrator at submit covers Agent 3 only; all agents use same LLM factory
+- **Agent Behavior:** Agent 1 fires at **prospect creation** (non-blocking, dual inputs: web + prospect context after registration); Agent 2 runs in **background** at `/select-pillar`; `/confirm-research` waits for Agent 2 and returns questions; LangGraph orchestrator at submit covers Agent 3 only; all agents use same LLM factory
 - **Report Completeness:** executive_summary, 2–4 strengths, 3–6 gaps, 4–6 next steps; no vendor names
 - **Infrastructure:** `docker compose up` runs without manual steps; migrations run automatically
 - **UI Consistency (any task touching frontend):** back navigation on every prospect page except LandingPage; form state persists when navigating back/forward; blue buttons and links throughout; no `text-black` in dark mode; prospect pages never link to admin/login routes; session expiry shows inline error only
@@ -156,11 +156,11 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 - Three user roles: Prospect (unauthenticated), Internal User, Admin
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI Application Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive — activates via admin panel), P5 Security & DevSecOps
 - 50-question bank per pillar; session question count admin-configurable per pillar (default 12); bounds controlled by system_settings (question_count_min default 12 hard floor, question_count_max default 25, both admin-editable via System Settings page)
-- Prospect context collection at registration: optional infrastructure location, tech stack description, current tools, and key challenges — stored on account, passed to Agent 1 as primary input
-- Research summary validation step between registration and pillar selection: prospect reviews Agent 1 output, optionally corrects it, then confirms before proceeding
-- Three-agent architecture: Agent 1 (Research, dual-input: web + prospect context), Agent 2 (Question Selection, dual-input: research profile + prospect context), Agent 3 (Report Generation)
-- Agent 2 uses prospect's raw tech descriptions as primary selection signal; falls back to rule-based if LLM fails
-- Short URL generation and prospect landing flow
+- Internal/admin users create **Prospect** records under an **Account** (org container) by providing an email. Creating a Prospect generates a unique short URL scoped to that Prospect. Multiple Prospects can exist under one Account — each is independent.
+- The landing/registration page pre-populates and locks the email from the Prospect record. Registration updates the Prospect record (does not create a new one).
+- Prospect context collection at registration: optional infrastructure location, tech stack, current tools, and key challenges — stored on the **prospect** record, passed to Agent 1 as primary input
+- Research summary validation step: shown **after pillar selection** (per-assessment); corrections stored on **assessment** record; `POST /confirm-research` waits for background Agent 2 and returns questions
+- Agent 1 fires at **Prospect creation** (non-blocking); by registration time, research is typically ready
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregate view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
@@ -264,12 +264,12 @@ Apply to every task that produces or modifies a frontend component (Tasks 5, 6, 
 | Page | Back navigation |
 |---|---|
 | LandingPage | None (entry point) |
-| ResearchSummaryPage | "← Back" → LandingPage |
-| PillarSelectPage | "← Back" → ResearchSummaryPage |
+| PillarSelectPage | "← Back" → LandingPage |
+| ResearchSummaryPage | "← Back" → PillarSelectPage |
 | AssessmentPage | "← Back" → PillarSelectPage; prev/next within questions |
 | ReportPage | "← Back" → PillarSelectPage |
 
-Internal user flow: AccountDetailPage ← AccountsListPage; ReportDetailPage ← AccountDetailPage.
+Internal user flow: AccountDetailPage ← AccountsListPage; Prospect Detail ← AccountDetailPage.
 
 ### Session-Persistent Form State
 
