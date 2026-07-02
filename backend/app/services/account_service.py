@@ -24,8 +24,6 @@ from app.schemas.internal import (
     AccountCreate,
     AccountDetailOut,
     AccountListOut,
-    AggregateOut,
-    AggregateScoreItem,
     AnswerRow,
     AssessmentAnswersOut,
     AssessmentCreatedOut,
@@ -571,56 +569,6 @@ async def delete_account(
     await db.commit()
     logger.info("delete_account: account_id=%s user_id=%s", account_id, current_user.id)
 
-
-async def get_account_aggregate(
-    db: AsyncSession,
-    account_id: UUID,
-    current_user: User,
-) -> AggregateOut:
-    account = (
-        await db.execute(select(Account).where(Account.id == account_id))
-    ).scalar_one_or_none()
-    if not account:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
-    assert_owns_account(current_user, account)
-
-    completed = (
-        await db.execute(
-            select(Assessment)
-            .options(selectinload(Assessment.pillar), selectinload(Assessment.report))
-            .where(
-                Assessment.account_id == account_id,
-                Assessment.status == "completed",
-            )
-        )
-    ).scalars().all()
-
-    scores = [
-        AggregateScoreItem(
-            pillar_id=a.pillar_id,
-            pillar_name=a.pillar.name,
-            pillar_score=float(a.report.pillar_score),
-            maturity_label=a.report.maturity_label,
-            prospect_name=a.prospect_name,
-            prospect_role=a.prospect_role,
-        )
-        for a in completed
-        if a.report
-    ]
-
-    if len(scores) < 2:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Aggregate view requires at least 2 completed assessments",
-        )
-
-    logger.info("get_account_aggregate: account_id=%s completed=%d", account_id, len(scores))
-    return AggregateOut(
-        account_id=account_id,
-        company_name=account.company_name,
-        completed_count=len(scores),
-        scores=scores,
-    )
 
 
 # ── Prospects ─────────────────────────────────────────────────────────────────

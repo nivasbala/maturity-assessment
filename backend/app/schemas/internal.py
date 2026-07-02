@@ -242,20 +242,3 @@ class ReportOut(BaseModel):
     research_data: dict | None = None
     created_at: datetime
 
-
-# ── Aggregate view ────────────────────────────────────────────────────────────
-
-class AggregateScoreItem(BaseModel):
-    pillar_id: UUID
-    pillar_name: str
-    pillar_score: float
-    maturity_label: str
-    prospect_name: str | None
-    prospect_role: str | None
-
-
-class AggregateOut(BaseModel):
-    account_id: UUID
-    company_name: str
-    completed_count: int
-    scores: list[AggregateScoreItem]

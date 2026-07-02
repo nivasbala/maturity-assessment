@@ -181,21 +181,6 @@ export interface AssessmentListItem {
   completed_at: string | null
 }
 
-export interface AggregateScoreItem {
-  pillar_id: string
-  pillar_name: string
-  pillar_score: number
-  maturity_label: string
-  prospect_name: string | null
-  prospect_role: string | null
-}
-
-export interface AggregateView {
-  account_id: string
-  company_name: string
-  completed_count: number
-  scores: AggregateScoreItem[]
-}
 
 export interface AssessmentDetail {
   id: string
