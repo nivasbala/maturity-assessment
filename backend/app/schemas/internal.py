@@ -92,6 +92,7 @@ class ProspectWithAccountOut(BaseModel):
     id: UUID
     account_id: UUID
     company_name: str
+    internal_user_name: str = ""
     email: str
     name: str | None
     short_url_token: str

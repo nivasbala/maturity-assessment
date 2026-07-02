@@ -689,8 +689,9 @@ async def list_all_prospects(
     current_user: User,
 ) -> list[ProspectWithAccountOut]:
     q = (
-        select(Prospect, Account.company_name)
+        select(Prospect, Account.company_name, User.name.label("user_name"))
         .join(Account, Prospect.account_id == Account.id)
+        .join(User, Account.internal_user_id == User.id)
         .order_by(Prospect.created_at.desc())
     )
     if current_user.role != "admin":
@@ -702,13 +703,14 @@ async def list_all_prospects(
             id=p.id,
             account_id=p.account_id,
             company_name=company_name,
+            internal_user_name=user_name or "",
             email=p.email,
             name=p.name,
             short_url_token=p.short_url_token,
             full_url=f"{settings.base_url}/assess/{p.short_url_token}",
             created_at=p.created_at,
         )
-        for p, company_name in rows
+        for p, company_name, user_name in rows
     ]
 
 

@@ -101,6 +101,7 @@ export interface Prospect {
 
 export interface ProspectWithAccount extends Prospect {
   company_name: string
+  internal_user_name: string
 }
 
 export interface ProspectAssessmentRow {
