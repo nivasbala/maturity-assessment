@@ -312,31 +312,29 @@ async def test_service_create_prospect_happy_path():
     account.id = account_id
     account.internal_user_id = user.id
 
-    prospect = MagicMock()
-    prospect.id = uuid4()
-    prospect.account_id = account_id
-    prospect.email = "jane@acme.com"
-    prospect.name = None
-    prospect.short_url_token = "AbCdEfGh"
-    prospect.created_at = datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+    prospect_id = uuid4()
 
     db = AsyncMock()
+    db.add = MagicMock()
     # account lookup returns account; token collision check returns None (no collision)
     db.execute.side_effect = [
         MagicMock(scalar_one_or_none=MagicMock(return_value=account)),   # account select
         MagicMock(scalar_one_or_none=MagicMock(return_value=None)),      # token collision check
     ]
-    db.refresh = AsyncMock(side_effect=lambda obj: None)
 
-    with patch("app.services.account_service.Prospect", return_value=prospect):
-        result = await create_prospect(
-            db, account_id, user, ProspectCreate(email="jane@acme.com")
-        )
+    async def mock_refresh(obj):
+        obj.id = prospect_id
+        obj.created_at = datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    db.refresh = AsyncMock(side_effect=mock_refresh)
+
+    result = await create_prospect(
+        db, account_id, user, ProspectCreate(email="jane@acme.com")
+    )
 
     assert result.email == "jane@acme.com"
-    assert result.short_url_token == "AbCdEfGh"
-    assert "/assess/AbCdEfGh" in result.full_url
-    db.add.assert_called_once_with(prospect)
+    assert "/assess/" in result.full_url
+    db.add.assert_called_once()
     db.commit.assert_awaited_once()
 
 
@@ -381,25 +379,24 @@ async def test_service_create_prospect_admin_bypasses_ownership():
     account.id = account_id
     account.internal_user_id = uuid4()  # owned by someone else — admin should still pass
 
-    prospect = MagicMock()
-    prospect.id = uuid4()
-    prospect.account_id = account_id
-    prospect.email = "jane@acme.com"
-    prospect.name = None
-    prospect.short_url_token = "TkNbXqYz"
-    prospect.created_at = datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+    prospect_id = uuid4()
 
     db = AsyncMock()
+    db.add = MagicMock()
     db.execute.side_effect = [
         MagicMock(scalar_one_or_none=MagicMock(return_value=account)),
         MagicMock(scalar_one_or_none=MagicMock(return_value=None)),
     ]
-    db.refresh = AsyncMock(side_effect=lambda obj: None)
 
-    with patch("app.services.account_service.Prospect", return_value=prospect):
-        result = await create_prospect(
-            db, account_id, admin, ProspectCreate(email="jane@acme.com")
-        )
+    async def mock_refresh(obj):
+        obj.id = prospect_id
+        obj.created_at = datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    db.refresh = AsyncMock(side_effect=mock_refresh)
+
+    result = await create_prospect(
+        db, account_id, admin, ProspectCreate(email="jane@acme.com")
+    )
 
     assert result.email == "jane@acme.com"
 
@@ -416,27 +413,25 @@ async def test_service_create_prospect_token_collision_retries():
     account.internal_user_id = user.id
 
     colliding_prospect = MagicMock()  # simulates existing record with same token
-
-    prospect = MagicMock()
-    prospect.id = uuid4()
-    prospect.account_id = account_id
-    prospect.email = "jane@acme.com"
-    prospect.name = None
-    prospect.short_url_token = "NewToken1"
-    prospect.created_at = datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+    prospect_id = uuid4()
 
     db = AsyncMock()
+    db.add = MagicMock()
     db.execute.side_effect = [
         MagicMock(scalar_one_or_none=MagicMock(return_value=account)),        # account lookup
         MagicMock(scalar_one_or_none=MagicMock(return_value=colliding_prospect)),  # first token: collision
         MagicMock(scalar_one_or_none=MagicMock(return_value=None)),           # second token: no collision
     ]
-    db.refresh = AsyncMock(side_effect=lambda obj: None)
 
-    with patch("app.services.account_service.Prospect", return_value=prospect):
-        result = await create_prospect(
-            db, account_id, user, ProspectCreate(email="jane@acme.com")
-        )
+    async def mock_refresh(obj):
+        obj.id = prospect_id
+        obj.created_at = datetime(2026, 7, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    db.refresh = AsyncMock(side_effect=mock_refresh)
+
+    result = await create_prospect(
+        db, account_id, user, ProspectCreate(email="jane@acme.com")
+    )
 
     assert result.email == "jane@acme.com"
     # account lookup + 2 collision checks = 3 execute calls
