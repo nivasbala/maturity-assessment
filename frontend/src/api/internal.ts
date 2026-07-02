@@ -2,7 +2,6 @@ import api from './index'
 import type {
   AccountDetail,
   AccountListItem,
-  AggregateView,
   AssessmentAnswers,
   AssessmentCreated,
   AssessmentDetail,
@@ -32,8 +31,6 @@ export const getAccountDetail = (id: string) =>
 export const deleteAccount = (id: string) =>
   api.delete(`/accounts/${id}`)
 
-export const getAccountAggregate = (id: string) =>
-  api.get<AggregateView>(`/accounts/${id}/aggregate`).then((r) => r.data)
 
 export const getAccountAssessments = (accountId: string) =>
   api.get<AssessmentListItem[]>(`/accounts/${accountId}/assessments`).then((r) => r.data)

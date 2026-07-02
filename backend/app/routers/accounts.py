@@ -12,7 +12,6 @@ from app.schemas.internal import (
     AccountCreate,
     AccountDetailOut,
     AccountListOut,
-    AggregateOut,
     AssessmentCreateRequest,
     AssessmentCreatedOut,
     AssessmentListItemOut,
@@ -62,15 +61,6 @@ async def get_account_detail(
     db: AsyncSession = Depends(get_db),
 ) -> AccountDetailOut:
     return await account_service.get_account_detail(db, account_id, current_user)
-
-
-@router.get("/{account_id}/aggregate", response_model=AggregateOut)
-async def get_account_aggregate(
-    account_id: UUID,
-    current_user: User = Depends(require_internal_user),
-    db: AsyncSession = Depends(get_db),
-) -> AggregateOut:
-    return await account_service.get_account_aggregate(db, account_id, current_user)
 
 
 @router.post("/{account_id}/assessments", response_model=AssessmentCreatedOut, status_code=201)
