@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { getAccountAggregate, getProspectDetail, resetAssessment } from '../../api/internal'
-import type { AggregateView, ProspectDetail } from '../../types'
+import { getProspectDetail, resetAssessment } from '../../api/internal'
+import type { ProspectDetail } from '../../types'
 
 function StatusBadge({ status }: { status: string | null }) {
   if (!status) {
@@ -28,7 +28,6 @@ export default function ProspectDetailPage() {
   const { id, prospectId } = useParams<{ id: string; prospectId: string }>()
   const navigate = useNavigate()
   const [prospect, setProspect] = useState<ProspectDetail | null>(null)
-  const [aggregate, setAggregate] = useState<AggregateView | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
@@ -38,13 +37,7 @@ export default function ProspectDetailPage() {
   useEffect(() => {
     if (!id || !prospectId) return
     getProspectDetail(id, prospectId)
-      .then((p) => {
-        setProspect(p)
-        const completedCount = p.assessments.filter((a) => a.status === 'completed').length
-        if (completedCount >= 2) {
-          getAccountAggregate(id).then(setAggregate).catch(() => null)
-        }
-      })
+      .then(setProspect)
       .catch(() => setError('Failed to load prospect'))
       .finally(() => setLoading(false))
   }, [id, prospectId])
@@ -66,7 +59,6 @@ export default function ProspectDetailPage() {
           ),
         }
       })
-      setAggregate(null)
     } catch {
       setResetError('Failed to reset assessment. Please try again.')
     } finally {
@@ -132,36 +124,6 @@ export default function ProspectDetailPage() {
             </button>
           </div>
         </div>
-
-        {/* Aggregate view — shown only when 2+ pillars completed */}
-        {aggregate && aggregate.scores.length >= 2 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mb-6">
-            <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-              <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100">Aggregate Score</h2>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Combined maturity across {aggregate.completed_count} completed pillars.
-              </p>
-            </div>
-            <div className="px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {aggregate.scores.map((s) => (
-                <div key={s.pillar_id} className="border border-gray-100 dark:border-gray-700 rounded-lg p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">
-                    {s.pillar_name}
-                  </p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">
-                      {s.pillar_score.toFixed(1)}
-                    </span>
-                    <span className="text-sm text-gray-400 dark:text-gray-500">/ 4.0</span>
-                    <span className="ml-auto text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
-                      {s.maturity_label}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
 
         {resetError && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded text-sm">
