@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { createAccount, getAccounts, getActivePillars } from '../../api/internal'
+import { createAccount, deleteAccount, getAccounts, getActivePillars } from '../../api/internal'
 import { useAuth } from '../../contexts/AuthContext'
 import type { AccountListItem, Pillar } from '../../types'
 
@@ -137,8 +137,24 @@ export default function AccountsListPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showModal, setShowModal] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const PAGE_SIZE = 25
+
+  const handleDelete = async (e: React.MouseEvent, accountId: string) => {
+    e.stopPropagation()
+    if (!window.confirm('Delete this account and all its data? This cannot be undone.')) return
+    setDeletingId(accountId)
+    try {
+      await deleteAccount(accountId)
+      setAccounts((prev) => prev.filter((a) => a.id !== accountId))
+      setTotal((t) => t - 1)
+    } catch {
+      setError('Failed to delete account. Please try again.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   useEffect(() => {
     setLoading(true)
@@ -203,12 +219,13 @@ export default function AccountsListPage() {
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Created By</th>
                 )}
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Date Created</th>
+                <th className="px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
+                  <td colSpan={isAdmin ? 8 : 7} className="px-4 py-8 text-center text-gray-400 dark:text-gray-500">
                     No accounts yet. Click "New Account" to get started.
                   </td>
                 </tr>
@@ -247,6 +264,15 @@ export default function AccountsListPage() {
                     )}
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(a.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => handleDelete(e, a.id)}
+                        disabled={deletingId === a.id}
+                        className="px-3 py-1 text-xs font-medium text-white bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {deletingId === a.id ? 'Deleting…' : 'Delete'}
+                      </button>
                     </td>
                   </tr>
                 ))
