@@ -175,7 +175,7 @@ export default function ReportPage() {
         {!report.executive_summary && report.strengths.length === 0 && (
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-6">
             <p className="text-sm text-yellow-800 dark:text-yellow-300 font-medium">
-              Report narrative is still being generated. Please refresh in a moment or contact your Datadog representative if this persists.
+              Report narrative is still being generated. Please refresh in a moment or contact your administrator if this persists.
             </p>
           </div>
         )}

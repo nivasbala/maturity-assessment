@@ -245,7 +245,7 @@ export default function PillarSelectPage() {
 
         {visiblePillars.length === 0 && (
           <p className="text-center text-gray-500 dark:text-gray-400 mt-8">
-            No assessment areas are available. Please contact your Datadog representative.
+            No assessment areas are available. Please contact your administrator.
           </p>
         )}
       </div>

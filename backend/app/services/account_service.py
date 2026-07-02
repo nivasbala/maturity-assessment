@@ -588,6 +588,21 @@ async def create_prospect(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
     assert_owns_account(current_user, account)
 
+    # Reject duplicate email within the same account
+    existing_prospect = (
+        await db.execute(
+            select(Prospect).where(
+                Prospect.account_id == account_id,
+                Prospect.email == body.email,
+            )
+        )
+    ).scalar_one_or_none()
+    if existing_prospect:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A prospect with this email already exists under this account",
+        )
+
     # Generate a unique short URL token
     for _ in range(5):
         token = _generate_short_token()
