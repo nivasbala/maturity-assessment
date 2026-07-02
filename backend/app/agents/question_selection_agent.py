@@ -58,7 +58,7 @@ You will receive:
    Tech stack description:      {tech_stack_description}
    Current tools:               {current_tools}
    Key challenges they stated:  {key_challenges_input}
-   Additional notes from prospect: {prospect_corrections}
+   Additional notes from prospect: {prospect_additional_notes}
    (Empty fields above were not provided by the prospect)
 
 5. Candidate questions (JSON):
@@ -248,7 +248,7 @@ async def select_questions(
             "tech_stack_description": tech_stack_description or "(not provided)",
             "current_tools": current_tools or "(not provided)",
             "key_challenges_input": key_challenges_input or "(not provided)",
-            "prospect_corrections": prospect_additional_notes or "(none)",
+            "prospect_additional_notes": prospect_additional_notes or "(none)",
             "candidate_questions_json": json.dumps(candidate_list, indent=2),
             "question_count": question_count,
             "general_count": general_count,

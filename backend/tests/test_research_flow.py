@@ -203,7 +203,7 @@ async def test_confirm_research_sets_timestamp():
         "prospect_id": str(prospect_id),
         "prospect_role": "sre_platform_engineer",
     }
-    body = ConfirmResearchRequest(assessment_id=assessment_id, corrections=None)
+    body = ConfirmResearchRequest(assessment_id=assessment_id, additional_notes=None)
 
     mock_prospect = _make_mock_prospect(prospect_id)
 
@@ -238,7 +238,7 @@ async def test_confirm_research_sets_timestamp():
 
 
 @pytest.mark.asyncio
-async def test_confirm_research_saves_corrections_when_provided():
+async def test_confirm_research_saves_additional_notes_when_provided():
     """confirm_research saves non-empty additional_notes to assessment.prospect_additional_notes."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
@@ -285,7 +285,7 @@ async def test_confirm_research_saves_corrections_when_provided():
 
 
 @pytest.mark.asyncio
-async def test_confirm_research_does_not_overwrite_when_corrections_empty():
+async def test_confirm_research_does_not_overwrite_when_additional_notes_empty():
     """Empty/None additional_notes do not overwrite existing prospect_additional_notes."""
     from app.services.public_service import confirm_research
     from app.schemas.public import ConfirmResearchRequest
@@ -451,7 +451,7 @@ def test_confirm_research_request_requires_assessment_id():
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        ConfirmResearchRequest(corrections="some corrections")
+        ConfirmResearchRequest(additional_notes="some additional notes")
 
 
 def test_confirm_research_out_has_questions_field():
@@ -558,4 +558,4 @@ async def test_select_questions_passes_prospect_context_to_llm():
     assert captured_invoke.get("infrastructure_location") == "AWS us-east-1"
     assert captured_invoke.get("tech_stack_description") == "Kubernetes, Python"
     assert captured_invoke.get("current_tools") == "Datadog"
-    assert captured_invoke.get("prospect_corrections") == "We also use GCP."  # key in prompt template stays as-is
+    assert captured_invoke.get("prospect_additional_notes") == "We also use GCP."
