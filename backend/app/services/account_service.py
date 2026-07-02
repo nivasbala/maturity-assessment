@@ -677,6 +677,8 @@ async def list_prospects(
             short_url_token=p.short_url_token,
             full_url=f"{settings.base_url}/assess/{p.short_url_token}",
             created_at=p.created_at,
+            is_registered=p.is_registered,
+            registered_at=p.registered_at,
         )
         for p in prospects
     ]

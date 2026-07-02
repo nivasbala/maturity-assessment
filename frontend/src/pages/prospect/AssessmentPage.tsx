@@ -35,11 +35,35 @@ export default function AssessmentPage() {
 
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
 
+  const sessionExpired = !sessionToken
+
   useEffect(() => {
-    if (!sessionToken || questions.length === 0) {
-      navigate(`/assess/${token}`)
+    if (!sessionExpired && questions.length === 0) {
+      navigate(`/assess/${token}/pillars`, { replace: true })
     }
-  }, [sessionToken, questions.length, token, navigate])
+  }, [sessionExpired, questions.length, token, navigate])
+
+  if (sessionExpired) {
+    return (
+      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 text-center">
+            <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Your session has expired.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
+              Please return to pillar selection to restart your assessment.
+            </p>
+            <button
+              onClick={() => navigate(`/assess/${token}/pillars`)}
+              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
+            >
+              ← Back to Pillar Selection
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   if (questions.length === 0) {
     return null

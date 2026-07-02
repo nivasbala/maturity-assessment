@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { createProspect, deleteAccount, deleteProspect, getAccountDetail, listProspects } from '../../api/internal'
+import { extractApiError } from '../../api'
 import type { AccountDetail, Prospect } from '../../types'
 
 function CreateProspectModal({
@@ -23,8 +24,8 @@ function CreateProspectModal({
     try {
       const prospect = await createProspect(id, { email: email.trim(), name: name.trim() || null })
       onCreated(prospect)
-    } catch {
-      setError('Failed to create prospect. Please try again.')
+    } catch (e) {
+      setError(extractApiError(e, 'Failed to create prospect. Please try again.'))
     } finally {
       setSubmitting(false)
     }
@@ -339,6 +340,7 @@ export default function AccountDetailPage() {
                 <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Name</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Status</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Created</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Action</th>
                 </tr>
@@ -355,6 +357,17 @@ export default function AccountDetailPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.name ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {p.is_registered ? (
+                        <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                          Registered
+                        </span>
+                      ) : (
+                        <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                          Not registered
+                        </span>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(p.created_at).toLocaleDateString()}
                     </td>

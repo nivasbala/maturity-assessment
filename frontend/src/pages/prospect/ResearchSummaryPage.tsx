@@ -78,20 +78,24 @@ export default function ResearchSummaryPage() {
   }
   const hasProspectContext = Object.values(prospectContext).some((v) => v.trim() !== '')
 
+  const correctionsKey = assessmentId ? `prospect_corrections_${assessmentId}` : null
+
   const [summary, setSummary] = useState<ResearchSummary | null>(null)
   const [error, setError] = useState('')
-  const [corrections, setCorrections] = useState('')
+  const [corrections, setCorrections] = useState(() =>
+    correctionsKey ? (sessionStorage.getItem(correctionsKey) ?? '') : ''
+  )
   const [correctionExpanded, setCorrectionExpanded] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const delayRef = useRef(2000)
 
-  // Redirect to landing if no session token
+  // Redirect to pillar select if no session token or no assessment context
   useEffect(() => {
-    if (!sessionToken) {
-      navigate(`/assess/${token}`, { replace: true })
+    if (!sessionToken || !assessmentId) {
+      navigate(`/assess/${token}/pillars`, { replace: true })
     }
-  }, [sessionToken, token, navigate])
+  }, [sessionToken, assessmentId, token, navigate])
 
   // Poll until is_ready = true
   useEffect(() => {
@@ -344,7 +348,10 @@ export default function ResearchSummaryPage() {
                     <textarea
                       rows={3}
                       value={corrections}
-                      onChange={(e) => setCorrections(e.target.value)}
+                      onChange={(e) => {
+                        setCorrections(e.target.value)
+                        if (correctionsKey) sessionStorage.setItem(correctionsKey, e.target.value)
+                      }}
                       placeholder="e.g. We are primarily on Azure, not AWS. We have 200 engineers."
                       className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
                     />

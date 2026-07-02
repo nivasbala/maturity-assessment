@@ -240,12 +240,20 @@ export default function ReportPage() {
           >
             ← Back to Pillar Selection
           </button>
-          <button
-            onClick={() => navigate(`/assess/${token}/pillars`)}
-            className="text-sm font-medium text-brand border border-brand px-5 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
-          >
-            Take Another Pillar Assessment
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => window.print()}
+              className="text-sm font-medium border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950 px-5 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+            >
+              Download PDF
+            </button>
+            <button
+              onClick={() => navigate(`/assess/${token}/pillars`)}
+              className="text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600 px-5 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+            >
+              Take Another Pillar Assessment
+            </button>
+          </div>
         </div>
       </div>
       </div>
