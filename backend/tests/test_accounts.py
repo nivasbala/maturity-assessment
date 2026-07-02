@@ -316,6 +316,8 @@ async def test_get_aggregate_404_insufficient_assessments():
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
             resp = await client.get(f"/api/accounts/{account_id}/aggregate")
 
+    assert resp.status_code == 404
+
 
 # ---------------------------------------------------------------------------
 # DELETE /api/accounts/{id}/assessments/{assessment_id}

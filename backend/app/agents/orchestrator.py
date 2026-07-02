@@ -268,7 +268,11 @@ async def run_assessment_orchestrator(
         try:
             await db.rollback()
         except Exception:
-            pass
+            logger.error(
+                "run_assessment_orchestrator: rollback failed after timeout for assessment_id=%s",
+                assessment_id,
+                exc_info=True,
+            )
         return _empty_result
     except Exception:
         logger.error(

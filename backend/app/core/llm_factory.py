@@ -32,9 +32,12 @@ def get_llm(json_mode: bool = False) -> BaseChatModel:
         )
     elif provider == "openai":
         from langchain_openai import ChatOpenAI
-        return ChatOpenAI(
+        kwargs: dict = dict(
             model=os.getenv("OPENAI_MODEL", "gpt-4o"),
             api_key=os.getenv("OPENAI_API_KEY"),
         )
+        if json_mode:
+            kwargs["model_kwargs"] = {"response_format": {"type": "json_object"}}
+        return ChatOpenAI(**kwargs)
     else:
         raise ValueError(f"Unsupported LLM_PROVIDER: {provider}")
