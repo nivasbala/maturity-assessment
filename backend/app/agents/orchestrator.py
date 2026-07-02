@@ -57,6 +57,10 @@ class AssessmentReportState(TypedDict):
     pre_computed_maturity_label: str
     assessment_id: str
     prospect_additional_notes: str | None
+    infrastructure_location: str | None
+    tech_stack_description: str | None
+    current_tools: str | None
+    key_challenges_input: str | None
 
     # ── Set by research_node ─────────────────────────────────────────────────
     company_profile: dict[str, Any] | None
@@ -161,6 +165,12 @@ def _build_graph(db: AsyncSession) -> Any:
                 if aa.question and aa.answer_option
             ]
 
+            prospect_context = {
+                "infrastructure_location": state.get("infrastructure_location"),
+                "tech_stack_description": state.get("tech_stack_description"),
+                "current_tools": state.get("current_tools"),
+                "key_challenges_input": state.get("key_challenges_input"),
+            }
             narrative = await run_report_agent(
                 company_profile=state.get("company_profile") or {},
                 answers_with_context=answers_with_context,
@@ -170,6 +180,7 @@ def _build_graph(db: AsyncSession) -> Any:
                 persona=state["persona"],
                 company_name=state["company_name"],
                 prospect_additional_notes=state.get("prospect_additional_notes"),
+                prospect_context=prospect_context,
             )
             return {
                 "executive_summary": narrative.get("executive_summary", ""),
@@ -219,6 +230,10 @@ async def run_assessment_orchestrator(
     company_profile: dict[str, Any] | None = None,
     prospect_additional_notes: str | None = None,
     prospect_id: UUID | None = None,
+    infrastructure_location: str | None = None,
+    tech_stack_description: str | None = None,
+    current_tools: str | None = None,
+    key_challenges_input: str | None = None,
 ) -> dict[str, Any]:
     """Run the report generation pipeline and return the narrative fields.
 
@@ -236,6 +251,10 @@ async def run_assessment_orchestrator(
         "pre_computed_score": pre_computed_score,
         "pre_computed_maturity_level": pre_computed_maturity_level,
         "pre_computed_maturity_label": pre_computed_maturity_label,
+        "infrastructure_location": infrastructure_location,
+        "tech_stack_description": tech_stack_description,
+        "current_tools": current_tools,
+        "key_challenges_input": key_challenges_input,
         # Filled by nodes (or pre-populated from submit_assessment):
         # None = research_cache was NULL; {} = cache exists but empty. research_node checks is not None.
         "company_profile": company_profile,

@@ -829,6 +829,10 @@ async def submit_assessment(
     prospect = assessment.prospect
     prospect_id = prospect.id if prospect else None
     prospect_research_cache = prospect.research_cache if prospect else None
+    prospect_infrastructure = prospect.infrastructure_location if prospect else None
+    prospect_tech_stack = prospect.tech_stack_description if prospect else None
+    prospect_tools = prospect.current_tools if prospect else None
+    prospect_challenges = prospect.key_challenges_input if prospect else None
 
     # Load prospect_additional_notes from assessment record (saved at confirm_research)
     acct_prospect_additional_notes = assessment.prospect_additional_notes
@@ -862,6 +866,10 @@ async def submit_assessment(
         company_profile=prospect_research_cache,
         prospect_additional_notes=acct_prospect_additional_notes,
         prospect_id=prospect_id,
+        infrastructure_location=prospect_infrastructure,
+        tech_stack_description=prospect_tech_stack,
+        current_tools=prospect_tools,
+        key_challenges_input=prospect_challenges,
     )
 
     # Update report with LLM narrative

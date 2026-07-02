@@ -74,30 +74,39 @@ Constraints:
 def _format_company_context(
     company_profile: dict[str, Any],
     prospect_additional_notes: str | None = None,
+    prospect_context: dict[str, Any] | None = None,
 ) -> str:
-    if not company_profile:
-        return "No company research available."
     parts: list[str] = []
-    if company_profile.get("industry"):
-        parts.append(f"Industry: {company_profile['industry']}")
-    if company_profile.get("company_size"):
-        parts.append(f"Size: {company_profile['company_size']}")
-    if company_profile.get("products_summary"):
-        parts.append(f"Products: {company_profile['products_summary']}")
-    if company_profile.get("target_customers"):
-        parts.append(f"Target customers: {company_profile['target_customers']}")
-    outcomes = company_profile.get("business_outcomes") or []
-    if outcomes:
-        parts.append(f"Business outcomes: {', '.join(outcomes)}")
-    scale = company_profile.get("operational_scale") or []
-    if scale:
-        parts.append(f"Operational scale: {', '.join(scale)}")
-    news = company_profile.get("news_insights", "")
-    if news:
-        parts.append(f"Recent news context: {news}")
+    if company_profile:
+        if company_profile.get("industry"):
+            parts.append(f"Industry: {company_profile['industry']}")
+        if company_profile.get("company_size"):
+            parts.append(f"Size: {company_profile['company_size']}")
+        if company_profile.get("products_summary"):
+            parts.append(f"Products: {company_profile['products_summary']}")
+        if company_profile.get("target_customers"):
+            parts.append(f"Target customers: {company_profile['target_customers']}")
+        outcomes = company_profile.get("business_outcomes") or []
+        if outcomes:
+            parts.append(f"Business outcomes: {', '.join(outcomes)}")
+        scale = company_profile.get("operational_scale") or []
+        if scale:
+            parts.append(f"Operational scale: {', '.join(scale)}")
+        news = company_profile.get("news_insights", "")
+        if news:
+            parts.append(f"Recent news context: {news}")
+    if prospect_context:
+        if prospect_context.get("infrastructure_location"):
+            parts.append(f"Infrastructure & deployment: {prospect_context['infrastructure_location']}")
+        if prospect_context.get("tech_stack_description"):
+            parts.append(f"Tech stack: {prospect_context['tech_stack_description']}")
+        if prospect_context.get("current_tools"):
+            parts.append(f"Current tools: {prospect_context['current_tools']}")
+        if prospect_context.get("key_challenges_input"):
+            parts.append(f"Key challenges (self-reported): {prospect_context['key_challenges_input']}")
     if prospect_additional_notes:
         parts.append(f"Additional notes from prospect: {prospect_additional_notes}")
-    return "\n".join(parts) if parts else "No company research available."
+    return "\n".join(parts) if parts else "No company context available."
 
 
 def _format_answers(answers_with_context: list[dict[str, Any]]) -> str:
@@ -124,6 +133,7 @@ async def run_report_agent(
     persona: str,
     company_name: str,
     prospect_additional_notes: str | None = None,
+    prospect_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Generate a maturity report narrative via LLM.
 
@@ -142,7 +152,7 @@ async def run_report_agent(
     Raises:
         Exception on LLM failure — caller (orchestrator) catches and logs.
     """
-    company_context = _format_company_context(company_profile, prospect_additional_notes)
+    company_context = _format_company_context(company_profile, prospect_additional_notes, prospect_context)
     formatted_answers = _format_answers(answers_with_context)
 
     prompt = ChatPromptTemplate.from_messages(
