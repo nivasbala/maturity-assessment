@@ -16,6 +16,7 @@ class AvailablePillar(BaseModel):
 
 class AssessmentInfoOut(BaseModel):
     company_name: str
+    prospect_email: str
     suggested_pillars: list[UUID]
     available_pillars: list[AvailablePillar]
 

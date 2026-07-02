@@ -48,7 +48,10 @@ export default function LandingPage() {
   useEffect(() => {
     if (!token) return
     getAssessmentInfo(token)
-      .then(setInfo)
+      .then((data) => {
+        setInfo(data)
+        if (data.prospect_email) setEmail(data.prospect_email)
+      })
       .catch((e) => setLoadError(extractApiError(e, 'Failed to load assessment.')))
   }, [token])
 
@@ -211,8 +214,9 @@ export default function LandingPage() {
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className={INPUT_CLS}
+                  onChange={(e) => { if (!info?.prospect_email) setEmail(e.target.value) }}
+                  readOnly={!!info?.prospect_email}
+                  className={`${INPUT_CLS} ${info?.prospect_email ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed' : ''}`}
                   placeholder="jane@company.com"
                 />
               </div>

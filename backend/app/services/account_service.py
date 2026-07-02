@@ -29,7 +29,9 @@ from app.schemas.internal import (
     AssessmentDetailOut,
     AssessmentListItemOut,
     PillarStatusRow,
+    ProspectAssessmentRow,
     ProspectCreate,
+    ProspectDetailOut,
     ProspectOut,
     ReportOut,
 )
@@ -622,3 +624,89 @@ async def list_prospects(
         )
         for p in prospects
     ]
+
+
+async def delete_prospect(
+    db: AsyncSession,
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User,
+) -> None:
+    account = (await db.execute(select(Account).where(Account.id == account_id))).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+    prospect = (
+        await db.execute(select(Prospect).where(Prospect.id == prospect_id, Prospect.account_id == account_id))
+    ).scalar_one_or_none()
+    if not prospect:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prospect not found")
+    await db.delete(prospect)
+    await db.commit()
+    logger.info("delete_prospect: prospect_id=%s account_id=%s", prospect_id, account_id)
+
+
+async def get_prospect_detail(
+    db: AsyncSession,
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User,
+) -> ProspectDetailOut:
+    account = (await db.execute(select(Account).where(Account.id == account_id))).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+    prospect = (
+        await db.execute(select(Prospect).where(Prospect.id == prospect_id, Prospect.account_id == account_id))
+    ).scalar_one_or_none()
+    if not prospect:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prospect not found")
+
+    pillars = (
+        await db.execute(select(Pillar).where(Pillar.is_active.is_(True)).order_by(Pillar.display_order))
+    ).scalars().all()
+
+    assessments = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.report))
+            .where(
+                Assessment.account_id == account_id,
+                Assessment.prospect_email == prospect.email,
+            )
+        )
+    ).scalars().all()
+
+    assessment_by_pillar = {a.pillar_id: a for a in assessments}
+
+    rows = []
+    for p in pillars:
+        a = assessment_by_pillar.get(p.id)
+        score = None
+        maturity_label = None
+        if a and a.report:
+            score = a.report.pillar_score
+            maturity_label = a.report.maturity_label
+        rows.append(ProspectAssessmentRow(
+            pillar_id=p.id,
+            pillar_name=p.name,
+            display_order=p.display_order,
+            assessment_id=a.id if a else None,
+            status=a.status if a else None,
+            pillar_score=score,
+            maturity_label=maturity_label,
+            completed_at=a.completed_at if a else None,
+        ))
+
+    full_url = f"{settings.base_url}/assess/{prospect.short_url_token}"
+    logger.info("get_prospect_detail: prospect_id=%s account_id=%s", prospect_id, account_id)
+    return ProspectDetailOut(
+        id=prospect.id,
+        account_id=prospect.account_id,
+        email=prospect.email,
+        name=prospect.name,
+        short_url_token=prospect.short_url_token,
+        full_url=full_url,
+        created_at=prospect.created_at,
+        assessments=rows,
+    )

@@ -10,6 +10,7 @@ import type {
   Paginated,
   Pillar,
   Prospect,
+  ProspectDetail,
   Report,
 } from '../types'
 
@@ -67,3 +68,9 @@ export const listProspects = (accountId: string) =>
 
 export const createProspect = (accountId: string, data: { email: string; name?: string | null }) =>
   api.post<Prospect>(`/accounts/${accountId}/prospects`, data).then((r) => r.data)
+
+export const getProspectDetail = (accountId: string, prospectId: string) =>
+  api.get<ProspectDetail>(`/accounts/${accountId}/prospects/${prospectId}`).then((r) => r.data)
+
+export const deleteProspect = (accountId: string, prospectId: string) =>
+  api.delete(`/accounts/${accountId}/prospects/${prospectId}`)

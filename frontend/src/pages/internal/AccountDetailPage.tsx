@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { createProspect, deleteAccount, getAccountDetail, listProspects } from '../../api/internal'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { createProspect, deleteAccount, deleteProspect, getAccountDetail, listProspects } from '../../api/internal'
 import type { AccountDetail, Prospect } from '../../types'
 
 function CreateProspectModal({
@@ -191,6 +191,7 @@ export default function AccountDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [copyStates, setCopyStates] = useState<Record<string, boolean>>({})
+  const [deletingProspectId, setDeletingProspectId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -214,6 +215,20 @@ export default function AccountDetailPage() {
       setCopyStates((s) => ({ ...s, [prospect.id]: true }))
       setTimeout(() => setCopyStates((s) => ({ ...s, [prospect.id]: false })), 2000)
     })
+  }
+
+  const handleDeleteProspect = async (prospect: Prospect) => {
+    if (!id) return
+    if (!window.confirm(`Delete prospect ${prospect.email}? This cannot be undone.`)) return
+    setDeletingProspectId(prospect.id)
+    try {
+      await deleteProspect(id, prospect.id)
+      setProspects((prev) => prev.filter((p) => p.id !== prospect.id))
+    } catch {
+      setActionError('Failed to delete prospect. Please try again.')
+    } finally {
+      setDeletingProspectId(null)
+    }
   }
 
   const handleDelete = async () => {
@@ -331,18 +346,37 @@ export default function AccountDetailPage() {
               <tbody>
                 {prospects.map((p) => (
                   <tr key={p.id} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
-                    <td className="px-4 py-3 text-gray-800 dark:text-gray-200">{p.email}</td>
+                    <td className="px-4 py-3">
+                      <Link
+                        to={`/dashboard/accounts/${id}/prospects/${p.id}`}
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                      >
+                        {p.email}
+                      </Link>
+                    </td>
                     <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.name ?? '—'}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {new Date(p.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => handleCopy(p)}
-                        className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
-                      >
-                        {copyStates[p.id] ? '✓ Copied' : 'Copy URL'}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => handleCopy(p)}
+                          className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline"
+                        >
+                          {copyStates[p.id] ? '✓ Copied' : 'Copy URL'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProspect(p)}
+                          disabled={deletingProspectId === p.id}
+                          title="Delete prospect"
+                          className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 disabled:opacity-40"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -17,6 +17,7 @@ from app.schemas.internal import (
     AssessmentCreatedOut,
     AssessmentListItemOut,
     ProspectCreate,
+    ProspectDetailOut,
     ProspectOut,
 )
 from app.services import account_service
@@ -118,3 +119,23 @@ async def list_prospects(
     db: AsyncSession = Depends(get_db),
 ) -> list[ProspectOut]:
     return await account_service.list_prospects(db, account_id, current_user)
+
+
+@router.get("/{account_id}/prospects/{prospect_id}", response_model=ProspectDetailOut)
+async def get_prospect_detail(
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProspectDetailOut:
+    return await account_service.get_prospect_detail(db, account_id, prospect_id, current_user)
+
+
+@router.delete("/{account_id}/prospects/{prospect_id}", status_code=204)
+async def delete_prospect(
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await account_service.delete_prospect(db, account_id, prospect_id, current_user)

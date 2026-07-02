@@ -93,6 +93,21 @@ export interface Prospect {
   created_at: string
 }
 
+export interface ProspectAssessmentRow {
+  pillar_id: string
+  pillar_name: string
+  display_order: number
+  assessment_id: string | null
+  status: 'pending' | 'in_progress' | 'completed' | null
+  pillar_score: number | null
+  maturity_label: string | null
+  completed_at: string | null
+}
+
+export interface ProspectDetail extends Prospect {
+  assessments: ProspectAssessmentRow[]
+}
+
 // ── Internal / Account types ──────────────────────────────────────────────────
 
 export interface AccountListItem {
@@ -259,6 +274,7 @@ export interface AvailablePillar {
 
 export interface AssessmentInfo {
   company_name: string
+  prospect_email: string
   suggested_pillars: string[]
   available_pillars: AvailablePillar[]
 }

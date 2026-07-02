@@ -12,6 +12,7 @@ import ReportPage from './pages/prospect/ReportPage'
 import SubmittingPage from './pages/prospect/SubmittingPage'
 import AccountsListPage from './pages/internal/AccountsListPage'
 import AccountDetailPage from './pages/internal/AccountDetailPage'
+import ProspectDetailPage from './pages/internal/ProspectDetailPage'
 import ReportDetailPage from './pages/internal/ReportDetailPage'
 import UsersPage from './pages/admin/UsersPage'
 import PillarsPage from './pages/admin/PillarsPage'
@@ -48,6 +49,7 @@ export default function App() {
             <Route element={<AuthenticatedLayout />}>
               <Route path="/dashboard" element={<AccountsListPage />} />
               <Route path="/dashboard/accounts/:id" element={<AccountDetailPage />} />
+              <Route path="/dashboard/accounts/:id/prospects/:prospectId" element={<ProspectDetailPage />} />
               <Route path="/dashboard/assessments/:id" element={<ReportDetailPage />} />
               <Route path="/admin/users" element={<UsersPage />} />
               <Route path="/admin/pillars" element={<PillarsPage />} />

@@ -34,6 +34,7 @@ from app.core.security import create_session_token
 from app.models.account import Account
 from app.models.assessment import Assessment, AssessmentAnswer
 from app.models.pillar import Pillar
+from app.models.prospect import Prospect
 from app.models.question import AnswerOption, Question, QuestionPersona
 from app.models.report import Report
 from app.schemas.public import (
@@ -70,17 +71,17 @@ VALID_PERSONAS = {
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 
-async def _get_assessment_by_token(token: str, db: AsyncSession) -> Assessment:
-    assessment = (
+async def _get_prospect_by_token(token: str, db: AsyncSession) -> Prospect:
+    prospect = (
         await db.execute(
-            select(Assessment)
-            .options(selectinload(Assessment.account))
-            .where(Assessment.short_url_token == token)
+            select(Prospect)
+            .options(selectinload(Prospect.account))
+            .where(Prospect.short_url_token == token)
         )
     ).scalar_one_or_none()
-    if not assessment:
+    if not prospect:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Assessment not found")
-    return assessment
+    return prospect
 
 
 def _generate_short_token() -> str:
@@ -250,8 +251,8 @@ async def _select_questions_fallback(
 
 async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut:
     """GET /assess/{token} — return company info and all available active pillars."""
-    assessment = await _get_assessment_by_token(token, db)
-    account = assessment.account
+    prospect = await _get_prospect_by_token(token, db)
+    account = prospect.account
 
     pillars = (
         await db.execute(
@@ -264,6 +265,7 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
     logger.info("get_assessment_info: token=%s account_id=%s", token, account.id)
     return AssessmentInfoOut(
         company_name=account.company_name,
+        prospect_email=prospect.email,
         suggested_pillars=account.suggested_pillars or [],
         available_pillars=[
             AvailablePillar(
@@ -286,13 +288,12 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
             detail=f"Invalid prospect_role. Must be one of: {', '.join(sorted(VALID_PERSONAS))}",
         )
 
-    assessment = await _get_assessment_by_token(token, db)
-    account = assessment.account
+    prospect = await _get_prospect_by_token(token, db)
+    account = prospect.account
 
-    # Update assessment and account in one commit
-    assessment.prospect_name = body.prospect_name
-    assessment.prospect_email = body.prospect_email
-    assessment.prospect_role = body.prospect_role
+    # Update prospect name and account context in one commit
+    if body.prospect_name:
+        prospect.name = body.prospect_name
     account.infrastructure_location = body.infrastructure_location or account.infrastructure_location
     account.tech_stack_description = body.tech_stack_description or account.tech_stack_description
     account.current_tools = body.current_tools or account.current_tools
@@ -302,6 +303,7 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     # Build session token payload
     session_data: dict = {
         "account_id": str(account.id),
+        "prospect_id": str(prospect.id),
         "short_url_token": token,
         "prospect_name": body.prospect_name,
         "prospect_email": body.prospect_email,
@@ -336,12 +338,12 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
 
 async def get_research_summary(token: str, session: dict, db: AsyncSession) -> ResearchSummaryOut:
     """GET /assess/{token}/research-summary — poll until Agent 1 completes."""
-    assessment = await _get_assessment_by_token(token, db)
+    prospect = await _get_prospect_by_token(token, db)
     account_id = UUID(session["account_id"])
-    if assessment.account_id != account_id:
+    if prospect.account_id != account_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    account = assessment.account
+    account = prospect.account
     if not account.research_cache:
         # Use research_started_at (set at /register when Agent 1 fires) as the timeout
         # anchor — account.created_at is the internal-user account creation time, which
@@ -400,12 +402,12 @@ async def confirm_research(
     db: AsyncSession,
 ) -> ConfirmResearchOut:
     """POST /assess/{token}/confirm-research — save corrections and timestamp."""
-    assessment = await _get_assessment_by_token(token, db)
+    prospect = await _get_prospect_by_token(token, db)
     account_id = UUID(session["account_id"])
-    if assessment.account_id != account_id:
+    if prospect.account_id != account_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
 
-    account = assessment.account
+    account = prospect.account
     account.research_confirmed_at = datetime.now(timezone.utc)
     if body.corrections and body.corrections.strip():
         account.prospect_corrections = body.corrections.strip()
@@ -702,8 +704,8 @@ async def submit_assessment(
 
 async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> ReportPublicOut:
     """GET /assess/{token}/report/{assessment_id} — return completed report."""
-    assessment = await _get_assessment_by_token(token, db)
-    account = assessment.account
+    prospect = await _get_prospect_by_token(token, db)
+    account = prospect.account
 
     # The report can be for any assessment under this account (multi-pillar flow)
     target_assessment = (

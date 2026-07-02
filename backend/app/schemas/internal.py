@@ -76,6 +76,28 @@ class ProspectOut(BaseModel):
     created_at: datetime
 
 
+class ProspectAssessmentRow(BaseModel):
+    pillar_id: UUID
+    pillar_name: str
+    display_order: int
+    assessment_id: UUID | None
+    status: str | None  # pending | in_progress | completed | None (not started)
+    pillar_score: float | None
+    maturity_label: str | None
+    completed_at: datetime | None
+
+
+class ProspectDetailOut(BaseModel):
+    id: UUID
+    account_id: UUID
+    email: str
+    name: str | None
+    short_url_token: str
+    full_url: str
+    created_at: datetime
+    assessments: list[ProspectAssessmentRow]
+
+
 # ── Assessment creation ────────────────────────────────────────────────────────
 
 class AssessmentCreateRequest(BaseModel):
