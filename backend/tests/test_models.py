@@ -45,6 +45,7 @@ def test_all_tables_registered():
         "assessment_answers",
         "reports",
         "system_settings",
+        "prospects",
     }
     assert expected == set(Base.metadata.tables.keys())
 

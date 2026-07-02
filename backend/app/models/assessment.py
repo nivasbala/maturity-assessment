@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, ForeignKey, String, UniqueConstraint, func
+from sqlalchemy import Column, DateTime, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -10,21 +10,29 @@ from app.core.database import Base
 class Assessment(Base):
     __tablename__ = "assessments"
 
+    # uq_assessment_account_pillar kept for NULL prospect_id backward compat;
+    # a partial unique index on (account_id, prospect_id, pillar_id) WHERE prospect_id IS NOT NULL
+    # is created via migration 012.
     __table_args__ = (UniqueConstraint("account_id", "pillar_id", name="uq_assessment_account_pillar"),)
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     account_id = Column(UUID(as_uuid=True), ForeignKey("accounts.id"), nullable=False)
     pillar_id = Column(UUID(as_uuid=True), ForeignKey("pillars.id"), nullable=False)
+    prospect_id = Column(UUID(as_uuid=True), ForeignKey("prospects.id"), nullable=True)
     short_url_token = Column(String(12), nullable=False, unique=True)
     prospect_name = Column(String(255), nullable=True)
     prospect_email = Column(String(255), nullable=True)
     prospect_role = Column(String(100), nullable=True)
     status = Column(String(50), nullable=False, default="pending")  # pending | in_progress | completed
+    started_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
+    prospect_corrections = Column(Text, nullable=True)
+    research_confirmed_at = Column(DateTime(timezone=True), nullable=True)
 
     account = relationship("Account", back_populates="assessments")
     pillar = relationship("Pillar", back_populates="assessments")
+    prospect = relationship("Prospect", foreign_keys=[prospect_id])
     answers = relationship("AssessmentAnswer", back_populates="assessment", cascade="all, delete-orphan")
     report = relationship("Report", back_populates="assessment", uselist=False, passive_deletes=True)
 

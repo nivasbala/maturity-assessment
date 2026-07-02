@@ -1,7 +1,7 @@
 import uuid
 
-from sqlalchemy import Column, DateTime, String, ForeignKey, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String, Text, func, text
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
@@ -16,5 +16,24 @@ class Prospect(Base):
     name = Column(String(255), nullable=True)
     short_url_token = Column(String(16), nullable=False, unique=True)
     created_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+
+    # Registration state
+    is_registered = Column(Boolean, nullable=False, server_default=text("false"))
+    registered_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Prospect-provided context (collected at registration)
+    job_title = Column(String(255), nullable=True)
+    infrastructure_location = Column(Text, nullable=True)
+    tech_stack_description = Column(Text, nullable=True)
+    current_tools = Column(Text, nullable=True)
+    key_challenges_input = Column(Text, nullable=True)
+
+    # Research cache (populated by Agent 1 at prospect creation)
+    research_cache = Column(JSONB, nullable=True)
+    research_cached_at = Column(DateTime(timezone=True), nullable=True)
+    research_started_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Suggested pillars from research (array of pillar name strings)
+    suggested_pillars = Column(ARRAY(String), nullable=True)
 
     account = relationship("Account", back_populates="prospects")

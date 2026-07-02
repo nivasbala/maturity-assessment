@@ -74,6 +74,16 @@ class ProspectOut(BaseModel):
     short_url_token: str
     full_url: str
     created_at: datetime
+    is_registered: bool = False
+    registered_at: datetime | None = None
+    job_title: str | None = None
+    infrastructure_location: str | None = None
+    tech_stack_description: str | None = None
+    current_tools: str | None = None
+    key_challenges_input: str | None = None
+    research_cache: dict | None = None
+    research_cached_at: datetime | None = None
+    suggested_pillars: list[str] | None = None
 
 
 class ProspectWithAccountOut(BaseModel):
@@ -87,6 +97,8 @@ class ProspectWithAccountOut(BaseModel):
     short_url_token: str
     full_url: str
     created_at: datetime
+    is_registered: bool = False
+    registered_at: datetime | None = None
 
 
 class ProspectAssessmentRow(BaseModel):
@@ -108,6 +120,13 @@ class ProspectDetailOut(BaseModel):
     short_url_token: str
     full_url: str
     created_at: datetime
+    is_registered: bool = False
+    registered_at: datetime | None = None
+    job_title: str | None = None
+    infrastructure_location: str | None = None
+    tech_stack_description: str | None = None
+    current_tools: str | None = None
+    key_challenges_input: str | None = None
     assessments: list[ProspectAssessmentRow]
 
 
@@ -119,6 +138,7 @@ class AssessmentCreateRequest(BaseModel):
 
 class AssessmentCreatedOut(BaseModel):
     assessment_id: UUID
+    prospect_id: UUID | None = None
     short_url_token: str
     full_url: str
 
