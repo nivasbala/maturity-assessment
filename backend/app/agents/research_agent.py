@@ -27,7 +27,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -148,15 +148,6 @@ RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
 }}"""
 
 
-def _should_refresh(account: Account) -> bool:
-    if account.research_cache is None:
-        return True
-    if account.research_cached_at is None:
-        return True
-    age = datetime.now(timezone.utc) - account.research_cached_at
-    return age > timedelta(days=7)
-
-
 from app.core.json_utils import extract_json_object as _extract_json_object
 
 
@@ -206,10 +197,6 @@ async def _run_research_agent_locked(
     if not account:
         logger.warning("run_research_agent: account %s not found", account_id)
         return _build_minimal_profile(company_name)
-
-    if not _should_refresh(account):
-        logger.info("run_research_agent: cache hit for account_id=%s", account_id)
-        return account.research_cache  # type: ignore[return-value]
 
     # DuckDuckGo web search — 2-3 queries for richer coverage, run in a thread
     # to avoid blocking the async event loop with synchronous HTTP calls.
@@ -320,15 +307,6 @@ async def _run_research_agent_locked(
         return fallback
 
 
-def _should_refresh_prospect(prospect: Prospect) -> bool:
-    if prospect.research_cache is None:
-        return True
-    if prospect.research_cached_at is None:
-        return True
-    age = datetime.now(timezone.utc) - prospect.research_cached_at
-    return age > timedelta(days=7)
-
-
 async def run_research_agent_for_prospect(
     prospect_id: UUID,
     company_name: str,
@@ -375,10 +353,6 @@ async def _run_research_agent_for_prospect_locked(
     if not prospect:
         logger.warning("run_research_agent_for_prospect: prospect %s not found", prospect_id)
         return _build_minimal_profile(company_name)
-
-    if not _should_refresh_prospect(prospect):
-        logger.info("run_research_agent_for_prospect: cache hit for prospect_id=%s", prospect_id)
-        return prospect.research_cache  # type: ignore[return-value]
 
     # DuckDuckGo web search — same logic as account-scoped version
     search_results = ""
