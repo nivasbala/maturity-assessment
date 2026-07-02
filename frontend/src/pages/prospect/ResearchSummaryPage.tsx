@@ -51,7 +51,7 @@ const CONFIDENCE_STYLES: Record<string, string> = {
   low: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
 }
 
-const PROGRESS_MESSAGES = [
+const RESEARCH_MESSAGES = [
   'Researching your company…',
   'Analyzing your tech stack…',
   'Reviewing your industry context…',
@@ -59,57 +59,116 @@ const PROGRESS_MESSAGES = [
   'Almost there…',
 ]
 
-function ResearchProgressPage({ onBack }: { onBack: () => void }) {
+const QUESTION_MESSAGES = [
+  'Selecting questions tailored to your profile…',
+  'Matching questions to your tech stack…',
+  'Prioritizing your key challenges…',
+  'Finalizing your assessment…',
+  'Almost ready…',
+]
+
+function AgentProgressCard({
+  label,
+  title,
+  messages,
+  timeEstimate,
+  onBack,
+}: {
+  label: string
+  title: string
+  messages: string[]
+  timeEstimate: string
+  onBack?: () => void
+}) {
+  const [progress, setProgress] = useState(0)
   const [msgIndex, setMsgIndex] = useState(0)
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setMsgIndex((i) => (i + 1) % PROGRESS_MESSAGES.length)
-    }, 3500)
-    return () => clearInterval(id)
-  }, [])
+    const progressId = setInterval(() => {
+      setProgress((p) => (p < 88 ? p + 2 : p))
+    }, 700)
+    const msgId = setInterval(() => {
+      setMsgIndex((i) => (i + 1) % messages.length)
+    }, 3000)
+    return () => {
+      clearInterval(progressId)
+      clearInterval(msgId)
+    }
+  }, [messages.length])
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <ProspectHeader />
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md text-center">
-          <button
-            onClick={onBack}
-            className="mb-10 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-          >
-            ← Back to Pillar Selection
-          </button>
+      <div className="flex-1 flex items-center justify-center px-4">
+        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
+          <div className="mb-8">
+            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
+              {label}
+            </p>
+            <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+              {title}
+            </h2>
+          </div>
 
-          {/* Spinner */}
-          <div className="flex justify-center mb-8">
-            <div className="relative w-20 h-20">
-              <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
-              <div className="absolute inset-0 rounded-full border-4 border-blue-600 dark:border-blue-400 border-t-transparent animate-spin" />
+          {/* Circular spinner */}
+          <div className="flex justify-center mb-6">
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
+              <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-2">
-            Research in Progress
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            We're analyzing your company to tailor your assessment questions.
-          </p>
-
-          {/* Cycling message */}
-          <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-5 py-2.5 mb-4">
-            <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse shrink-0" />
-            <span className="text-sm font-medium text-blue-700 dark:text-blue-300 transition-all">
-              {PROGRESS_MESSAGES[msgIndex]}
-            </span>
+          {/* Progress bar */}
+          <div className="mb-3">
+            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
+              <span>{title}</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-brand rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
 
-          <p className="text-xs text-gray-400 dark:text-gray-500">
-            This usually takes 10–20 seconds
+          {/* Cycling message badge */}
+          <div className="flex justify-center mt-4">
+            <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                {messages[msgIndex]}
+              </span>
+            </div>
+          </div>
+
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+            {timeEstimate}
           </p>
+
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
+            >
+              ← Back to Pillar Selection
+            </button>
+          )}
         </div>
       </div>
     </div>
+  )
+}
+
+function ResearchProgressPage({ onBack }: { onBack: () => void }) {
+  return (
+    <AgentProgressCard
+      label="Company Research"
+      title="Analyzing your company profile…"
+      messages={RESEARCH_MESSAGES}
+      timeEstimate="This usually takes 10–20 seconds"
+      onBack={onBack}
+    />
   )
 }
 
@@ -230,38 +289,12 @@ export default function ResearchSummaryPage() {
 
   if (confirming) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-        <ProspectHeader />
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
-            <div className="mb-6">
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
-                Question Selection
-              </p>
-              <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
-                Personalizing your questions…
-              </h2>
-            </div>
-            <div className="flex justify-center mb-6">
-              <div className="relative w-20 h-20">
-                <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
-                <div className="absolute inset-0 rounded-full border-4 border-blue-600 dark:border-blue-400 border-t-transparent animate-spin" />
-              </div>
-            </div>
-            <div className="flex justify-center mt-4">
-              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-5 py-2.5">
-                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse shrink-0" />
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  Selecting questions tailored to your profile…
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-              This usually takes 10–20 seconds
-            </p>
-          </div>
-        </div>
-      </div>
+      <AgentProgressCard
+        label="Question Selection"
+        title="Personalizing your questions…"
+        messages={QUESTION_MESSAGES}
+        timeEstimate="This usually takes 10–20 seconds"
+      />
     )
   }
 
