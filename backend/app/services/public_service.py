@@ -387,6 +387,8 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     ])
     if context_provided:
         from app.agents.research_agent import run_research_agent_for_prospect  # noqa: PLC0415
+        prospect.research_started_at = datetime.now(timezone.utc)
+        await db.commit()
         prospect_id_for_rerun = prospect.id
         company_name_for_rerun = account.company_name
         company_website_for_rerun = account.company_website
