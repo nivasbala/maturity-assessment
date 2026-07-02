@@ -150,6 +150,8 @@ async function downloadPdf(answers: AssessmentAnswers, report: Report) {
   URL.revokeObjectURL(url)
 }
 
+type Tab = 'report' | 'answers'
+
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
@@ -160,6 +162,7 @@ export default function ReportDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const [activeTab, setActiveTab] = useState<Tab>('report')
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -296,169 +299,187 @@ export default function ReportDetailPage() {
           </div>
         </div>
 
-        {/* Raw answers */}
-        <section>
-          <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
-            Prospect Answers
-          </h2>
-          {answers.answers.length === 0 ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">No answers recorded.</p>
-          ) : (
-            <div className="space-y-2">
-              {answers.answers.map((row, i) => (
-                <div
-                  key={i}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-4"
-                >
-                  <span className="shrink-0 text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">
-                    {i + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{row.question_text}</p>
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
-                      {row.selected_option_text}
-                    </p>
+        {/* Tabs */}
+        <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
+          {(['report', 'answers'] as Tab[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === tab
+                  ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+              }`}
+            >
+              {tab === 'report' ? 'Report' : 'Raw Answers'}
+            </button>
+          ))}
+        </div>
+
+        {/* Report tab */}
+        {activeTab === 'report' && (
+          report ? (
+            <>
+              {/* Company Research */}
+              {report.research_data && (
+                <ResearchPanel data={report.research_data} />
+              )}
+
+              {/* Executive Summary */}
+              <section>
+                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                  Executive Summary
+                </h2>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {report.executive_summary}
+                  </p>
+                </div>
+              </section>
+
+              {/* Maturity Score Chart */}
+              <section>
+                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                  Maturity Score
+                </h2>
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+                    Score range: 1 (Initial) → 4 (Optimized)
+                  </p>
+                  <ScoreChart report={report} />
+                </div>
+              </section>
+
+              {/* Strengths */}
+              {report.strengths.length > 0 && (
+                <section>
+                  <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                    Strengths
+                  </h2>
+                  <div className="space-y-3">
+                    {report.strengths.map((s, i) => (
+                      <div
+                        key={i}
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex gap-3"
+                      >
+                        <span className="text-green-500 text-lg shrink-0">✓</span>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{s.title}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{s.description}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <span
-                    className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLORS[row.maturity_level] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
-                  >
-                    L{row.maturity_level}
-                  </span>
-                </div>
-              ))}
+                </section>
+              )}
+
+              {/* Gap Analysis */}
+              {report.gap_analysis.length > 0 && (
+                <section>
+                  <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                    Gap Analysis
+                  </h2>
+                  <div className="space-y-3">
+                    {report.gap_analysis.map((g, i) => (
+                      <div
+                        key={i}
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{g.gap}</p>
+                          <div className="flex gap-2 shrink-0">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${IMPACT_COLORS[g.impact] ?? ''}`}>
+                              {g.impact} impact
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${EFFORT_COLORS[g.effort] ?? ''}`}>
+                              {g.effort} effort
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Current</p>
+                            <p className="text-gray-600 dark:text-gray-400">{g.current_state}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Target</p>
+                            <p className="text-gray-600 dark:text-gray-400">{g.target_state}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Next Steps */}
+              {report.next_steps.length > 0 && (
+                <section>
+                  <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                    Next Steps
+                  </h2>
+                  <div className="space-y-3">
+                    {report.next_steps.map((n, i) => (
+                      <div
+                        key={i}
+                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{n.title}</p>
+                          <div className="flex gap-2 shrink-0">
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_COLORS[n.priority] ?? ''}`}>
+                              {PRIORITY_LABELS[n.priority] ?? n.priority}
+                            </span>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
+                              {n.timeframe}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{n.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+            </>
+          ) : (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
+              <p className="text-sm text-gray-400 dark:text-gray-500">Report not yet generated.</p>
             </div>
-          )}
-        </section>
+          )
+        )}
 
-        {/* Report */}
-        {report ? (
-          <>
-            {/* Company Research */}
-            {report.research_data && (
-              <ResearchPanel data={report.research_data} />
-            )}
-
-            {/* Executive Summary */}
-            <section>
-              <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
-                Executive Summary
-              </h2>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                  {report.executive_summary}
-                </p>
+        {/* Raw Answers tab */}
+        {activeTab === 'answers' && (
+          <section>
+            {answers.answers.length === 0 ? (
+              <p className="text-sm text-gray-400 dark:text-gray-500">No answers recorded.</p>
+            ) : (
+              <div className="space-y-2">
+                {answers.answers.map((row, i) => (
+                  <div
+                    key={i}
+                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-4"
+                  >
+                    <span className="shrink-0 text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{row.question_text}</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
+                        {row.selected_option_text}
+                      </p>
+                    </div>
+                    <span
+                      className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLORS[row.maturity_level] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+                    >
+                      L{row.maturity_level}
+                    </span>
+                  </div>
+                ))}
               </div>
-            </section>
-
-            {/* Maturity Score Chart */}
-            <section>
-              <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
-                Maturity Score
-              </h2>
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-                  Score range: 1 (Initial) → 4 (Optimized)
-                </p>
-                <ScoreChart report={report} />
-              </div>
-            </section>
-
-            {/* Strengths */}
-            {report.strengths.length > 0 && (
-              <section>
-                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
-                  Strengths
-                </h2>
-                <div className="space-y-3">
-                  {report.strengths.map((s, i) => (
-                    <div
-                      key={i}
-                      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex gap-3"
-                    >
-                      <span className="text-green-500 text-lg shrink-0">✓</span>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{s.title}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-0.5">{s.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
             )}
-
-            {/* Gap Analysis */}
-            {report.gap_analysis.length > 0 && (
-              <section>
-                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
-                  Gap Analysis
-                </h2>
-                <div className="space-y-3">
-                  {report.gap_analysis.map((g, i) => (
-                    <div
-                      key={i}
-                      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{g.gap}</p>
-                        <div className="flex gap-2 shrink-0">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${IMPACT_COLORS[g.impact] ?? ''}`}>
-                            {g.impact} impact
-                          </span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${EFFORT_COLORS[g.effort] ?? ''}`}>
-                            {g.effort} effort
-                          </span>
-                        </div>
-                      </div>
-                      <div className="mt-2 grid grid-cols-2 gap-3 text-sm">
-                        <div>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Current</p>
-                          <p className="text-gray-600 dark:text-gray-400">{g.current_state}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Target</p>
-                          <p className="text-gray-600 dark:text-gray-400">{g.target_state}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Next Steps */}
-            {report.next_steps.length > 0 && (
-              <section>
-                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
-                  Next Steps
-                </h2>
-                <div className="space-y-3">
-                  {report.next_steps.map((n, i) => (
-                    <div
-                      key={i}
-                      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{n.title}</p>
-                        <div className="flex gap-2 shrink-0">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_COLORS[n.priority] ?? ''}`}>
-                            {PRIORITY_LABELS[n.priority] ?? n.priority}
-                          </span>
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium">
-                            {n.timeframe}
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{n.description}</p>
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-          </>
-        ) : (
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
-            <p className="text-sm text-gray-400 dark:text-gray-500">Report not yet generated.</p>
-          </div>
+          </section>
         )}
       </div>
     </div>
