@@ -57,6 +57,9 @@ export const getAssessmentAnswers = (assessmentId: string) =>
 export const getAssessmentReport = (assessmentId: string) =>
   api.get<Report>(`/assessments/${assessmentId}/report`).then((r) => r.data)
 
+export const resetAssessment = (assessmentId: string) =>
+  api.post(`/assessments/${assessmentId}/reset`)
+
 // ── Pillars (for suggested pillar picker) ─────────────────────────────────────
 
 export const getActivePillars = () =>
