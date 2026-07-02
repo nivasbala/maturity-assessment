@@ -198,6 +198,10 @@ async def _run_research_agent_locked(
         logger.warning("run_research_agent: account %s not found", account_id)
         return _build_minimal_profile(company_name)
 
+    if not _should_refresh(account):
+        logger.info("run_research_agent: cache fresh for account_id=%s — skipping", account_id)
+        return account.research_cache  # type: ignore[return-value]
+
     # DuckDuckGo web search — 2-3 queries for richer coverage, run in a thread
     # to avoid blocking the async event loop with synchronous HTTP calls.
     search_results = ""
@@ -354,6 +358,13 @@ async def _run_research_agent_for_prospect_locked(
         logger.warning("run_research_agent_for_prospect: prospect %s not found", prospect_id)
         return _build_minimal_profile(company_name)
 
+    if not _should_refresh(prospect):
+        logger.info(
+            "run_research_agent_for_prospect: cache fresh for prospect_id=%s — skipping",
+            prospect_id,
+        )
+        return prospect.research_cache  # type: ignore[return-value]
+
     # DuckDuckGo web search — same logic as account-scoped version
     search_results = ""
     try:
@@ -456,6 +467,17 @@ async def _run_research_agent_for_prospect_locked(
                 exc_info=True,
             )
         return fallback
+
+
+def _should_refresh(account: Any) -> bool:
+    """Return True if the research cache is absent or older than 7 days."""
+    if not account.research_cache or not account.research_cached_at:
+        return True
+    cached_at = account.research_cached_at
+    if cached_at.tzinfo is None:
+        cached_at = cached_at.replace(tzinfo=timezone.utc)
+    age = datetime.now(timezone.utc) - cached_at
+    return age.total_seconds() > 7 * 24 * 3600
 
 
 def _build_minimal_profile(company_name: str) -> dict[str, Any]:

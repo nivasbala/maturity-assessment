@@ -407,3 +407,368 @@ async def test_delete_assessment_401_unauthenticated():
         )
 
     assert resp.status_code == 401
+
+
+# ---------------------------------------------------------------------------
+# GET /api/accounts/{id}/aggregate — happy path (200)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_aggregate_returns_200():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    mock_out = {
+        "account_id": str(account_id),
+        "company_name": "Acme Corp",
+        "completed_count": 2,
+        "assessments": [
+            {
+                "pillar_name": "P1 Full-Stack Observability",
+                "display_order": 1,
+                "pillar_score": 2.5,
+                "maturity_label": "Developing",
+                "prospect_name": "Alice",
+                "prospect_email": "alice@acme.com",
+            },
+            {
+                "pillar_name": "P2 AIOps",
+                "display_order": 2,
+                "pillar_score": 3.1,
+                "maturity_label": "Scaling",
+                "prospect_name": "Alice",
+                "prospect_email": "alice@acme.com",
+            },
+        ],
+    }
+
+    with patch(
+        "app.routers.accounts.account_service.get_account_aggregate", new_callable=AsyncMock
+    ) as mock_agg:
+        mock_agg.return_value = mock_out
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/aggregate")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["completed_count"] == 2
+    assert len(data["assessments"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_get_aggregate_403_wrong_user():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.get_account_aggregate", new_callable=AsyncMock
+    ) as mock_agg:
+        mock_agg.side_effect = HTTPException(status_code=403, detail="Access denied")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/aggregate")
+
+    assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/accounts/{id}
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_account_returns_204():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.delete_account", new_callable=AsyncMock
+    ) as mock_del:
+        mock_del.return_value = None
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.delete(f"/api/accounts/{account_id}")
+
+    assert resp.status_code == 204
+    mock_del.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_account_404_not_found():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.delete_account", new_callable=AsyncMock
+    ) as mock_del:
+        mock_del.side_effect = HTTPException(status_code=404, detail="Account not found")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.delete(f"/api/accounts/{account_id}")
+
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# POST /api/accounts/{id}/prospects — create prospect
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_prospect_returns_201():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+    mock_out = {
+        "id": str(prospect_id),
+        "account_id": str(account_id),
+        "email": "alice@acme.com",
+        "name": None,
+        "short_url_token": "AbCdEfGh",
+        "full_url": "http://localhost/assess/AbCdEfGh",
+        "created_at": "2026-01-01T00:00:00Z",
+        "is_registered": False,
+        "registered_at": None,
+    }
+
+    with patch(
+        "app.routers.accounts.account_service.create_prospect", new_callable=AsyncMock
+    ) as mock_create:
+        mock_create.return_value = mock_out
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                f"/api/accounts/{account_id}/prospects",
+                json={"email": "alice@acme.com"},
+            )
+
+    assert resp.status_code == 201
+    data = resp.json()
+    assert data["email"] == "alice@acme.com"
+    assert "short_url_token" in data
+
+
+@pytest.mark.asyncio
+async def test_create_prospect_409_duplicate_email():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.create_prospect", new_callable=AsyncMock
+    ) as mock_create:
+        mock_create.side_effect = HTTPException(
+            status_code=409, detail="A prospect with this email already exists"
+        )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(
+                f"/api/accounts/{account_id}/prospects",
+                json={"email": "alice@acme.com"},
+            )
+
+    assert resp.status_code == 409
+
+
+# ---------------------------------------------------------------------------
+# GET /api/accounts/{id}/prospects — list prospects
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_prospects_returns_200():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+    mock_out = [
+        {
+            "id": str(prospect_id),
+            "account_id": str(account_id),
+            "email": "alice@acme.com",
+            "name": None,
+            "short_url_token": "AbCdEfGh",
+            "full_url": "http://localhost/assess/AbCdEfGh",
+            "created_at": "2026-01-01T00:00:00Z",
+            "is_registered": False,
+            "registered_at": None,
+        }
+    ]
+
+    with patch(
+        "app.routers.accounts.account_service.list_prospects", new_callable=AsyncMock
+    ) as mock_list:
+        mock_list.return_value = mock_out
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/prospects")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["email"] == "alice@acme.com"
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/accounts/{id}/prospects/{prospect_id}
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_delete_prospect_returns_204():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.delete_prospect", new_callable=AsyncMock
+    ) as mock_del:
+        mock_del.return_value = None
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.delete(
+                f"/api/accounts/{account_id}/prospects/{prospect_id}"
+            )
+
+    assert resp.status_code == 204
+    mock_del.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_delete_prospect_404_not_found():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.delete_prospect", new_callable=AsyncMock
+    ) as mock_del:
+        mock_del.side_effect = HTTPException(status_code=404, detail="Prospect not found")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.delete(
+                f"/api/accounts/{account_id}/prospects/{prospect_id}"
+            )
+
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# GET /api/accounts/{id}/prospects/{prospect_id} — prospect detail
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_detail_returns_200():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+    mock_out = {
+        "id": str(prospect_id),
+        "account_id": str(account_id),
+        "email": "alice@acme.com",
+        "name": "Alice",
+        "short_url_token": "AbCdEfGh",
+        "full_url": "http://localhost/assess/AbCdEfGh",
+        "created_at": "2026-01-01T00:00:00Z",
+        "is_registered": True,
+        "registered_at": "2026-01-02T00:00:00Z",
+        "assessments": [],
+    }
+
+    with patch(
+        "app.routers.accounts.account_service.get_prospect_detail", new_callable=AsyncMock
+    ) as mock_get:
+        mock_get.return_value = mock_out
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                f"/api/accounts/{account_id}/prospects/{prospect_id}"
+            )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["email"] == "alice@acme.com"
+    assert data["is_registered"] is True
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_detail_404_not_found():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.get_prospect_detail", new_callable=AsyncMock
+    ) as mock_get:
+        mock_get.side_effect = HTTPException(status_code=404, detail="Prospect not found")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(
+                f"/api/accounts/{account_id}/prospects/{prospect_id}"
+            )
+
+    assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# GET /api/accounts/{id}/assessments — list assessments for account
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_list_account_assessments_returns_200():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    assessment_id = uuid4()
+    mock_out = [
+        {
+            "id": str(assessment_id),
+            "account_id": str(account_id),
+            "pillar_id": str(uuid4()),
+            "pillar_name": "P1 Full-Stack Observability",
+            "short_url_token": "AbCdEfGh",
+            "prospect_name": None,
+            "prospect_email": "alice@acme.com",
+            "prospect_role": None,
+            "status": "completed",
+            "pillar_score": 2.8,
+            "maturity_label": "Developing",
+            "created_at": "2026-01-01T00:00:00Z",
+            "completed_at": "2026-01-02T00:00:00Z",
+        }
+    ]
+
+    with patch(
+        "app.routers.accounts.account_service.list_account_assessments", new_callable=AsyncMock
+    ) as mock_list:
+        mock_list.return_value = mock_out
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/assessments")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["status"] == "completed"

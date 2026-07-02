@@ -131,6 +131,24 @@ class ProspectDetailOut(BaseModel):
     assessments: list[ProspectAssessmentRow]
 
 
+# ── Account aggregate ─────────────────────────────────────────────────────────
+
+class AggregateAssessmentRow(BaseModel):
+    pillar_name: str
+    display_order: int
+    pillar_score: float
+    maturity_label: str
+    prospect_name: str | None
+    prospect_email: str | None
+
+
+class AccountAggregateOut(BaseModel):
+    account_id: UUID
+    company_name: str
+    completed_count: int
+    assessments: list[AggregateAssessmentRow]
+
+
 # ── Assessment creation ────────────────────────────────────────────────────────
 
 class AssessmentCreateRequest(BaseModel):
