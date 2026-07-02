@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import type { QuestionPublic } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
@@ -24,6 +24,7 @@ export default function AssessmentPage() {
   const prospectRole = state?.prospectRole ?? ''
 
   const [currentIndex, setCurrentIndex] = useState(0)
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [answers, setAnswers] = useState<Record<string, string>>(() => {
     try {
       const stored = sessionStorage.getItem(`assessment_answers_${assessmentId}`)
@@ -42,6 +43,12 @@ export default function AssessmentPage() {
       navigate(`/assess/${token}/pillars`, { replace: true })
     }
   }, [sessionExpired, questions.length, token, navigate])
+
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimer.current !== null) clearTimeout(autoAdvanceTimer.current)
+    }
+  }, [])
 
   if (sessionExpired) {
     return (
@@ -86,17 +93,29 @@ export default function AssessmentPage() {
       return next
     })
     if (currentIndex < totalQuestions - 1) {
-      setTimeout(() => setCurrentIndex((i) => i + 1), 300)
+      if (autoAdvanceTimer.current !== null) clearTimeout(autoAdvanceTimer.current)
+      autoAdvanceTimer.current = setTimeout(() => {
+        autoAdvanceTimer.current = null
+        setCurrentIndex((i) => i + 1)
+      }, 300)
     }
   }
 
   function goNext() {
+    if (autoAdvanceTimer.current !== null) {
+      clearTimeout(autoAdvanceTimer.current)
+      autoAdvanceTimer.current = null
+    }
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex((i) => i + 1)
     }
   }
 
   function goBack() {
+    if (autoAdvanceTimer.current !== null) {
+      clearTimeout(autoAdvanceTimer.current)
+      autoAdvanceTimer.current = null
+    }
     if (currentIndex > 0) {
       setCurrentIndex((i) => i - 1)
     }
@@ -214,7 +233,7 @@ export default function AssessmentPage() {
             ) : (
               <button
                 onClick={handleSubmit}
-                disabled={!selectedOptionId}
+                disabled={!allAnswered}
                 className="px-5 py-2 text-sm font-semibold bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
               >
                 Submit Assessment
