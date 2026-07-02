@@ -81,7 +81,7 @@ const s = StyleSheet.create({
 // ── Score section ─────────────────────────────────────────────────────────────
 
 function ScoreSection({ report }: { report: ReportPublic }) {
-  const breakdown = report.pillar_breakdown as Record<string, number>
+  const breakdown = (report.pillar_breakdown ?? {}) as Record<string, number>
   const subAreas = Object.entries(breakdown)
   const hasRadar = subAreas.length >= 3
   return (
