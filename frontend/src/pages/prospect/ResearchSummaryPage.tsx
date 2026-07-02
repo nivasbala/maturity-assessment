@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getResearchSummary, confirmResearch } from '../../api/public'
 import { extractApiError } from '../../api'
@@ -51,6 +51,68 @@ const CONFIDENCE_STYLES: Record<string, string> = {
   low: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
 }
 
+const PROGRESS_MESSAGES = [
+  'Researching your company…',
+  'Analyzing your tech stack…',
+  'Reviewing your industry context…',
+  'Building your company profile…',
+  'Almost there…',
+]
+
+function ResearchProgressPage({ onBack }: { onBack: () => void }) {
+  const [msgIndex, setMsgIndex] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setMsgIndex((i) => (i + 1) % PROGRESS_MESSAGES.length)
+    }, 3500)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      <ProspectHeader />
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <button
+            onClick={onBack}
+            className="mb-10 inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+          >
+            ← Back to Pillar Selection
+          </button>
+
+          {/* Spinner */}
+          <div className="flex justify-center mb-8">
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
+              <div className="absolute inset-0 rounded-full border-4 border-blue-600 dark:border-blue-400 border-t-transparent animate-spin" />
+            </div>
+          </div>
+
+          <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-2">
+            Research in Progress
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            We're analyzing your company to tailor your assessment questions.
+          </p>
+
+          {/* Cycling message */}
+          <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-5 py-2.5 mb-4">
+            <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse shrink-0" />
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300 transition-all">
+              {PROGRESS_MESSAGES[msgIndex]}
+            </span>
+          </div>
+
+          <p className="text-xs text-gray-400 dark:text-gray-500">
+            This usually takes 10–20 seconds
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ResearchSummaryPage() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
@@ -89,6 +151,10 @@ export default function ResearchSummaryPage() {
   const [confirming, setConfirming] = useState(false)
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const delayRef = useRef(2000)
+
+  const handleBack = useCallback(() => {
+    navigate(`/assess/${token}/pillars`)
+  }, [navigate, token])
 
   // Redirect to pillar select if no session token or no assessment context
   useEffect(() => {
@@ -158,6 +224,10 @@ export default function ResearchSummaryPage() {
     )
   }
 
+  if (!summary || !summary.is_ready) {
+    return <ResearchProgressPage onBack={handleBack} />
+  }
+
   if (confirming) {
     return (
       <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
@@ -173,14 +243,14 @@ export default function ResearchSummaryPage() {
               </h2>
             </div>
             <div className="flex justify-center mb-6">
-              <div className="relative w-14 h-14">
-                <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
-                <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+              <div className="relative w-20 h-20">
+                <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-700" />
+                <div className="absolute inset-0 rounded-full border-4 border-blue-600 dark:border-blue-400 border-t-transparent animate-spin" />
               </div>
             </div>
             <div className="flex justify-center mt-4">
-              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-5 py-2.5">
+                <span className="w-2 h-2 rounded-full bg-blue-600 dark:bg-blue-400 animate-pulse shrink-0" />
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
                   Selecting questions tailored to your profile…
                 </span>
@@ -206,48 +276,6 @@ export default function ResearchSummaryPage() {
           >
             ← Back to Pillar Selection
           </button>
-
-          {/* Loading state */}
-          {(!summary || !summary.is_ready) && (
-            <div className="space-y-4">
-              <div className="w-full bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
-                <div className="mb-6">
-                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
-                    Company Research
-                  </p>
-                  <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
-                    Analyzing your company profile…
-                  </h2>
-                </div>
-
-                <div className="flex justify-center mb-6">
-                  <div className="relative w-14 h-14">
-                    <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
-                    <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
-                  </div>
-                </div>
-
-                <div className="flex justify-center mt-4">
-                  <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
-                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                      Researching your company…
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-                  This usually takes 10–20 seconds
-                </p>
-                <button
-                  onClick={() => navigate(`/assess/${token}/pillars`)}
-                  className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
-                >
-                  ← Back to Pillar Selection
-                </button>
-              </div>
-              {hasProspectContext && <ProspectContextCard ctx={prospectContext} />}
-            </div>
-          )}
 
           {/* Ready state */}
           {summary?.is_ready && (
