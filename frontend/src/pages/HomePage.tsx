@@ -209,7 +209,7 @@ function ReportBody() {
 
 function VerticalReportMockup() {
   return (
-    <div className="w-full max-w-xs mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden" style={{ height: '320px' }}>
+    <div className="w-full max-w-xs mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden flex flex-col h-full min-h-[420px]">
       {/* Sticky header */}
       <div className="bg-[#1B2B4B] px-4 py-3 shrink-0">
         <div className="flex items-center justify-between mb-1">
@@ -224,7 +224,7 @@ function VerticalReportMockup() {
       </div>
 
       {/* Animated scroll body */}
-      <div className="relative overflow-hidden" style={{ height: 'calc(320px - 58px)' }}>
+      <div className="relative overflow-hidden flex-1">
         <div style={{ animation: 'reportScroll 14s ease-in-out infinite' }}>
           <ReportBody />
           {/* Duplicate for seamless loop */}
@@ -619,7 +619,7 @@ export default function HomePage() {
           <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10 max-w-lg mx-auto">
             A comprehensive, AI-generated report tailored to your organisation — ready in minutes.
           </p>
-          <div className="grid md:grid-cols-2 gap-10 items-center">
+          <div className="grid md:grid-cols-2 gap-10 items-stretch">
             {/* Left: benefits */}
             <div className="space-y-4">
               {REPORT_BENEFITS.map((b) => (
