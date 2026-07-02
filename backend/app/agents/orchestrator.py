@@ -248,7 +248,7 @@ async def run_assessment_orchestrator(
 
     try:
         compiled = _build_graph(db)
-        final_state = await asyncio.wait_for(compiled.ainvoke(initial_state), timeout=120.0)
+        final_state = await asyncio.wait_for(compiled.ainvoke(initial_state), timeout=300.0)
         logger.info(
             "run_assessment_orchestrator: completed for assessment_id=%s", assessment_id
         )
@@ -260,7 +260,7 @@ async def run_assessment_orchestrator(
         }
     except asyncio.TimeoutError:
         logger.error(
-            "run_assessment_orchestrator: 120s timeout for assessment_id=%s — rolling back session",
+            "run_assessment_orchestrator: 300s timeout for assessment_id=%s — rolling back session",
             assessment_id,
         )
         # The cancelled coroutine may have left the session mid-transaction; roll back
