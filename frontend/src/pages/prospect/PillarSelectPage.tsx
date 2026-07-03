@@ -142,6 +142,13 @@ export default function PillarSelectPage() {
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
               This usually takes 10–20 seconds
             </p>
+
+            <button
+              onClick={() => navigate(`/assess/${token}/research-summary`)}
+              className="mt-6 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+            >
+              ← Back to Research Summary
+            </button>
           </div>
         </div>
       </div>
