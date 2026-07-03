@@ -614,10 +614,9 @@ async def create_prospect(
     await db.refresh(prospect)
 
     logger.info(
-        "create_prospect: prospect_id=%s account_id=%s token=%s",
+        "create_prospect: prospect_id=%s account_id=%s",
         prospect.id,
         account_id,
-        token,
     )
 
     full_url = f"{settings.base_url}/assess/{token}"

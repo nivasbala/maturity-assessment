@@ -362,7 +362,7 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
                 completed_at=a.completed_at,
             ))
 
-    logger.info("get_assessment_info: token=%s account_id=%s is_registered=%s", token, account.id, prospect.is_registered)
+    logger.info("get_assessment_info: prospect_id=%s account_id=%s is_registered=%s", prospect.id, account.id, prospect.is_registered)
     return AssessmentInfoOut(
         company_name=account.company_name,
         prospect_name=prospect.name,
@@ -999,7 +999,7 @@ async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> Repor
         if aa.question and aa.answer_option
     ]
 
-    logger.info("get_report: token=%s assessment_id=%s report_id=%s", token, assessment_id, report.id)
+    logger.info("get_report: prospect_id=%s assessment_id=%s report_id=%s", prospect.id, assessment_id, report.id)
     return ReportPublicOut(
         id=report.id,
         assessment_id=report.assessment_id,
