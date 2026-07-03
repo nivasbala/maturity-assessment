@@ -166,6 +166,69 @@ async def test_get_research_summary_ready_with_full_profile():
 
 
 @pytest.mark.asyncio
+async def test_get_research_summary_maps_news_insights_and_sources_from_cache():
+    """news_insights and sources are returned from cache when present."""
+    from app.services.public_service import get_research_summary
+
+    prospect_id = uuid4()
+    token = "test_token"
+    session = {"account_id": str(uuid4()), "prospect_id": str(prospect_id)}
+
+    cache = {
+        "company_name": "Acme Corp",
+        "industry": "saas",
+        "company_size": "mid-market",
+        "products_summary": "B2B analytics.",
+        "target_customers": "enterprise teams",
+        "builds_ai_products": False,
+        "cloud_providers": [],
+        "key_challenges": [],
+        "business_outcomes": [],
+        "operational_scale": [],
+        "data_confidence": "medium",
+        "research_notes": "",
+        "news_insights": "Acme recently announced a major AI investment.",
+        "sources": [{"title": "TechCrunch", "url": "https://techcrunch.com/acme"}],
+    }
+
+    mock_prospect = _make_mock_prospect(prospect_id, research_cache=cache)
+    db = _make_prospect_db(mock_prospect)
+
+    result = await get_research_summary(token, session, db)
+
+    assert result.is_ready is True
+    assert result.news_insights == "Acme recently announced a major AI investment."
+    assert len(result.sources) == 1
+    assert result.sources[0]["url"] == "https://techcrunch.com/acme"
+
+
+@pytest.mark.asyncio
+async def test_get_research_summary_news_insights_defaults_empty_when_missing():
+    """news_insights defaults to '' for legacy cache records that lack the key."""
+    from app.services.public_service import get_research_summary
+
+    prospect_id = uuid4()
+    token = "test_token"
+    session = {"account_id": str(uuid4()), "prospect_id": str(prospect_id)}
+
+    cache = {
+        "company_name": "OldCo",
+        "industry": "fintech",
+        "company_size": "startup",
+        "data_confidence": "low",
+        # intentionally omitting news_insights and sources
+    }
+
+    mock_prospect = _make_mock_prospect(prospect_id, research_cache=cache)
+    db = _make_prospect_db(mock_prospect)
+
+    result = await get_research_summary(token, session, db)
+
+    assert result.news_insights == ""
+    assert result.sources == []
+
+
+@pytest.mark.asyncio
 async def test_get_research_summary_maps_observability_outcome_from_cache():
     """observability_outcome is returned from cache when present."""
     from app.services.public_service import get_research_summary

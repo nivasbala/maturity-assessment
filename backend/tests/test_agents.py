@@ -680,3 +680,195 @@ class TestResearchAgentForProspect:
         mock_prospect.research_cached_at = None
 
         assert _should_refresh(mock_prospect) is True
+
+
+# ── _compute_research_input_hash ─────────────────────────────────────────────
+
+class TestComputeResearchInputHash:
+    """Tests for the registration-time input hash used to skip Agent 1 re-runs."""
+
+    def test_same_inputs_produce_same_hash(self):
+        """Calling twice with identical inputs returns the same digest."""
+        from app.services.public_service import _compute_research_input_hash
+
+        h1 = _compute_research_input_hash("Acme", "acme.com", "AWS", "Python", "Datadog", "latency")
+        h2 = _compute_research_input_hash("Acme", "acme.com", "AWS", "Python", "Datadog", "latency")
+        assert h1 == h2
+
+    def test_different_inputs_produce_different_hash(self):
+        """Changing any input field changes the digest."""
+        from app.services.public_service import _compute_research_input_hash
+
+        base = _compute_research_input_hash("Acme", "acme.com", "AWS", "Python", "Datadog", "latency")
+        changed = _compute_research_input_hash("Acme", "acme.com", "GCP", "Python", "Datadog", "latency")
+        assert base != changed
+
+    def test_none_fields_treated_as_empty(self):
+        """None optional fields hash identically to empty strings."""
+        from app.services.public_service import _compute_research_input_hash
+
+        h_none = _compute_research_input_hash("Acme", None, None, None, None, None)
+        h_empty = _compute_research_input_hash("Acme", "", "", "", "", "")
+        assert h_none == h_empty
+
+    def test_hash_is_case_insensitive(self):
+        """Input normalisation lowercases before hashing."""
+        from app.services.public_service import _compute_research_input_hash
+
+        h_lower = _compute_research_input_hash("acme", "acme.com", "aws", None, None, None)
+        h_upper = _compute_research_input_hash("ACME", "ACME.COM", "AWS", None, None, None)
+        assert h_lower == h_upper
+
+    def test_hash_is_whitespace_trimmed(self):
+        """Leading/trailing whitespace is stripped before hashing."""
+        from app.services.public_service import _compute_research_input_hash
+
+        h_trimmed = _compute_research_input_hash("Acme", "acme.com", None, None, None, None)
+        h_padded = _compute_research_input_hash("  Acme  ", "  acme.com  ", None, None, None, None)
+        assert h_trimmed == h_padded
+
+    def test_returns_hex_string(self):
+        """Hash is a non-empty lowercase hex string (SHA-256 = 64 chars)."""
+        from app.services.public_service import _compute_research_input_hash
+
+        result = _compute_research_input_hash("Acme", None, None, None, None, None)
+        assert isinstance(result, str)
+        assert len(result) == 64
+        assert all(c in "0123456789abcdef" for c in result)
+
+
+# ── _research_cache_expired ───────────────────────────────────────────────────
+
+class TestResearchCacheExpired:
+    """Tests for the 3-day TTL check added at registration."""
+
+    def test_absent_cache_is_expired(self):
+        """No cache at all → always expired."""
+        from app.services.public_service import _research_cache_expired
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = None
+        mock_prospect.research_cached_at = None
+        assert _research_cache_expired(mock_prospect) is True
+
+    def test_cache_older_than_ttl_is_expired(self):
+        """Cache older than 3 days is expired."""
+        from datetime import timedelta
+        from app.services.public_service import _research_cache_expired
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = {"company_name": "Acme"}
+        mock_prospect.research_cached_at = datetime.now(timezone.utc) - timedelta(days=4)
+        assert _research_cache_expired(mock_prospect) is True
+
+    def test_cache_within_ttl_is_not_expired(self):
+        """Cache less than 3 days old is not expired."""
+        from datetime import timedelta
+        from app.services.public_service import _research_cache_expired
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = {"company_name": "Acme"}
+        mock_prospect.research_cached_at = datetime.now(timezone.utc) - timedelta(days=2)
+        assert _research_cache_expired(mock_prospect) is False
+
+    def test_cache_exactly_at_boundary_is_expired(self):
+        """Cache exactly at 3 days + 1 second is expired."""
+        from datetime import timedelta
+        from app.services.public_service import _research_cache_expired
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = {"company_name": "Acme"}
+        mock_prospect.research_cached_at = datetime.now(timezone.utc) - timedelta(days=3, seconds=1)
+        assert _research_cache_expired(mock_prospect) is True
+
+    def test_naive_cached_at_treated_as_utc(self):
+        """Naive datetime (no tzinfo) in research_cached_at is treated as UTC."""
+        from datetime import timedelta
+        from app.services.public_service import _research_cache_expired
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = {"company_name": "Acme"}
+        mock_prospect.research_cached_at = datetime.utcnow() - timedelta(days=1)
+        assert _research_cache_expired(mock_prospect) is False
+
+    def test_custom_ttl_days_respected(self):
+        """ttl_days parameter overrides the default 3-day window."""
+        from datetime import timedelta
+        from app.services.public_service import _research_cache_expired
+
+        mock_prospect = MagicMock()
+        mock_prospect.research_cache = {"company_name": "Acme"}
+        # 5 days old — expired at ttl=3, but not at ttl=7
+        mock_prospect.research_cached_at = datetime.now(timezone.utc) - timedelta(days=5)
+        assert _research_cache_expired(mock_prospect, ttl_days=3) is True
+        assert _research_cache_expired(mock_prospect, ttl_days=7) is False
+
+
+# ── _format_company_context with prospect_context ────────────────────────────
+
+class TestFormatCompanyContextProspectContext:
+    """Tests for prospect_context arg added to _format_company_context (Agent 3)."""
+
+    def test_prospect_context_fields_appear_in_output(self):
+        """All four prospect_context fields are rendered when provided."""
+        from app.agents.report_agent import _format_company_context
+
+        ctx = _format_company_context(
+            {},
+            prospect_context={
+                "infrastructure_location": "AWS us-east-1",
+                "tech_stack_description": "Python, Kubernetes",
+                "current_tools": "Datadog, PagerDuty",
+                "key_challenges_input": "alert fatigue at scale",
+            },
+        )
+        assert "AWS us-east-1" in ctx
+        assert "Python, Kubernetes" in ctx
+        assert "Datadog, PagerDuty" in ctx
+        assert "alert fatigue at scale" in ctx
+
+    def test_none_prospect_context_does_not_crash(self):
+        """None prospect_context is handled gracefully."""
+        from app.agents.report_agent import _format_company_context
+
+        ctx = _format_company_context({"industry": "SaaS"}, prospect_context=None)
+        assert "SaaS" in ctx
+
+    def test_empty_dict_prospect_context_renders_nothing_extra(self):
+        """Empty dict prospect_context adds no lines."""
+        from app.agents.report_agent import _format_company_context
+
+        ctx_with = _format_company_context({"industry": "SaaS"}, prospect_context={})
+        ctx_without = _format_company_context({"industry": "SaaS"}, prospect_context=None)
+        assert ctx_with == ctx_without
+
+    def test_prospect_context_combined_with_profile_and_notes(self):
+        """All three inputs (profile, additional_notes, prospect_context) appear together."""
+        from app.agents.report_agent import _format_company_context
+
+        ctx = _format_company_context(
+            {"industry": "FinTech", "products_summary": "Payment APIs"},
+            prospect_additional_notes="We also use GCP.",
+            prospect_context={"infrastructure_location": "AWS us-west-2"},
+        )
+        assert "FinTech" in ctx
+        assert "Payment APIs" in ctx
+        assert "AWS us-west-2" in ctx
+        assert "We also use GCP." in ctx
+
+    def test_empty_profile_and_context_returns_placeholder(self):
+        """Both empty → placeholder string, not a crash."""
+        from app.agents.report_agent import _format_company_context
+
+        ctx = _format_company_context({}, prospect_context={})
+        assert "No company context available" in ctx
+
+    def test_news_insights_rendered_from_profile(self):
+        """news_insights from company_profile appears in the context output."""
+        from app.agents.report_agent import _format_company_context
+
+        ctx = _format_company_context(
+            {"news_insights": "Acme recently raised a Series C and is investing in observability."}
+        )
+        assert "Series C" in ctx
+        assert "observability" in ctx
