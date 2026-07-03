@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getAssessmentInfo, selectPillar, confirmResearch } from '../../api/public'
 import { extractApiError } from '../../api'
@@ -13,66 +13,6 @@ const CONFIRMING_MESSAGES = [
   'Finalizing your assessment…',
   'Almost ready…',
 ]
-
-function ConfirmingCard() {
-  const [progress, setProgress] = useState(0)
-  const [msgIdx, setMsgIdx] = useState(0)
-
-  useEffect(() => {
-    const p = setInterval(() => setProgress((v) => (v < 88 ? v + 2 : v)), 700)
-    const m = setInterval(() => setMsgIdx((i) => (i + 1) % CONFIRMING_MESSAGES.length), 3000)
-    return () => { clearInterval(p); clearInterval(m) }
-  }, [])
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <ProspectHeader />
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
-          <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
-            Question Selection
-          </p>
-          <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-8">
-            Personalizing your questions…
-          </h2>
-
-          <div className="flex justify-center mb-6">
-            <div className="relative w-14 h-14">
-              <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
-              <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
-            </div>
-          </div>
-
-          <div className="mb-3">
-            <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
-              <span>Preparing your assessment</span>
-              <span>{progress}%</span>
-            </div>
-            <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-brand rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-center mt-4">
-            <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
-              <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                {CONFIRMING_MESSAGES[msgIdx]}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-            This usually takes 10–20 seconds
-          </p>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export default function PillarSelectPage() {
   const { token } = useParams<{ token: string }>()
@@ -93,6 +33,10 @@ export default function PillarSelectPage() {
   const [startingPillarId, setStartingPillarId] = useState<string | null>(null)
   const [pillarError, setPillarError] = useState('')
   const [confirming, setConfirming] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [msgIdx, setMsgIdx] = useState(0)
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const msgTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (!sessionToken) {
@@ -104,6 +48,16 @@ export default function PillarSelectPage() {
       .then(setInfo)
       .catch((e) => setLoadError(extractApiError(e, 'Failed to load assessment areas.')))
   }, [token, sessionToken, navigate])
+
+  useEffect(() => {
+    if (!confirming) return
+    progressTimerRef.current = setInterval(() => setProgress((v) => (v < 88 ? v + 2 : v)), 700)
+    msgTimerRef.current = setInterval(() => setMsgIdx((i) => (i + 1) % CONFIRMING_MESSAGES.length), 3000)
+    return () => {
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current)
+      if (msgTimerRef.current) clearInterval(msgTimerRef.current)
+    }
+  }, [confirming])
 
   function isPillarVisible(pillar: AvailablePillar, gatedPillars: AvailablePillar[]): boolean {
     if (!pillar.is_gated) return true
@@ -144,7 +98,54 @@ export default function PillarSelectPage() {
   }
 
   if (confirming) {
-    return <ConfirmingCard />
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+        <ProspectHeader />
+        <div className="flex-1 flex items-center justify-center px-4">
+          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
+            <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
+              Question Selection
+            </p>
+            <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-8">
+              Personalizing your questions…
+            </h2>
+
+            <div className="flex justify-center mb-6">
+              <div className="relative w-14 h-14">
+                <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
+                <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
+                <span>Preparing your assessment</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-brand rounded-full transition-all duration-700 ease-out"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-center mt-4">
+              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {CONFIRMING_MESSAGES[msgIdx]}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+              This usually takes 10–20 seconds
+            </p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (loadError) {

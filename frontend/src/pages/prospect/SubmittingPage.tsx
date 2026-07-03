@@ -112,7 +112,7 @@ export default function SubmittingPage() {
               </p>
               <button
                 onClick={() => navigate(-1)}
-                className="text-sm text-brand hover:underline"
+                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
               >
                 ← Go back and try again
               </button>
@@ -155,7 +155,7 @@ export default function SubmittingPage() {
               </p>
               <button
                 onClick={() => navigate(-1)}
-                className="mt-5 text-sm text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
+                className="mt-5 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
               >
                 ← Back to Assessment
               </button>
