@@ -136,7 +136,7 @@ class TestResearchAgent:
         assert "technology_signals" not in result
 
     def test_minimal_profile_structure(self):
-        """Minimal profile has all required keys."""
+        """Minimal profile has all required keys including observability_outcome."""
         from app.agents.research_agent import _build_minimal_profile
 
         profile = _build_minimal_profile("TestCorp")
@@ -144,11 +144,26 @@ class TestResearchAgent:
             "company_name", "industry", "company_size", "products_summary",
             "target_customers", "builds_ai_products", "cloud_providers",
             "key_challenges", "business_outcomes", "operational_scale",
-            "data_confidence", "research_notes", "news_insights", "sources",
+            "data_confidence", "research_notes", "news_insights",
+            "observability_outcome", "sources",
         }
         assert required_keys == set(profile.keys())
         assert profile["company_name"] == "TestCorp"
         assert "technology_signals" not in profile
+
+    def test_minimal_profile_observability_outcome_defaults_empty(self):
+        """Fallback profile sets observability_outcome to empty string."""
+        from app.agents.research_agent import _build_minimal_profile
+
+        profile = _build_minimal_profile("FallbackCo")
+        assert profile["observability_outcome"] == ""
+
+    def test_system_prompt_includes_observability_outcome(self):
+        """LLM system prompt defines observability_outcome and includes it in the JSON template."""
+        from app.agents.research_agent import _SYSTEM_PROMPT
+
+        assert "observability_outcome" in _SYSTEM_PROMPT
+        assert "key_challenges_input" in _SYSTEM_PROMPT
 
     def test_extract_json_object(self):
         """JSON object extraction handles preamble, fences, and nested structures."""
@@ -378,7 +393,7 @@ class TestReportAgent:
         """Empty profile returns placeholder."""
         from app.agents.report_agent import _format_company_context
 
-        assert "No company research" in _format_company_context({})
+        assert "No company context available" in _format_company_context({})
 
     def test_format_answers(self):
         """Answer context is formatted as numbered list."""

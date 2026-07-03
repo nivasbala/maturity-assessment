@@ -166,6 +166,76 @@ async def test_get_research_summary_ready_with_full_profile():
 
 
 @pytest.mark.asyncio
+async def test_get_research_summary_maps_observability_outcome_from_cache():
+    """observability_outcome is returned from cache when present."""
+    from app.services.public_service import get_research_summary
+
+    prospect_id = uuid4()
+    token = "test_token"
+    session = {"account_id": str(uuid4()), "prospect_id": str(prospect_id)}
+
+    cache = {
+        "company_name": "Acme Corp",
+        "industry": "saas",
+        "company_size": "mid-market",
+        "products_summary": "B2B analytics.",
+        "target_customers": "enterprise teams",
+        "builds_ai_products": True,
+        "cloud_providers": ["aws"],
+        "key_challenges": ["latency"],
+        "business_outcomes": ["uptime"],
+        "operational_scale": ["200 services"],
+        "data_confidence": "high",
+        "research_notes": "",
+        "news_insights": "",
+        "observability_outcome": "Distributed tracing and LLM cost visibility would address Acme's latency challenges and AI product footprint.",
+    }
+
+    mock_prospect = _make_mock_prospect(prospect_id, research_cache=cache)
+    db = _make_prospect_db(mock_prospect)
+
+    result = await get_research_summary(token, session, db)
+
+    assert result.is_ready is True
+    assert result.observability_outcome == "Distributed tracing and LLM cost visibility would address Acme's latency challenges and AI product footprint."
+
+
+@pytest.mark.asyncio
+async def test_get_research_summary_observability_outcome_defaults_empty_when_missing():
+    """observability_outcome defaults to '' when the cache key is absent (legacy cache records)."""
+    from app.services.public_service import get_research_summary
+
+    prospect_id = uuid4()
+    token = "test_token"
+    session = {"account_id": str(uuid4()), "prospect_id": str(prospect_id)}
+
+    cache = {
+        "company_name": "OldCo",
+        "industry": "fintech",
+        "company_size": "startup",
+        "products_summary": "Payments API.",
+        "target_customers": "banks",
+        "builds_ai_products": False,
+        "cloud_providers": [],
+        "key_challenges": [],
+        "business_outcomes": [],
+        "operational_scale": [],
+        "data_confidence": "medium",
+        "research_notes": "",
+        "news_insights": "",
+        # intentionally omitting "observability_outcome" to simulate a legacy cache record
+    }
+
+    mock_prospect = _make_mock_prospect(prospect_id, research_cache=cache)
+    db = _make_prospect_db(mock_prospect)
+
+    result = await get_research_summary(token, session, db)
+
+    assert result.is_ready is True
+    assert result.observability_outcome == ""
+
+
+@pytest.mark.asyncio
 async def test_get_research_summary_access_denied_for_wrong_prospect():
     """Returns 403 when session prospect_id does not match the prospect's id."""
     from app.services.public_service import get_research_summary
@@ -357,6 +427,15 @@ def test_research_agent_minimal_profile_no_technology_signals():
     assert "technology_signals" not in profile
 
 
+def test_research_agent_minimal_profile_includes_observability_outcome():
+    """_build_minimal_profile includes observability_outcome defaulting to empty string."""
+    from app.agents.research_agent import _build_minimal_profile
+
+    profile = _build_minimal_profile("Test Co")
+    assert "observability_outcome" in profile
+    assert profile["observability_outcome"] == ""
+
+
 # ── Agent 2: research summary builder ────────────────────────────────────────
 
 
@@ -440,6 +519,26 @@ def test_research_summary_out_not_ready_defaults():
     assert out.company_name == ""
     assert out.cloud_providers == []
     assert out.data_confidence == "low"
+
+
+def test_research_summary_out_has_observability_outcome_field():
+    """ResearchSummaryOut exposes observability_outcome defaulting to empty string."""
+    from app.schemas.public import ResearchSummaryOut
+
+    out = ResearchSummaryOut(is_ready=False)
+    assert hasattr(out, "observability_outcome")
+    assert out.observability_outcome == ""
+
+
+def test_research_summary_out_carries_observability_outcome_value():
+    """ResearchSummaryOut preserves a non-empty observability_outcome."""
+    from app.schemas.public import ResearchSummaryOut
+
+    out = ResearchSummaryOut(
+        is_ready=True,
+        observability_outcome="Distributed tracing and security signal correlation would be high-value investments.",
+    )
+    assert out.observability_outcome == "Distributed tracing and security signal correlation would be high-value investments."
 
 
 # ── ConfirmResearchRequest schema ─────────────────────────────────────────────
