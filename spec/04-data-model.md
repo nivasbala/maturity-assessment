@@ -1,7 +1,7 @@
 ---
 title: Data Model
-version: 1.4
-last_updated: 2026-06-28
+version: 1.6
+last_updated: 2026-07-02
 ---
 
 # Data Model
@@ -32,40 +32,46 @@ CREATE TABLE users (
 -- An account is a container for one or more Prospects (individuals at that company).
 -- Company-level data only — no personal or context fields.
 CREATE TABLE accounts (
-    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_name     VARCHAR(255) NOT NULL,
-    company_website  VARCHAR(500),
-    internal_user_id UUID NOT NULL REFERENCES users(id),
-    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    company_name      VARCHAR(255) NOT NULL,
+    company_website   VARCHAR(500),
+    internal_user_id  UUID NOT NULL REFERENCES users(id),
+    suggested_pillars UUID[] DEFAULT '{}',  -- returned to the prospect at assessment info fetch time
+    created_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 -- Prospects: An individual at a target company. Created by an internal/admin user.
 -- Each prospect receives their own short URL and owns their own assessments.
--- Agent 1 fires when a prospect is first created (non-blocking).
+-- Agent 1 fires at prospect REGISTRATION (non-blocking) — not at prospect creation.
 CREATE TABLE prospects (
     id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     account_id              UUID NOT NULL REFERENCES accounts(id),
     email                   VARCHAR(255) NOT NULL,       -- set by internal user at creation; immutable
     name                    VARCHAR(255),                 -- filled in by prospect at registration
     job_title               VARCHAR(255),                 -- filled in by prospect at registration
+    prospect_role           VARCHAR(100),                 -- persona selected by the prospect at registration
+    p3_gate_answered_yes    BOOLEAN,                       -- P3 gate answer, collected at registration
+    p4_gate_answered_yes    BOOLEAN,                       -- P4 gate answer, collected at registration
     -- Prospect-provided context (optional, collected at registration):
     infrastructure_location TEXT,
     tech_stack_description  TEXT,
     current_tools           TEXT,
     key_challenges_input    TEXT,
+    -- Notes added on the research review page (before pillar selection):
+    prospect_additional_notes TEXT,
     -- Research (per-prospect; Agent 1 output cached here):
+    research_started_at    TIMESTAMPTZ,          -- set when Agent 1 begins
     research_cache          JSONB,
     research_cached_at      TIMESTAMPTZ,
     -- Suggested pillars set by the internal user at prospect creation:
-    suggested_pillars       UUID[] DEFAULT '{}',
+    suggested_pillars       VARCHAR(100)[] DEFAULT '{}',
     -- Short URL (one per prospect, generated at creation):
-    short_url_token         VARCHAR(12) UNIQUE,
+    short_url_token         VARCHAR(16) UNIQUE,
     -- Registration state:
     is_registered           BOOLEAN NOT NULL DEFAULT FALSE,
     registered_at           TIMESTAMPTZ,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(account_id, email)
 );
 
@@ -132,23 +138,34 @@ CREATE TABLE answer_options (
 
 -- Assessments: One per prospect per pillar. Created when a prospect selects a pillar.
 -- account_id is denormalized for query convenience (reachable via prospect.account_id).
--- UNIQUE(account_id, prospect_id, pillar_id): one assessment per pillar per prospect.
+-- prospect_id is nullable — an assessment can be created before the prospect registers.
+-- prospect_name/email/role are denormalized from the session at assessment creation time.
+-- Primary uniqueness is on (account_id, pillar_id); a separate partial unique index
+-- enforces one assessment per pillar per registered prospect.
 CREATE TABLE assessments (
-    id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    account_id            UUID NOT NULL REFERENCES accounts(id),     -- denormalized
-    prospect_id           UUID NOT NULL REFERENCES prospects(id),
-    pillar_id             UUID NOT NULL REFERENCES pillars(id),
-    status                VARCHAR(50) NOT NULL DEFAULT 'pending'
-                              CHECK (status IN ('pending', 'in_progress', 'completed')),
-    prospect_corrections  TEXT,           -- corrections added at ResearchSummaryPage for this assessment
-    research_confirmed_at TIMESTAMPTZ,    -- set by POST /confirm-research for this assessment
-    score                 DECIMAL(4,2),
-    started_at            TIMESTAMPTZ,
-    completed_at          TIMESTAMPTZ,
-    created_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(account_id, prospect_id, pillar_id)
+    id                         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    account_id                 UUID NOT NULL REFERENCES accounts(id),     -- denormalized
+    prospect_id                UUID REFERENCES prospects(id),             -- nullable
+    pillar_id                  UUID NOT NULL REFERENCES pillars(id),
+    short_url_token            VARCHAR(12),        -- denormalized from prospect at creation
+    prospect_name              VARCHAR(255),        -- denormalized from session at creation
+    prospect_email             VARCHAR(255),        -- denormalized from session at creation
+    prospect_role              VARCHAR(100),        -- denormalized from session at creation
+    status                     VARCHAR(50) NOT NULL DEFAULT 'pending'
+                                   CHECK (status IN ('pending', 'in_progress', 'completed')),
+    prospect_additional_notes  TEXT,           -- notes added at ResearchSummaryPage, copied here at confirm-research
+    research_confirmed_at      TIMESTAMPTZ,    -- set by POST /confirm-research for this assessment
+    started_at                 TIMESTAMPTZ,
+    completed_at                TIMESTAMPTZ,
+    created_at                 TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE(account_id, pillar_id)
 );
+
+-- Enforces one assessment per pillar per registered prospect (prospect_id may be NULL
+-- for assessments created before registration completes):
+CREATE UNIQUE INDEX assessments_account_prospect_pillar_uq
+    ON assessments (account_id, prospect_id, pillar_id)
+    WHERE prospect_id IS NOT NULL;
 
 -- Assessment Answers: One row per question answered in a session.
 CREATE TABLE assessment_answers (
@@ -174,6 +191,7 @@ CREATE TABLE reports (
     gap_analysis     JSONB NOT NULL DEFAULT '[]',      -- [{gap, current_state, target_state, impact, effort}]
     next_steps       JSONB NOT NULL DEFAULT '[]',      -- [{title, description, priority, timeframe}]
     pillar_breakdown JSONB NOT NULL DEFAULT '{}',      -- per-sub-area scores if applicable
+    research_data    JSONB,                             -- prospect's research cache at submission time; shown alongside report in internal dashboard
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -218,6 +236,7 @@ pillar_score = Σ(answer.maturity_level × question.question_weight × persona_w
 - If a question has a `question_personas` row for this prospect's persona, use that row's `persona_weight`
 - Result is normalized to the range 1.00–4.00
 - Round to 2 decimal places
+- Score is stored **only** on `reports.pillar_score` — no score column exists on the `assessments` table
 - Store score in `reports.pillar_score` immediately, before LLM generation begins
 - If LLM generation fails, the score record still exists and is usable
 
@@ -289,11 +308,15 @@ def generate_short_token() -> str:
 
 The token is stored in `prospects.short_url_token` and generated when the internal user creates the prospect. The full prospect URL is: `{BASE_URL}/assess/{token}`.
 
+> **Note:** the column is `VARCHAR(16)`, but `token_urlsafe(6)` produces an 8-character string — the generator does not currently produce a 16-character token. Flagging this discrepancy; the column length was widened per the latest code but the generator function itself was not changed.
+
 ---
 
 ## 7. AGENT 1 CACHE LOGIC
 
-Agent 1 fires when an internal user **creates a prospect** (non-blocking). By the time the prospect visits their URL and registers, the research is typically already complete.
+Agent 1 fires when a prospect **registers** (submits the LandingPage form), not at prospect creation — research is not ready before registration since prospect-provided context is one of its two inputs. This is non-blocking; the prospect sees a brief researching state (`ResearchingPage`) before the research summary is ready.
+
+A hash of the six research inputs (`company_name`, `company_website`, `infrastructure_location`, `tech_stack_description`, `current_tools`, `key_challenges_input`) is stored as a key **inside** the `prospect.research_cache` JSONB payload (e.g. `research_cache["_input_hash"]`) — it is not a separate database column. If a prospect re-registers with the same inputs within the TTL window, Agent 1 is skipped and the cached result is reused even if the TTL would otherwise allow a refresh.
 
 ```python
 from datetime import datetime, timedelta, timezone
@@ -351,14 +374,14 @@ research_cache.get("cloud_providers", [])      # e.g. ["aws", "gcp"]
 research_cache.get("key_challenges", [])       # e.g. ["scaling microservices", "alert fatigue"]
 research_cache.get("business_outcomes", [])    # e.g. ["uptime SLAs", "deployment velocity"]
 research_cache.get("target_customers", "")     # e.g. "enterprise DevOps teams at Fortune 500"
-research_cache.get("operational_scale", "")    # e.g. "200+ microservices, 10M DAU"
+research_cache.get("operational_scale", [])    # e.g. ["200+ microservices", "10M DAU"]
 
 # Prospect-provided context — also passed directly to Agent 2 alongside the research:
 prospect.infrastructure_location    # where their apps and infra run (free-form, may be empty)
 prospect.tech_stack_description     # their tech stack (free-form, may be empty)
 prospect.current_tools              # current toolset (free-form, may be empty)
 prospect.key_challenges_input       # prospect-stated key challenges (free-form, may be empty)
-assessment.prospect_corrections     # corrections added at ResearchSummaryPage for this assessment
+assessment.prospect_additional_notes  # additional notes added at ResearchSummaryPage, copied to this assessment at confirm-research
 ```
 
 ### Fallback rule (if Agent 2 fails)

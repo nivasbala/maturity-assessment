@@ -1,7 +1,7 @@
 ---
 title: Tech Stack, Constraints & Decisions
-version: 1.3
-last_updated: 2026-06-28
+version: 1.5
+last_updated: 2026-07-02
 ---
 
 # Tech Stack, Constraints & Decisions
@@ -43,7 +43,7 @@ Validation:    Pydantic v2
 
 ```
 Orchestration: LangChain 0.3+ + LangGraph 0.2+
-Default LLM:   Ollama (local, llama3.2 model)
+Default LLM:   Ollama (runs as a Docker Compose service, reachable at http://ollama:11434; llama3.2 model)
 Abstraction:   LangChain BaseChatModel factory — single env var switches provider
 Search tool:   DuckDuckGo Search (langchain-community) for Agent 1
 ```
@@ -62,34 +62,51 @@ Environment:      .env file, no secrets in code or Docker images
 
 The LLM provider MUST be switchable via a single environment variable. No other code changes are permitted when switching providers. This is a non-negotiable architectural constraint.
 
+`get_llm()` accepts two optional parameters: `json_mode: bool = False` (sets provider-appropriate JSON output mode) and `model_env_var: str | None = None` (reads a specific env var for a per-agent model name override, falling back to the provider's default model env var if unset). No file other than the three named wrapper functions below calls `get_llm()` directly.
+
 ```python
 # backend/app/core/llm_factory.py
 import os
 from langchain_core.language_models import BaseChatModel
 
-def get_llm() -> BaseChatModel:
+def get_llm(json_mode: bool = False, model_env_var: str | None = None) -> BaseChatModel:
     provider = os.getenv("LLM_PROVIDER", "ollama")
 
     if provider == "ollama":
         from langchain_ollama import ChatOllama
         return ChatOllama(
-            model=os.getenv("OLLAMA_MODEL", "llama3.2"),
-            base_url=os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
+            model=os.getenv(model_env_var or "OLLAMA_MODEL", "llama3.2"),
+            base_url=os.getenv("OLLAMA_BASE_URL", "http://ollama:11434"),
+            format="json" if json_mode else None
         )
     elif provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
         return ChatAnthropic(
-            model=os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
+            model=os.getenv(model_env_var or "ANTHROPIC_MODEL", "claude-sonnet-4-6"),
             api_key=os.getenv("ANTHROPIC_API_KEY")
         )
     elif provider == "openai":
         from langchain_openai import ChatOpenAI
         return ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o"),
-            api_key=os.getenv("OPENAI_API_KEY")
+            model=os.getenv(model_env_var or "OPENAI_MODEL", "gpt-4o"),
+            api_key=os.getenv("OPENAI_API_KEY"),
+            model_kwargs={"response_format": {"type": "json_object"}} if json_mode else {}
         )
     else:
         raise ValueError(f"Unsupported LLM_PROVIDER: {provider}")
+```
+
+Three named wrapper functions sit on top of `get_llm()` — one per agent — and are the only functions other modules call:
+
+```python
+def get_research_agent_llm() -> BaseChatModel:
+    return get_llm(json_mode=True, model_env_var="RESEARCH_AGENT_MODEL")
+
+def get_question_selection_agent_llm() -> BaseChatModel:
+    return get_llm(json_mode=True, model_env_var="QUESTION_SELECTION_AGENT_MODEL")
+
+def get_report_agent_llm() -> BaseChatModel:
+    return get_llm(json_mode=True, model_env_var="REPORT_AGENT_MODEL")
 ```
 
 ---
@@ -138,7 +155,6 @@ maturity-platform/
 │       │   ├── auth_service.py
 │       │   ├── account_service.py
 │       │   ├── assessment_service.py
-│       │   ├── question_service.py
 │       │   ├── scoring_service.py
 │       │   └── settings_service.py  # system_settings reads + bounds validation
 │       ├── agents/               # LangGraph agents
@@ -161,13 +177,17 @@ maturity-platform/
         ├── pages/
         │   ├── prospect/         # Assessment flow pages
         │   │   ├── LandingPage.tsx
+        │   │   ├── ResearchingPage.tsx
         │   │   ├── ResearchSummaryPage.tsx
         │   │   ├── PillarSelectPage.tsx
         │   │   ├── AssessmentPage.tsx
+        │   │   ├── SubmittingPage.tsx
         │   │   └── ReportPage.tsx
         │   ├── internal/         # Internal user dashboard
         │   │   ├── AccountsListPage.tsx
         │   │   ├── AccountDetailPage.tsx
+        │   │   ├── ProspectsListPage.tsx
+        │   │   ├── ProspectDetailPage.tsx
         │   │   └── ReportDetailPage.tsx
         │   └── admin/            # Admin panel
         │       ├── UsersPage.tsx
@@ -205,6 +225,11 @@ ADMIN_NAME=System Admin
 LLM_PROVIDER=ollama
 OLLAMA_BASE_URL=http://ollama:11434
 OLLAMA_MODEL=llama3.2
+
+# Optional per-agent model overrides (within the configured provider) — leave unset to use the provider default
+RESEARCH_AGENT_MODEL=
+QUESTION_SELECTION_AGENT_MODEL=
+REPORT_AGENT_MODEL=
 
 # (Uncomment when switching providers)
 # ANTHROPIC_API_KEY=sk-ant-...

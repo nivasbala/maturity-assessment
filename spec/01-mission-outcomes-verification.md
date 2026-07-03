@@ -1,7 +1,7 @@
 ---
 title: Mission, Outcomes & Verification Contract
-version: 1.5
-last_updated: 2026-06-28
+version: 1.7
+last_updated: 2026-07-02
 ---
 
 # Mission, Outcomes & Verification Contract
@@ -21,11 +21,11 @@ Build a **Partner Maturity Assessment Platform** that enables Datadog's internal
 The application is complete when ALL of the following are true:
 
 - [ ] An internal user can create a prospect account, create one or more prospects with emails, and share the generated URL with each prospect
-- [ ] A prospect can click their unique URL, complete registration (email pre-populated and read-only, plus optional tech context), select a pillar, review the research summary, answer the configured number of questions, and immediately see their maturity report on screen
+- [ ] A prospect can click their unique URL, complete registration (email pre-populated and read-only, plus optional tech context), review the research summary, select a pillar, answer the configured number of questions, and immediately see their maturity report on screen
 - [ ] Two prospects under the same account can each independently complete assessments without affecting each other's data
 - [ ] A prospect can download their report as a PDF
 - [ ] A prospect can optionally take additional pillar assessments after completing one
-- [ ] The research summary validation step shows Agent 1 output and allows prospect to add corrections before proceeding
+- [ ] The research summary validation step shows Agent 1 output and allows prospect to add notes before proceeding
 - [ ] The Pillar 3 (AI Application Observability) gate question correctly routes prospects
 - [ ] Agent 1 researches the prospect's company using both web research and prospect-provided context
 - [ ] Agent 3 generates a structured maturity report using assessment answers + company research
@@ -76,33 +76,36 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Score correctly applies question_weight and persona_weight in formula
 
 ### 3.5 Agent Behavior
-- [ ] Agent 1 fires at **prospect creation** time (non-blocking) — verify by checking prospect.research_cache is populated before prospect registers
-- [ ] Agent 1 receives web research inputs (company_name, company_website from account) at prospect creation; re-runs with enriched prospect context if context fields are provided at registration
+- [ ] Agent 1 fires at **prospect registration** time (non-blocking) — verify by checking prospect.research_cache is populated after the prospect submits the landing page form
+- [ ] Agent 1 receives both inputs (web research + prospect-provided context) at registration in a single fire; a hash of the six research inputs is stored so a re-registration with unchanged inputs within the TTL window skips Agent 1 and reuses the cache
 - [ ] Agent 1 output does NOT include technology_signals — prospect tech context is passed separately to Agent 2
-- [ ] Agent 1 output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes
+- [ ] Agent 1 output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes, news_insights, observability_outcome, sources
 - [ ] Agent 1 result stored in `prospects.research_cache` after first run
 - [ ] Second pillar assessment for same prospect uses cached research (no second Agent 1 call)
-- [ ] Cache older than 7 days triggers Agent 1 re-run
-- [ ] Agent 2 receives TWO inputs: (1) research_cache from prospect; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections from assessment)
+- [ ] Cache older than 7 days (and input hash changed) triggers Agent 1 re-run
+- [ ] Agent 2 receives TWO inputs: (1) research_cache from prospect; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_additional_notes from assessment)
 - [ ] Agent 2 starts in the **background** immediately after `POST /select-pillar`; not synchronous
 - [ ] Agent 2 output is validated: correct count, all IDs from the provided candidate pool
 - [ ] Agent 2 failure triggers rule-based fallback — assessment proceeds without user-facing error
 - [ ] LangGraph orchestrator (submit pipeline) covers Agent 3 only — does NOT call Agent 1 or Agent 2
 - [ ] LangGraph research_node reads from prospect.research_cache; only re-runs Agent 1 if cache is NULL
 - [ ] If Agent 1 fails or cache empty at submit time, Agent 3 still generates report with empty company profile
+- [ ] Agent 3 respects its 300-second timeout; on timeout, report retains its score with no narrative rather than blocking indefinitely
+- [ ] POST /select-pillar reuses (resets to in_progress) an existing pending/in_progress assessment for the same prospect + pillar rather than returning a 409
 - [ ] Changing `LLM_PROVIDER=anthropic` in `.env` and restarting works without code changes for all three agents
 
 ### 3.6 Research Summary Validation
-- [ ] GET /research-summary returns is_ready=false while Agent 1 is running (rare — Agent 1 ran at prospect creation)
+- [ ] GET /research-summary returns is_ready=false while Agent 1 is running (typical immediately after registration — Agent 1 fires at registration, not before)
 - [ ] GET /research-summary returns is_ready=true with full profile once Agent 1 completes
-- [ ] ResearchSummaryPage shown after pillar selection (between select-pillar and assessment questions)
-- [ ] ResearchSummaryPage displays: company overview, key_challenges, business_outcomes, cloud_providers, operational_scale, data_confidence badge
+- [ ] ResearchingPage polls GET /research-summary and auto-advances to ResearchSummaryPage once is_ready=true
+- [ ] ResearchSummaryPage shown immediately after registration, before pillar selection
+- [ ] ResearchSummaryPage displays: company overview, key_challenges, business_outcomes, cloud_providers, operational_scale, news_insights, observability_outcome, sources, research_notes, data_confidence badge
 - [ ] data_confidence badge accurately reflects the quality of available public information
-- [ ] Prospect can submit optional corrections via the correction text area
-- [ ] POST /confirm-research saves prospect_corrections to **assessments** table (not accounts or prospects)
+- [ ] Prospect can submit optional additional notes via the notes text area on ResearchSummaryPage; notes are saved via PUT /research-additional-notes as the prospect types, not only held in session state
+- [ ] POST /confirm-research (called from PillarSelectPage, immediately after pillar selection and before navigating to AssessmentPage) saves prospect_additional_notes to **assessments** table (not accounts or prospects)
 - [ ] POST /confirm-research sets research_confirmed_at on the **assessments** table
 - [ ] POST /confirm-research waits for background Agent 2 to complete and returns questions
-- [ ] Corrections are passed to Agent 2 alongside the research profile (via assessment record)
+- [ ] Additional notes are passed to Agent 2 alongside the research profile (via assessment record)
 - [ ] Prospect cannot proceed to questions without passing through the research summary page (UI routing enforced)
 
 ### 3.7 Report Completeness
@@ -141,15 +144,16 @@ Each criterion must be explicitly tested before the spec is considered implement
 ### 3.11 UI Consistency
 - [ ] LandingPage shows no back navigation — it is the entry point URL sent to the prospect
 - [ ] LandingPage email field is pre-populated from the prospect record and is read-only
-- [ ] PillarSelectPage shows a back link to LandingPage
-- [ ] ResearchSummaryPage shows a back link to PillarSelectPage (cancels the in-progress assessment)
+- [ ] ResearchingPage shows a back link to LandingPage; SubmittingPage shows a back link to AssessmentPage (navigating back does not cancel an in-flight request)
+- [ ] ResearchSummaryPage shows a back link to LandingPage
+- [ ] PillarSelectPage shows a back link to ResearchSummaryPage
 - [ ] AssessmentPage shows a back link to PillarSelectPage, plus prev/next question buttons within the session
 - [ ] ReportPage shows a back link to PillarSelectPage
-- [ ] Navigating back to any page within the prospect flow restores all previously entered form values on that page (LandingPage fields, ResearchSummaryPage corrections, AssessmentPage question answers)
+- [ ] Navigating back to any page within the prospect flow restores all previously entered form values on that page (LandingPage fields, ResearchSummaryPage additional notes, AssessmentPage question answers)
 - [ ] AccountDetailPage shows a back link to AccountsListPage; Prospect Detail shows a back link to AccountDetailPage
 - [ ] All primary action buttons use `bg-blue-600` (light) / `dark:bg-blue-500` (dark) — no other button colors except `bg-red-600` for destructive (delete/remove) actions in the Admin panel
 - [ ] All navigation and back links use `text-blue-600` (light) / `dark:text-blue-400` (dark)
 - [ ] Dark mode renders no black text — every text element uses a paired `text-*` / `dark:text-*` Tailwind class; `text-black` and `dark:text-black` do not appear in any component file
 - [ ] No page under `/assess/:token/*` contains a link, button, or redirect to `/login`, `/admin`, `/dashboard`, or any internal user route
-- [ ] The prospect header on all five prospect pages contains only assessment branding — no authentication or internal navigation links
+- [ ] The prospect header on all seven prospect pages contains only assessment branding — no authentication or internal navigation links
 - [ ] Session expiry within the prospect flow shows an inline error message — does not redirect to `/login`

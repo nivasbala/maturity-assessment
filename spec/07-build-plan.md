@@ -1,7 +1,7 @@
 ---
 title: Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
-version: 1.5
-last_updated: 2026-06-28
+version: 1.7
+last_updated: 2026-07-02
 ---
 
 # Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
@@ -21,7 +21,7 @@ last_updated: 2026-06-28
 - Three-agent architecture: Agent 1 (Research — dual input: web + prospect context), Agent 2 (Question Selection — dual input: research profile + prospect context), Agent 3 (Report Generation)
 - Internal/admin users create Prospect records under an Account (email provided by internal user); creating a Prospect generates a unique short URL. Multiple Prospects under one Account are independent.
 - Prospect context collection at registration: email pre-populated (read-only); optional infrastructure location, tech stack, current tools, key challenges — stored on **prospect** record, passed to Agent 1
-- Research summary validation step: shown after pillar selection (per-assessment); corrections stored on assessment; confirm-research returns questions from background Agent 2
+- Research summary validation step: shown immediately after registration, before pillar selection; additional notes saved live to the prospect record and copied to the assessment at confirm-research time; confirm-research is called from PillarSelectPage (immediately after pillar selection) and returns questions from background Agent 2
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregated view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
@@ -165,9 +165,10 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Spec files:** `03-tech-stack-constraints.md` + `04-data-model.md`
 
 - Implement all 11 SQLAlchemy ORM models matching schema in `04-data-model.md` Section 1
-- New `prospects` table: all context fields, research_cache, short_url_token, is_registered, suggested_pillars
-- `assessments` table: add prospect_id FK, prospect_corrections, research_confirmed_at; remove short_url_token, prospect_name/email/role; UNIQUE(account_id, prospect_id, pillar_id)
-- `accounts` table: stripped to company fields only (no personal or context fields)
+- New `prospects` table: all context fields, `prospect_role`, `p3_gate_answered_yes`, `p4_gate_answered_yes`, `prospect_additional_notes`, `research_started_at`, `research_cache`, `short_url_token` (VARCHAR(16)), `is_registered`, `suggested_pillars` (String[]) — no `updated_at` column
+- `assessments` table: `prospect_id` FK is **nullable**; add `short_url_token`, `prospect_name`, `prospect_email`, `prospect_role` (denormalized), `prospect_additional_notes`, `research_confirmed_at`; no `score` column (score lives only on `reports.pillar_score`); `UNIQUE(account_id, pillar_id)` plus a partial unique index on `(account_id, prospect_id, pillar_id) WHERE prospect_id IS NOT NULL`
+- `accounts` table: company fields only, plus `suggested_pillars UUID[] DEFAULT '{}'`
+- `reports` table: add `research_data JSONB nullable`
 - Configure async SQLAlchemy engine with asyncpg
 - Create Alembic initial migration for all 11 tables
 - Add startup logic to run Alembic migrations automatically on backend container start
@@ -177,7 +178,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - [ ] Alembic migration runs cleanly against PostgreSQL container
 - [ ] All 11 tables created with correct columns, types, and constraints
 - [ ] `prospects` table has UNIQUE(account_id, email)
-- [ ] `assessments` table has UNIQUE(account_id, prospect_id, pillar_id)
+- [ ] `assessments` table has UNIQUE(account_id, pillar_id) plus a partial unique index on (account_id, prospect_id, pillar_id) WHERE prospect_id IS NOT NULL
 - [ ] Migrations run automatically on `docker compose up`
 
 ---
@@ -257,7 +258,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 
 - Implement internal user endpoints from `05-architecture-api.md` Section 2.3:
   - `POST /api/accounts` — creates account (company container only; no personal fields)
-  - `POST /api/accounts/{id}/prospects` — creates prospect, generates short_url_token, triggers Agent 1 background stub; returns full_url
+  - `POST /api/accounts/{id}/prospects` — creates prospect, generates short_url_token; returns full_url (does NOT trigger Agent 1 — that fires at registration, built in Task 9)
   - `GET /api/accounts/{id}/prospects` — list prospects with registration status
 - Implement short URL token generation (Section 6 of `04-data-model.md`) — token stored on `prospects.short_url_token`
 - Build Accounts List and Account Detail pages (Section 3.4 of `05-architecture-api.md`):
@@ -268,7 +269,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - [ ] Creating account + prospect produces a unique 8-char token on the prospect
 - [ ] Second prospect with same email under same account returns 409
 - [ ] Account Detail shows list of prospects with registration status
-- [ ] Agent 1 fires at prospect creation (non-blocking stub for now)
+- [ ] Creating a prospect does NOT trigger Agent 1 (verify research_cache stays NULL until registration)
 - [ ] Internal user A cannot see accounts or prospects created by Internal User B
 
 ---
@@ -278,28 +279,32 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Spec files:** `02-domain-model.md` + `04-data-model.md` + `05-architecture-api.md` + `06-question-bank.md`
 
 - Implement all `/api/public/assess/` endpoints from `05-architecture-api.md` Section 2.4:
-  - `GET /assess/{token}`: resolve token → return company_name, prospect_email, suggested_pillars, available_pillars
-  - `POST /register`: updates **existing** prospect (is_registered=true); does NOT accept email (pre-set); saves optional context fields to prospects table; 409 if already registered
+  - `GET /assess/{token}`: resolve token → return company_name, prospect_email, is_registered, suggested_pillars, available_pillars, and (if already registered) saved context fields + existing assessments
+  - `POST /register`: updates **existing** prospect (is_registered=true); does NOT accept email (pre-set); saves optional context fields to prospects table; 409 if already registered; triggers Agent 1 in background
   - `GET /research-summary`: return Agent 1 output from prospect.research_cache; `is_ready: false` if still running
-  - `POST /select-pillar`: creates assessment (non-blocking); starts Agent 2 in background; returns {assessment_id}
-  - `POST /confirm-research`: stores prospect_corrections + research_confirmed_at on **assessment**; waits for Agent 2; returns questions
+  - `PUT /research-additional-notes`: saves additional notes to prospect.prospect_additional_notes as the prospect types on ResearchSummaryPage
+  - `POST /select-pillar`: creates or reuses (resets to in_progress) the assessment for this prospect + pillar; starts Agent 2 in background; returns {assessment_id}
+  - `POST /confirm-research`: called from PillarSelectPage immediately after pillar selection, before navigating to AssessmentPage; copies prospect_additional_notes + sets research_confirmed_at on **assessment**; waits for Agent 2; returns questions
 - Session token: short-lived JWT (2hr) scoped to prospect_id, stored in sessionStorage
-- Build all pages from `05-architecture-api.md` Section 3.3 in new order:
-  - Landing Page: email pre-populated (read-only); registration form with optional context section
-  - Pillar Selection Page: shown after registration, with suggested pillars highlighted
-  - Research Summary Page: shown after pillar selection; corrections on confirm stored on assessment
-  - Assessment Page, Report Page
+- Build all pages from `05-architecture-api.md` Section 3.3 in this order:
+  - Landing Page: email pre-populated (read-only); registration form with optional context section; pre-fills from GET /assess/{token} if already registered
+  - Researching Page: transient polling page shown immediately after registration
+  - Research Summary Page: shown immediately after registration, before pillar selection; additional notes saved live via PUT /research-additional-notes
+  - Pillar Selection Page: shown after research summary, with suggested pillars highlighted; calls POST /select-pillar then POST /confirm-research immediately, before navigating to AssessmentPage with questions already loaded
+  - Assessment Page: renders the questions returned by confirm-research; no additional fetch on load
+  - Submitting Page: transient loading page shown while the submit pipeline runs
+  - Report Page
 - Gate logic: P3/P4 hidden based on gate answers and is_active flag
 
 **Verification:**
 - [ ] `GET /assess/{token}` returns prospect_email; Landing Page pre-populates it as read-only
 - [ ] Registration form collects optional infrastructure_location, tech_stack_description, current_tools, key_challenges_input
 - [ ] Context fields saved to **prospects** table (not accounts)
-- [ ] POST /register updates prospect (is_registered=true); returns 409 on second attempt
-- [ ] Pillar selection shown immediately after registration; suggested pillars highlighted
-- [ ] POST /select-pillar creates assessment non-blocking; Agent 2 starts in background
-- [ ] Research Summary Page shown after pillar selection (not before)
-- [ ] POST /confirm-research saves corrections to **assessment**; returns questions
+- [ ] POST /register updates prospect (is_registered=true), triggers Agent 1 in background; returns 409 on second attempt
+- [ ] Research Summary Page shown immediately after registration, before pillar selection
+- [ ] Pillar Selection Page shown after research summary; suggested pillars highlighted
+- [ ] POST /select-pillar creates or reuses assessment non-blocking; Agent 2 starts in background
+- [ ] POST /confirm-research (called from PillarSelectPage, immediately after pillar selection) saves additional notes to **assessment**; returns questions
 - [ ] P3 hidden from pillar menu when gate answered No
 - [ ] P4 hidden when gate answered No OR when is_active=FALSE
 - [ ] SRE persona for P1 returns correct question count
@@ -330,35 +335,38 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Branch:** `task/09-llm-agents`
 **Spec files:** `05-architecture-api.md` + `04-data-model.md` + `02-domain-model.md` + `03-tech-stack-constraints.md`
 
-- Implement `core/llm_factory.py` exactly as specified in `03-tech-stack-constraints.md` Section 2
+- Implement `core/llm_factory.py` exactly as specified in `03-tech-stack-constraints.md` Section 2, including `json_mode` / `model_env_var` params and the three named per-agent wrapper functions
 - Implement Agent 1: research agent (`05-architecture-api.md` Section 1.2)
-  - Agent 1 fires at **prospect creation** (`POST /api/accounts/{id}/prospects`) — replace Task 6 stub
-  - Inputs: company_name + company_website (from account) at creation; re-runs with enriched prospect context if context fields provided at registration
+  - Agent 1 fires at **prospect registration** (`POST /register`) — replace Task 6/7 stub; both web research and prospect-provided context are available in this single fire
+  - Before running, hash the six research inputs and compare to the stored hash (stored inside `research_cache`); skip Agent 1 and reuse the cache if unchanged and within the 7-day TTL
   - technology_signals NOT in output — prospect context passed directly to Agent 2
-  - Output stored in `prospects.research_cache` (not accounts)
-  - Output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes
+  - Output stored in `prospects.research_cache` (not accounts); `prospects.research_started_at` set when Agent 1 begins
+  - Output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes, news_insights, observability_outcome, sources
 - Implement Agent 2: question selection agent (`05-architecture-api.md` Section 1.3):
   - Agent 2 runs in **background** at `POST /select-pillar` time (non-blocking)
-  - Agent 2 inputs: (1) prospect.research_cache; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, assessment.prospect_corrections)
-  - Wire into `POST /confirm-research` to wait for Agent 2 completion and return questions
+  - Agent 2 inputs: (1) prospect.research_cache; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, assessment.prospect_additional_notes)
+  - Wire into `POST /confirm-research` (called from PillarSelectPage, immediately after pillar selection) to wait for Agent 2 completion and return questions
   - Implement fallback to rule-based selection if Agent 2 fails
   - Implement output validation (IDs match candidate pool, correct count)
-- Implement Agent 3: report agent (`05-architecture-api.md` Section 1.4)
+- Implement Agent 3: report agent (`05-architecture-api.md` Section 1.4) — 300 second timeout
 - Implement LangGraph StateGraph orchestrator (`05-architecture-api.md` Section 1.5)
   - Covers submit pipeline only (Agent 3 + scoring); Agent 2 runs independently
-- Implement cache check logic from `04-data-model.md` Section 7 (against `prospects.research_cache`)
-- Wire orchestrator into submit endpoint: runs after score is stored
+- Implement cache check logic from `04-data-model.md` Section 7 (against `prospects.research_cache`, including the input-hash skip)
+- Wire orchestrator into submit endpoint: runs after score is stored; POST /submit is synchronous and blocks (up to the 300s Agent 3 timeout) until the report is ready before responding with {report_id}
 
 **Verification:**
 - [ ] Submit triggers orchestrator; report updated with executive_summary, strengths, gap_analysis, next_steps
-- [ ] Agent 1 fires at prospect creation and result stored in `prospects.research_cache`
-- [ ] Agent 2 starts in background at /select-pillar time; POST /confirm-research waits and returns questions
+- [ ] Agent 1 fires at prospect registration and result stored in `prospects.research_cache`
+- [ ] Re-registration with unchanged inputs within the TTL window skips Agent 1 (input hash match)
+- [ ] Agent 2 starts in background at /select-pillar time; POST /confirm-research (called immediately afterward, from PillarSelectPage) waits and returns questions
 - [ ] Agent 2 with research cache: questions reflect company context
 - [ ] Agent 2 with empty research cache: returns pillar.question_count valid questions based on persona
 - [ ] Agent 2 failure triggers rule-based fallback with no user-facing error
 - [ ] Second pillar assessment for same prospect uses cached research (no second Agent 1 call)
 - [ ] Orchestrator research_node reads from prospect.research_cache; does not re-fire Agent 1 when cache is fresh
+- [ ] Agent 3 respects its 300-second timeout
 - [ ] Switching LLM_PROVIDER env var and restarting works without code changes
+- [ ] RESEARCH_AGENT_MODEL / QUESTION_SELECTION_AGENT_MODEL / REPORT_AGENT_MODEL override the model per agent without a provider switch
 - [ ] No vendor product names appear in generated report text
 
 ---
@@ -367,8 +375,8 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Branch:** `task/10-report-display-pdf`
 **Spec files:** `05-architecture-api.md` + `02-domain-model.md`
 
+- Implement SubmittingPage: loading state with 3 rotating descriptive messages shown for the duration of the synchronous `POST /submit` call (submit pipeline: Agent 3 + scoring + report generation; up to 300s timeout); on response, navigates directly to ReportPage with the returned report_id — replaces the previous loading-within-ReportPage design
 - Implement Report Page with all 7 sections from `05-architecture-api.md` Section 3.3
-- Loading state with 3 rotating descriptive messages during agent execution
 - Recharts RadarChart showing pillar score
 - Gap analysis table with impact/effort badges
 - Next steps cards grouped by priority
@@ -380,7 +388,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - [ ] Radar chart renders with correct pillar score
 - [ ] PDF download produces a non-empty, readable PDF
 - [ ] "Take Another Pillar" shows completed pillar as disabled on return
-- [ ] Loading state displays during agent execution (test with slow model)
+- [ ] SubmittingPage displays rotating loading messages for the duration of the synchronous submit call and navigates directly to ReportPage on response (test with slow model)
 
 ---
 
@@ -392,7 +400,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
   - Account Detail: prospect list table; "Create Prospect" form (email + optional suggested pillars); copy URL action
   - Prospect Detail: pillar status grid (all active pillars) for a single prospect
   - Report Detail: Report tab + Raw Answers tab
-- Implement `GET /api/accounts/{id}/aggregate` endpoint (aggregates across a single prospect's completed assessments)
+- Implement `GET /api/accounts/{id}/aggregate` endpoint (account-scoped — aggregates across all completed assessments for the account)
 - Aggregate view: radar chart with all completed pillar scores; unlocks at 2+ completions for a prospect
 - Raw answers tab: all question_count questions + selected answer + maturity level
 
@@ -417,12 +425,12 @@ Run the complete user journey and verify every item in `01-mission-outcomes-veri
 1. Admin logs in → creates Internal User
 2. Internal User logs in → creates Account for "Acme Corp"
 3. Internal User generates P1 URL (suggested pillar)
-4. Prospect clicks URL → enters details as SRE persona
-5. Prospect selects P1 → answers question_count questions → submits
+4. Prospect clicks URL → enters details as SRE persona → reviews research summary → selects P1
+5. Prospect answers question_count questions → submits → views SubmittingPage
 6. Report displayed on screen → PDF downloaded
 7. Prospect clicks "Take Another Pillar" → selects P5 → completes
 8. Internal User opens Acme Corp account → views both pillar statuses
-9. Internal User opens P1 report → views report tab + raw answers tab
+9. Internal User opens P1 report → views report tab (including Research Context panel) + raw answers tab
 10. Internal User opens aggregate view (2 pillars complete)
 11. Verify all 15 outcome criteria in Section 2 of `01-mission-outcomes-verification.md`
 12. Verify all verification criteria in Section 3 of `01-mission-outcomes-verification.md`

@@ -73,13 +73,13 @@ Before opening a PR for any task, run the applicable criteria from `spec/01-miss
 
 Key areas to verify:
 - **Auth & Authorization:** 401 on unauthenticated requests, 403 on wrong role, data isolation between internal users
-- **Question Selection:** Agent 2 dual inputs — (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_corrections); returns pillar.question_count IDs; falls back to rule-based if LLM fails
+- **Question Selection:** Agent 2 dual inputs — (1) research_cache profile; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_additional_notes); returns pillar.question_count IDs; falls back to rule-based if LLM fails
 - **Gated Pillars (P3 & P4):** P3 hidden when gate answered No; P4 hidden when gate answered No OR when is_active=FALSE
-- **Research Summary:** prospect reviews Agent 1 output before pillar selection; optional corrections saved; data_confidence badge shown; GET /research-summary polls until is_ready=true
-- **Agent Behavior:** Agent 1 fires at **prospect creation** (non-blocking, dual inputs: web + prospect context after registration); Agent 2 runs in **background** at `/select-pillar`; `/confirm-research` waits for Agent 2 and returns questions; LangGraph orchestrator at submit covers Agent 3 only; all agents use same LLM factory
+- **Research Summary:** prospect reviews Agent 1 output on ResearchSummaryPage, shown immediately after registration and before pillar selection; optional additional notes saved live via PUT /research-additional-notes; data_confidence badge shown; ResearchingPage polls GET /research-summary until is_ready=true
+- **Agent Behavior:** Agent 1 fires at **prospect registration** (non-blocking, single fire with both web search + prospect-submitted context; input hash + 7-day TTL skip cached reruns); Agent 2 runs in **background** at `/select-pillar`; `/confirm-research` (called from PillarSelectPage) waits for Agent 2 and returns questions; LangGraph orchestrator at submit covers Agent 3 only (up to 300s, synchronous); all agents use the same LLM factory, with optional per-agent model overrides
 - **Report Completeness:** executive_summary, 2–4 strengths, 3–6 gaps, 4–6 next steps; no vendor names
 - **Infrastructure:** `docker compose up` runs without manual steps; migrations run automatically
-- **UI Consistency (any task touching frontend):** back navigation on every prospect page except LandingPage; form state persists when navigating back/forward; blue buttons and links throughout; no `text-black` in dark mode; prospect pages never link to admin/login routes; session expiry shows inline error only
+- **UI Consistency (any task touching frontend):** back navigation on every prospect page except LandingPage, ResearchingPage, and SubmittingPage; form state persists when navigating back/forward; blue buttons and links throughout; no `text-black` in dark mode; prospect pages never link to admin/login routes; session expiry shows inline error only
 
 ---
 
@@ -116,6 +116,9 @@ See `.env.example` in the repo root for the full file. Required variables:
 | `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | Ollama config (default provider) |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Used when `LLM_PROVIDER=anthropic` |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | Used when `LLM_PROVIDER=openai` |
+| `RESEARCH_AGENT_MODEL` | Optional per-agent model name override for Agent 1 within the configured provider |
+| `QUESTION_SELECTION_AGENT_MODEL` | Optional per-agent model name override for Agent 2 within the configured provider |
+| `REPORT_AGENT_MODEL` | Optional per-agent model name override for Agent 3 within the configured provider |
 | `BASE_URL` / `CORS_ORIGINS` | App URL and allowed origins |
 
 Note: `gh` CLI must be configured and authenticated before Task 1 begins.
@@ -145,7 +148,7 @@ Note: `gh` CLI must be configured and authenticated before Task 1 begins.
 
 ## SECTION 6: LLM SWITCHING RULE
 
-Never change the LLM provider in code. Switch providers only by changing `LLM_PROVIDER` in `.env` and restarting. All provider logic lives in `backend/app/core/llm_factory.py` — no other file should reference a specific LLM provider directly.
+Never change the LLM provider in code. Switch providers only by changing `LLM_PROVIDER` in `.env` and restarting. All provider logic lives in `backend/app/core/llm_factory.py` — no other file should reference a specific LLM provider directly. Three optional env vars (`RESEARCH_AGENT_MODEL`, `QUESTION_SELECTION_AGENT_MODEL`, `REPORT_AGENT_MODEL`) allow overriding the model name per agent without changing the provider. These are also set in `.env`, not in code.
 
 ---
 
@@ -159,8 +162,8 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 - Internal/admin users create **Prospect** records under an **Account** (org container) by providing an email. Creating a Prospect generates a unique short URL scoped to that Prospect. Multiple Prospects can exist under one Account — each is independent.
 - The landing/registration page pre-populates and locks the email from the Prospect record. Registration updates the Prospect record (does not create a new one).
 - Prospect context collection at registration: optional infrastructure location, tech stack, current tools, and key challenges — stored on the **prospect** record, passed to Agent 1 as primary input
-- Research summary validation step: shown **after pillar selection** (per-assessment); corrections stored on **assessment** record; `POST /confirm-research` waits for background Agent 2 and returns questions
-- Agent 1 fires at **Prospect creation** (non-blocking); by registration time, research is typically ready
+- Research summary validation step: shown **immediately after registration, before pillar selection**; additional notes saved live to the **prospect** record and copied to the **assessment** record at confirm-research time; `POST /confirm-research` (called from PillarSelectPage, immediately after pillar selection) waits for background Agent 2 and returns questions
+- Agent 1 fires at **prospect registration** (non-blocking) — it needs prospect-provided context, which is not available until registration; a hash of the six research inputs (stored inside research_cache) plus a 7-day TTL skip re-running Agent 1 when nothing has changed
 - On-screen report display with PDF download (client-side)
 - Internal user dashboard: per-account view, per-pillar status, aggregate view (2+ pillars)
 - Internal users see raw prospect answers + full report per assessment
@@ -259,23 +262,25 @@ Apply to every task that produces or modifies a frontend component (Tasks 5, 6, 
 
 ### Navigation
 
-**Landing Page is the entry point** — no back navigation. Every other prospect page has a back link to the immediately preceding page. Forward is always via explicit user action (button/card).
+**Landing Page is the entry point** — no back navigation. Every other prospect page has a back link to the immediately preceding page, including the transient ResearchingPage and SubmittingPage. Forward is always via explicit user action (button/card) or an automatic advance once a background call completes.
 
 | Page | Back navigation |
 |---|---|
 | LandingPage | None (entry point) |
-| PillarSelectPage | "← Back" → LandingPage |
-| ResearchSummaryPage | "← Back" → PillarSelectPage |
+| ResearchingPage | "← Back" → LandingPage |
+| ResearchSummaryPage | "← Back" → LandingPage |
+| PillarSelectPage | "← Back" → ResearchSummaryPage |
 | AssessmentPage | "← Back" → PillarSelectPage; prev/next within questions |
+| SubmittingPage | "← Back" → AssessmentPage (does not cancel an in-flight submit request) |
 | ReportPage | "← Back" → PillarSelectPage |
 
-Internal user flow: AccountDetailPage ← AccountsListPage; Prospect Detail ← AccountDetailPage.
+Seven prospect pages total. Internal user flow: AccountDetailPage ← AccountsListPage; Prospect Detail ← AccountDetailPage.
 
 ### Session-Persistent Form State
 
-When a user navigates between pages using the back/forward navigation above, all previously entered values on each page must still be populated. This is the rule — the mechanism is a `SessionContext` backed by `sessionStorage` (not component-local state, which is lost on unmount).
+When a user navigates between pages using the back/forward navigation above, all previously entered values on each page must still be populated. This is the rule — form state must persist via `sessionStorage` for the duration of the browser session (not component-local state, which is lost on unmount).
 
-Fields to persist: all LandingPage fields, `prospect_corrections`, and AssessmentPage question answers (keyed by `question_id`).
+Fields to persist: all LandingPage fields, `prospect_additional_notes`, and AssessmentPage question answers (keyed by `question_id`).
 
 ### Button and Link Color — Blue Throughout
 
