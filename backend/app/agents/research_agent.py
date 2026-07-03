@@ -36,7 +36,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.llm_factory import get_llm
+from app.core.llm_factory import get_research_agent_llm
 from app.models.prospect import Prospect
 
 logger = logging.getLogger(__name__)
@@ -341,7 +341,7 @@ async def _run_research_agent_for_prospect_locked(
                 ),
             ]
         )
-        chain = prompt | get_llm(json_mode=True) | StrOutputParser()
+        chain = prompt | get_research_agent_llm(json_mode=True) | StrOutputParser()
         raw = await chain.ainvoke(
             {
                 "company_name": company_name,

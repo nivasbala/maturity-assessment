@@ -19,7 +19,7 @@ from typing import Any
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-from app.core.llm_factory import get_llm
+from app.core.llm_factory import get_report_agent_llm
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ async def run_report_agent(
             ),
         ]
     )
-    chain = prompt | get_llm(json_mode=True) | StrOutputParser()
+    chain = prompt | get_report_agent_llm(json_mode=True) | StrOutputParser()
     raw = await chain.ainvoke(
         {
             "persona": persona,

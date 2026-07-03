@@ -25,7 +25,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.llm_factory import get_llm
+from app.core.llm_factory import get_question_selection_agent_llm
 from app.models.pillar import Pillar
 from app.models.question import Question, QuestionPersona
 
@@ -239,7 +239,7 @@ async def select_questions(
             ("human", "Select the {question_count} most diagnostic questions now."),
         ]
     )
-    chain = prompt | get_llm(json_mode=True) | StrOutputParser()
+    chain = prompt | get_question_selection_agent_llm(json_mode=True) | StrOutputParser()
     raw = await chain.ainvoke(
         {
             "persona_label": persona_label,
