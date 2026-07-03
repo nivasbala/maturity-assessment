@@ -94,10 +94,13 @@ Copy `.env.example` to `.env` and fill in the values below.
 | `DATABASE_URL` | Yes | asyncpg connection string |
 | `JWT_SECRET_KEY` | Yes | Min 32-char random string — change before deploy |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | Yes | Seeded admin user |
-| `LLM_PROVIDER` | Yes | `ollama` \| `anthropic` \| `openai` |
+| `LLM_PROVIDER` | Yes | `ollama` \| `anthropic` \| `openai` — applies to all agents |
 | `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | Ollama only | Defaults to `http://host.docker.internal:11434` / `llama3.1:8b` |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Anthropic only | Model defaults to `claude-sonnet-4-6` |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | OpenAI only | Model defaults to `gpt-4o` |
+| `RESEARCH_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
+| `QUESTION_SELECTION_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
+| `REPORT_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
 | `BASE_URL` / `CORS_ORIGINS` | Yes | App URL and allowed origins |
 
 ---
@@ -116,6 +119,16 @@ LLM_PROVIDER=openai
 OPENAI_API_KEY=sk-...
 
 docker compose restart backend
+```
+
+Each agent has its own model override variable. If unset, the agent falls back to the provider default (`OLLAMA_MODEL`, `ANTHROPIC_MODEL`, or `OPENAI_MODEL`). A warning is logged at startup when an override is not set.
+
+```bash
+# Use a larger model for report generation only
+REPORT_AGENT_MODEL=claude-opus-4-8
+
+# Use a faster model for question selection
+QUESTION_SELECTION_AGENT_MODEL=claude-haiku-4-5-20251001
 ```
 
 ---

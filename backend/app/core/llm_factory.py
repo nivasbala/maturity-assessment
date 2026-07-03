@@ -1,6 +1,9 @@
+import logging
 import os
 
 from langchain_core.language_models import BaseChatModel
+
+logger = logging.getLogger(__name__)
 
 
 def get_llm(json_mode: bool = False, model_env_var: str | None = None) -> BaseChatModel:
@@ -53,12 +56,18 @@ def get_llm(json_mode: bool = False, model_env_var: str | None = None) -> BaseCh
 
 
 def get_research_agent_llm(json_mode: bool = False) -> BaseChatModel:
+    if not os.getenv("RESEARCH_AGENT_MODEL"):
+        logger.warning("RESEARCH_AGENT_MODEL not set, using provider default model")
     return get_llm(json_mode, model_env_var="RESEARCH_AGENT_MODEL")
 
 
 def get_question_selection_agent_llm(json_mode: bool = False) -> BaseChatModel:
+    if not os.getenv("QUESTION_SELECTION_AGENT_MODEL"):
+        logger.warning("QUESTION_SELECTION_AGENT_MODEL not set, using provider default model")
     return get_llm(json_mode, model_env_var="QUESTION_SELECTION_AGENT_MODEL")
 
 
 def get_report_agent_llm(json_mode: bool = False) -> BaseChatModel:
+    if not os.getenv("REPORT_AGENT_MODEL"):
+        logger.warning("REPORT_AGENT_MODEL not set, using provider default model")
     return get_llm(json_mode, model_env_var="REPORT_AGENT_MODEL")
