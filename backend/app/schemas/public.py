@@ -143,3 +143,10 @@ class ReportPublicOut(BaseModel):
     pillar_name: str
     prospect_name: str | None
     prospect_role: str | None
+    research_data: dict | None = None
+    answers: list[dict] = []
+    additional_notes: str | None = None
+    infrastructure_location: str | None = None
+    tech_stack_description: str | None = None
+    current_tools: str | None = None
+    key_challenges_input: str | None = None

@@ -899,6 +899,9 @@ async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> Repor
             .options(
                 selectinload(Assessment.pillar),
                 selectinload(Assessment.report),
+                selectinload(Assessment.prospect),
+                selectinload(Assessment.answers).selectinload(AssessmentAnswer.question),
+                selectinload(Assessment.answers).selectinload(AssessmentAnswer.answer_option),
             )
             .where(
                 Assessment.id == assessment_id,
@@ -912,6 +915,17 @@ async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> Repor
     report = target_assessment.report
     if not report:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not yet available")
+
+    prospect = target_assessment.prospect
+    answers_data = [
+        {
+            "question_text": aa.question.text,
+            "selected_option_text": aa.answer_option.text,
+            "maturity_level": aa.answer_option.maturity_level,
+        }
+        for aa in sorted(target_assessment.answers, key=lambda a: a.question.display_order)
+        if aa.question and aa.answer_option
+    ]
 
     logger.info("get_report: token=%s assessment_id=%s report_id=%s", token, assessment_id, report.id)
     return ReportPublicOut(
@@ -930,4 +944,11 @@ async def get_report(token: str, assessment_id: UUID, db: AsyncSession) -> Repor
         pillar_name=target_assessment.pillar.name,
         prospect_name=target_assessment.prospect_name,
         prospect_role=target_assessment.prospect_role,
+        research_data=report.research_data,
+        answers=answers_data,
+        additional_notes=target_assessment.prospect_additional_notes,
+        infrastructure_location=prospect.infrastructure_location if prospect else None,
+        tech_stack_description=prospect.tech_stack_description if prospect else None,
+        current_tools=prospect.current_tools if prospect else None,
+        key_challenges_input=prospect.key_challenges_input if prospect else None,
     )

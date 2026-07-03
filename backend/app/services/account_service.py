@@ -390,7 +390,16 @@ async def get_assessment_answers(
     ]
 
     prospect_id = None
-    if assessment.prospect_email:
+    prospect = None
+    if assessment.prospect_id:
+        prospect = (
+            await db.execute(
+                select(Prospect).where(Prospect.id == assessment.prospect_id)
+            )
+        ).scalar_one_or_none()
+        if prospect:
+            prospect_id = prospect.id
+    elif assessment.prospect_email:
         prospect = (
             await db.execute(
                 select(Prospect).where(
@@ -417,6 +426,11 @@ async def get_assessment_answers(
         pillar_score=float(report.pillar_score) if report else None,
         maturity_label=report.maturity_label if report else None,
         answers=answers,
+        additional_notes=assessment.prospect_additional_notes,
+        infrastructure_location=prospect.infrastructure_location if prospect else None,
+        tech_stack_description=prospect.tech_stack_description if prospect else None,
+        current_tools=prospect.current_tools if prospect else None,
+        key_challenges_input=prospect.key_challenges_input if prospect else None,
     )
 
 

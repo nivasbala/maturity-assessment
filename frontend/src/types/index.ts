@@ -218,6 +218,11 @@ export interface AssessmentAnswers {
   pillar_score: number | null
   maturity_label: string | null
   answers: AnswerRow[]
+  additional_notes: string | null
+  infrastructure_location: string | null
+  tech_stack_description: string | null
+  current_tools: string | null
+  key_challenges_input: string | null
 }
 
 export interface Report {
@@ -255,6 +260,7 @@ export interface Report {
     business_outcomes: string[]
     data_confidence: string
     research_notes: string
+    news_insights: string
   } | null
   created_at: string
 }
@@ -373,6 +379,27 @@ export interface ReportPublic {
   pillar_name: string
   prospect_name: string | null
   prospect_role: string | null
+  research_data: {
+    company_name: string
+    industry: string
+    company_size: string
+    products_summary: string
+    target_customers: string
+    operational_scale: string[]
+    builds_ai_products: boolean
+    cloud_providers: string[]
+    key_challenges: string[]
+    business_outcomes: string[]
+    data_confidence: string
+    research_notes: string
+    news_insights: string
+  } | null
+  answers: { question_text: string; selected_option_text: string; maturity_level: number }[]
+  additional_notes: string | null
+  infrastructure_location: string | null
+  tech_stack_description: string | null
+  current_tools: string | null
+  key_challenges_input: string | null
 }
 
 export const PERSONAS = [

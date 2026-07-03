@@ -8,98 +8,20 @@ import { safe, triggerPdfDownload } from '../../utils/pdfDownload'
 import { ScoreChart } from '../../components/ScoreChart'
 import { InternalReportPdf } from '../../components/pdf/InternalReportPdf'
 
-function ResearchPanel({ data }: { data: NonNullable<Report['research_data']> }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <section>
-      <button
-        onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3 text-left"
-      >
-        <span>Company Research</span>
-        <span className="text-sm font-normal text-gray-400 dark:text-gray-500">{open ? '▲ Hide' : '▼ Show'}</span>
-      </button>
-      {open && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-4 text-sm">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Industry</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium">{data.industry || '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Company Size</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium capitalize">{data.company_size || '—'}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Builds AI Products</p>
-              <p className="text-gray-900 dark:text-gray-100 font-medium">{data.builds_ai_products ? 'Yes' : 'No'}</p>
-            </div>
-          </div>
-
-          {data.products_summary && (
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Products / Summary</p>
-              <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{data.products_summary}</p>
-            </div>
-          )}
-
-          {data.target_customers && data.target_customers !== 'unknown' && (
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Target Customers</p>
-              <p className="text-gray-700 dark:text-gray-300">{data.target_customers}</p>
-            </div>
-          )}
-
-          {data.operational_scale && data.operational_scale.length > 0 && (
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Operational Scale</p>
-              <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
-                {data.operational_scale.map((s, i) => <li key={i}>{s}</li>)}
-              </ul>
-            </div>
-          )}
-
-          {(data.cloud_providers?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Cloud Providers</p>
-              <div className="flex flex-wrap gap-1.5">
-                {data.cloud_providers.map((c, i) => (
-                  <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium">{c}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {(data.key_challenges?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Key Challenges</p>
-              <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
-                {data.key_challenges.map((c, i) => <li key={i}>{c}</li>)}
-              </ul>
-            </div>
-          )}
-
-          {(data.business_outcomes?.length ?? 0) > 0 && (
-            <div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Business Outcomes</p>
-              <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
-                {data.business_outcomes.map((o, i) => <li key={i}>{o}</li>)}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-    </section>
-  )
-}
-
 async function downloadPdf(answers: AssessmentAnswers, report: Report) {
   const { pdf } = await import('@react-pdf/renderer')
   const blob = await pdf(<InternalReportPdf answers={answers} report={report} />).toBlob()
   await triggerPdfDownload(blob, `${safe(answers.company_name)}-${safe(answers.pillar_name)}-maturity-report.pdf`)
 }
 
-type Tab = 'report' | 'answers'
+type Tab = 'report' | 'answers' | 'research' | 'context'
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'report', label: 'Report' },
+  { key: 'answers', label: 'Raw Answers' },
+  { key: 'research', label: 'Research Summary' },
+  { key: 'context', label: 'Registration Context' },
+]
 
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -166,6 +88,14 @@ export default function ReportDetailPage() {
   }
 
   const maturityClass = MATURITY_COLORS[answers.maturity_label ?? ''] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+
+  const hasContext = !!(
+    answers.infrastructure_location ||
+    answers.tech_stack_description ||
+    answers.current_tools ||
+    answers.key_challenges_input ||
+    answers.additional_notes
+  )
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -250,30 +180,25 @@ export default function ReportDetailPage() {
 
         {/* Tabs */}
         <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-          {(['report', 'answers'] as Tab[]).map(tab => (
+          {TABS.map(tab => (
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                activeTab === tab
+                activeTab === tab.key
                   ? 'border-blue-600 text-blue-600 dark:border-blue-400 dark:text-blue-400'
                   : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
               }`}
             >
-              {tab === 'report' ? 'Report' : 'Raw Answers'}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Report tab */}
+        {/* ── Report tab ── */}
         {activeTab === 'report' && (
           report ? (
             <>
-              {/* Company Research */}
-              {report.research_data && report.research_data.company_name && (
-                <ResearchPanel data={report.research_data} />
-              )}
-
               {/* Executive Summary */}
               <section>
                 <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
@@ -398,7 +323,7 @@ export default function ReportDetailPage() {
           )
         )}
 
-        {/* Raw Answers tab */}
+        {/* ── Raw Answers tab ── */}
         {activeTab === 'answers' && (
           <section>
             {(answers.answers?.length ?? 0) === 0 ? (
@@ -430,6 +355,132 @@ export default function ReportDetailPage() {
             )}
           </section>
         )}
+
+        {/* ── Research Summary tab ── */}
+        {activeTab === 'research' && (
+          report?.research_data ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4 text-sm">
+              <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100">Research Summary</h2>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Industry</p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">{report.research_data.industry || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Company Size</p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium capitalize">{report.research_data.company_size || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Builds AI Products</p>
+                  <p className="text-gray-900 dark:text-gray-100 font-medium">{report.research_data.builds_ai_products ? 'Yes' : 'No'}</p>
+                </div>
+              </div>
+
+              {report.research_data.products_summary && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Products / Summary</p>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{report.research_data.products_summary}</p>
+                </div>
+              )}
+
+              {report.research_data.target_customers && report.research_data.target_customers !== 'unknown' && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Target Customers</p>
+                  <p className="text-gray-700 dark:text-gray-300">{report.research_data.target_customers}</p>
+                </div>
+              )}
+
+              {report.research_data.operational_scale && report.research_data.operational_scale.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Operational Scale</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
+                    {report.research_data.operational_scale.map((s, i) => <li key={i}>{s}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {(report.research_data.cloud_providers?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Cloud Providers</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {report.research_data.cloud_providers.map((c, i) => (
+                      <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 font-medium">{c}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {(report.research_data.key_challenges?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Key Challenges</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
+                    {report.research_data.key_challenges.map((c, i) => <li key={i}>{c}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {(report.research_data.business_outcomes?.length ?? 0) > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Business Outcomes</p>
+                  <ul className="list-disc list-inside space-y-0.5 text-gray-700 dark:text-gray-300">
+                    {report.research_data.business_outcomes.map((o, i) => <li key={i}>{o}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {'news_insights' in report.research_data && report.research_data.news_insights && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">News & Context</p>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{(report.research_data as { news_insights?: string }).news_insights}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-gray-500">No research data available.</p>
+          )
+        )}
+
+        {/* ── Registration Context tab ── */}
+        {activeTab === 'context' && (
+          hasContext ? (
+            <div className="space-y-4">
+              {answers.infrastructure_location && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Infrastructure & Deployment</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{answers.infrastructure_location}</p>
+                </div>
+              )}
+              {answers.tech_stack_description && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Tech Stack</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{answers.tech_stack_description}</p>
+                </div>
+              )}
+              {answers.current_tools && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Current Tools</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{answers.current_tools}</p>
+                </div>
+              )}
+              {answers.key_challenges_input && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Key Challenges (Self-reported)</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{answers.key_challenges_input}</p>
+                </div>
+              )}
+              {answers.additional_notes && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Additional Notes</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{answers.additional_notes}</p>
+                </div>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 dark:text-gray-500">No registration context provided.</p>
+          )
+        )}
+
       </div>
     </div>
   )
