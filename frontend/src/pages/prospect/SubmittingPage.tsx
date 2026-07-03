@@ -38,6 +38,18 @@ export default function SubmittingPage() {
   const [error, setError] = useState('')
   const submitted = useRef(false)
 
+  // Timers run independently — cleanup handles teardown on unmount.
+  // Kept separate from the submit effect so StrictMode's double-invoke
+  // of the submit guard doesn't prevent the timers from starting.
+  useEffect(() => {
+    const progressTimer = setInterval(() => setProgress((p) => (p < 88 ? p + 2 : p)), 700)
+    const msgTimer = setInterval(() => setMsgIdx((i) => (i + 1) % MESSAGES.length), 3000)
+    return () => {
+      clearInterval(progressTimer)
+      clearInterval(msgTimer)
+    }
+  }, [])
+
   useEffect(() => {
     if (!state?.answers || !token || !assessmentId || !sessionToken) {
       navigate(`/assess/${token}`)
@@ -46,33 +58,14 @@ export default function SubmittingPage() {
     if (submitted.current) return
     submitted.current = true
 
-    // Fake progress: increment ~2% every 700ms, capped at 88%
-    const progressTimer = setInterval(() => {
-      setProgress((p) => (p < 88 ? p + 2 : p))
-    }, 700)
-
-    // Cycle messages every 3s
-    const msgTimer = setInterval(() => {
-      setMsgIdx((i) => (i + 1) % MESSAGES.length)
-    }, 3000)
-
     submitAssessment(token, sessionToken, assessmentId, state.answers)
       .then(() => {
-        clearInterval(progressTimer)
-        clearInterval(msgTimer)
         setProgress(100)
         setTimeout(() => navigate(`/assess/${token}/report/${assessmentId}`), 500)
       })
       .catch((e) => {
-        clearInterval(progressTimer)
-        clearInterval(msgTimer)
         setError(extractApiError(e, 'Submission failed. Please try again.'))
       })
-
-    return () => {
-      clearInterval(progressTimer)
-      clearInterval(msgTimer)
-    }
   }, [])
 
   const companyName = state?.companyName ?? ''
