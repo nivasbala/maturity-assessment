@@ -182,6 +182,47 @@ export default function PillarSelectPage() {
 
   const gatedPillars = info.available_pillars.filter((p) => p.is_gated)
   const visiblePillars = info.available_pillars.filter((p) => isPillarVisible(p, gatedPillars))
+  const suggestedPillars = visiblePillars.filter((p) => info.suggested_pillars.includes(p.id))
+  const otherPillars = visiblePillars.filter((p) => !info.suggested_pillars.includes(p.id))
+
+  function renderPillarCard(pillar: AvailablePillar, badge?: string) {
+    const isLoading = startingPillarId === pillar.id
+    const isDisabled = startingPillarId !== null
+    return (
+      <div
+        key={pillar.id}
+        className={`bg-white dark:bg-gray-800 rounded-xl border p-5 flex items-center gap-5 ${
+          badge === 'Suggested' ? 'border-brand' : 'border-gray-200 dark:border-gray-700'
+        }`}
+      >
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100">{pillar.name}</h2>
+            {badge && (
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
+                badge === 'Suggested'
+                  ? 'text-brand bg-blue-50 dark:bg-blue-900/30'
+                  : 'text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700'
+              }`}>
+                {badge}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{pillar.description}</p>
+        </div>
+        <div className="flex flex-col items-end gap-2 shrink-0">
+          <span className="text-xs text-gray-400 dark:text-gray-500">~8 min</span>
+          <button
+            onClick={() => handleSelectPillar(pillar)}
+            disabled={isDisabled}
+            className="text-sm font-medium bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
+          >
+            {isLoading ? 'Starting…' : 'Start →'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
@@ -223,45 +264,29 @@ export default function PillarSelectPage() {
             <p className="text-center text-gray-500 dark:text-gray-400 mt-8">
               No assessment areas are available. Please contact your administrator.
             </p>
-          ) : (
+          ) : suggestedPillars.length === 0 ? (
             <div className="space-y-3">
-              {visiblePillars.map((pillar) => {
-                const isSuggested = info.suggested_pillars.includes(pillar.id)
-                const isLoading = startingPillarId === pillar.id
-                const isDisabled = startingPillarId !== null
-
-                return (
-                  <div
-                    key={pillar.id}
-                    className={`bg-white dark:bg-gray-800 rounded-xl border p-5 flex items-center gap-5 ${
-                      isSuggested ? 'border-brand' : 'border-gray-200 dark:border-gray-700'
-                    }`}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100">{pillar.name}</h2>
-                        {isSuggested && (
-                          <span className="text-xs font-semibold text-brand bg-blue-50 dark:bg-blue-900/30 px-2 py-0.5 rounded-full shrink-0">
-                            Recommended
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{pillar.description}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className="text-xs text-gray-400 dark:text-gray-500">~8 min</span>
-                      <button
-                        onClick={() => handleSelectPillar(pillar)}
-                        disabled={isDisabled}
-                        className="text-sm font-medium bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white px-4 py-1.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
-                      >
-                        {isLoading ? 'Starting…' : 'Start →'}
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
+              {otherPillars.map((pillar) => renderPillarCard(pillar))}
             </div>
+          ) : (
+            <>
+              <div className="space-y-3">
+                {suggestedPillars.map((pillar) => renderPillarCard(pillar, 'Suggested'))}
+              </div>
+
+              {otherPillars.length > 0 && (
+                <>
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                    <span className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">Recommended</span>
+                    <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                  </div>
+                  <div className="space-y-3">
+                    {otherPillars.map((pillar) => renderPillarCard(pillar))}
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
       </div>
