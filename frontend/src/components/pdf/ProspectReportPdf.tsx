@@ -78,7 +78,7 @@ const s = StyleSheet.create({
 
   answerRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   answerNum: { width: 14, fontSize: 8, color: '#9ca3af', marginTop: 1 },
-  answerQ: { flex: 1, fontSize: 8, color: '#374151', lineHeight: 1.5 },
+  answerQ: { fontSize: 8, color: '#374151', lineHeight: 1.5 },
   answerA: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#111827', marginTop: 2 },
   levelBadge: { borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2, alignSelf: 'flex-start', marginTop: 1 },
   levelText: { fontSize: 7, fontFamily: 'Helvetica-Bold' },
@@ -290,18 +290,18 @@ export function ProspectReportPdf({ report }: Props) {
           <Text style={s.sectionTitle}>Questions & Answers</Text>
           {report.answers.map((row, i) => (
             <View key={i} style={[s.card, { marginBottom: 5 }]} wrap={false}>
-              <View style={s.answerRow}>
+              {/* Top row: number + level badge */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                 <Text style={s.answerNum}>{i + 1}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={s.answerQ}>{row.question_text}</Text>
-                  <Text style={s.answerA}>{row.selected_option_text}</Text>
-                </View>
                 <View style={[s.levelBadge, { backgroundColor: LEVEL_BG[row.maturity_level] ?? '#f3f4f6' }]}>
                   <Text style={[s.levelText, { color: LEVEL_FG[row.maturity_level] ?? '#374151' }]}>
                     L{row.maturity_level}
                   </Text>
                 </View>
               </View>
+              {/* Question then answer stacked — avoids flex:1 height bug in react-pdf */}
+              <Text style={s.answerQ}>{row.question_text}</Text>
+              <Text style={[s.answerA, { marginTop: 4 }]}>{row.selected_option_text}</Text>
             </View>
           ))}
           <Footer title={footerTitle} />
