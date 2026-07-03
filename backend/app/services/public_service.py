@@ -575,6 +575,7 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
             operational_scale=[],
             data_confidence="low",
             research_notes="Research summary is not available. You can still proceed with your assessment.",
+            observability_outcome="",
         )
 
     cache = prospect.research_cache
@@ -594,6 +595,7 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
         data_confidence=cache.get("data_confidence", "low"),
         research_notes=cache.get("research_notes", ""),
         news_insights=cache.get("news_insights", ""),
+        observability_outcome=cache.get("observability_outcome", ""),
         sources=cache.get("sources") or [],
     )
 

@@ -328,6 +328,7 @@ export interface ResearchSummary {
   data_confidence: 'high' | 'medium' | 'low'
   research_notes: string
   news_insights: string
+  observability_outcome: string
   sources: Array<{ title: string; url: string }>
 }
 

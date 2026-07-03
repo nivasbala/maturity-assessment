@@ -243,6 +243,18 @@ export default function ResearchSummaryPage() {
               </div>
             )}
 
+            {/* Observability Outcome */}
+            {summary?.observability_outcome && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
+                  Observability Outcome
+                </h2>
+                <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                  {summary.observability_outcome}
+                </p>
+              </div>
+            )}
+
             {/* Research notes */}
             {summary?.research_notes && (
               <p className="text-xs text-gray-400 dark:text-gray-500 px-1">

@@ -147,6 +147,17 @@ news_insights: 2-4 sentences summarizing relevant signals found in recent news \
 (past 30-60 days) related to security, AI/ML, observability, or cost/efficiency. \
 Frame constructively and positively. Empty string "" if no relevant signals found.
 
+observability_outcome: 2-4 sentences synthesizing what observability investments \
+would deliver the most value for THIS company, drawn from ALL three inputs: \
+(1) the prospect's stated key_challenges_input, (2) signals from web research \
+(company scale, engineering complexity, AI product footprint), and (3) recent news \
+(security incidents → security observability; AI/ML investment → LLM/model \
+observability; cost programs → efficiency and SLO-driven alerting). \
+Be specific to this company — name the outcome type (e.g. "real-user monitoring", \
+"distributed tracing", "security signal correlation", "LLM cost and latency \
+visibility"). Empty string "" only if there is genuinely no basis for any \
+observability recommendation.
+
 RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
 {{
   "company_name": "string",
@@ -161,7 +172,8 @@ RETURN EXACTLY THIS JSON — no preamble, no markdown fences, no explanation:
   "operational_scale": [],
   "data_confidence": "high | medium | low",
   "research_notes": "string",
-  "news_insights": "string"
+  "news_insights": "string",
+  "observability_outcome": "string"
 }}"""
 
 
@@ -394,5 +406,6 @@ def _build_minimal_profile(company_name: str) -> dict[str, Any]:
         "data_confidence": "low",
         "research_notes": "Research could not be completed.",
         "news_insights": "",
+        "observability_outcome": "",
         "sources": [],
     }
