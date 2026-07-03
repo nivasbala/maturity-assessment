@@ -64,7 +64,7 @@ class TestResearchAgent:
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock(return_value=mock_execute_result)
 
-        with patch("app.agents.research_agent.get_llm") as mock_llm:
+        with patch("app.agents.research_agent.get_research_agent_llm") as mock_llm:
             result = await run_research_agent_for_prospect(prospect_id, "Acme", "acme.com", mock_db)
 
         assert result == cached_profile
@@ -341,7 +341,7 @@ class TestQuestionSelectionAgent:
         ]
 
         with (
-            patch("app.agents.question_selection_agent.get_llm") as mock_get_llm,
+            patch("app.agents.question_selection_agent.get_question_selection_agent_llm") as mock_get_llm,
             patch("app.agents.question_selection_agent.ChatPromptTemplate") as mock_cpt,
             patch("app.agents.question_selection_agent.StrOutputParser"),
         ):
@@ -386,7 +386,7 @@ class TestQuestionSelectionAgent:
         with (
             patch("app.agents.question_selection_agent.ChatPromptTemplate") as mock_cpt,
             patch("app.agents.question_selection_agent.StrOutputParser"),
-            patch("app.agents.question_selection_agent.get_llm"),
+            patch("app.agents.question_selection_agent.get_question_selection_agent_llm"),
         ):
             mock_chain = AsyncMock()
             mock_chain.ainvoke = AsyncMock(return_value=json.dumps(bad_response))
@@ -426,7 +426,7 @@ class TestQuestionSelectionAgent:
         with (
             patch("app.agents.question_selection_agent.ChatPromptTemplate") as mock_cpt,
             patch("app.agents.question_selection_agent.StrOutputParser"),
-            patch("app.agents.question_selection_agent.get_llm"),
+            patch("app.agents.question_selection_agent.get_question_selection_agent_llm"),
         ):
             mock_chain = AsyncMock()
             mock_chain.ainvoke = AsyncMock(return_value=json.dumps(bad_response))
@@ -548,7 +548,7 @@ class TestReportAgent:
         with (
             patch("app.agents.report_agent.ChatPromptTemplate") as mock_cpt,
             patch("app.agents.report_agent.StrOutputParser"),
-            patch("app.agents.report_agent.get_llm"),
+            patch("app.agents.report_agent.get_report_agent_llm"),
         ):
             mock_chain = AsyncMock()
             mock_chain.ainvoke = AsyncMock(return_value=json.dumps(expected))
@@ -579,7 +579,7 @@ class TestReportAgent:
         with (
             patch("app.agents.report_agent.ChatPromptTemplate") as mock_cpt,
             patch("app.agents.report_agent.StrOutputParser"),
-            patch("app.agents.report_agent.get_llm"),
+            patch("app.agents.report_agent.get_report_agent_llm"),
         ):
             mock_chain = AsyncMock()
             mock_chain.ainvoke = AsyncMock(side_effect=RuntimeError("LLM timeout"))
@@ -736,7 +736,7 @@ class TestResearchAgentForProspect:
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock(return_value=mock_execute_result)
 
-        with patch("app.agents.research_agent.get_llm") as mock_llm:
+        with patch("app.agents.research_agent.get_research_agent_llm") as mock_llm:
             result = await run_research_agent_for_prospect(
                 prospect_id, "Acme", "acme.com", mock_db
             )

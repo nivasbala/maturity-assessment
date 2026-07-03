@@ -693,7 +693,7 @@ async def test_select_questions_passes_prospect_context_to_llm():
         captured_invoke.update(inputs)
         return json.dumps(selected_ids)
 
-    with patch("app.agents.question_selection_agent.get_llm") as mock_llm:
+    with patch("app.agents.question_selection_agent.get_question_selection_agent_llm") as mock_llm:
         mock_chain = MagicMock()
         mock_chain.__or__ = MagicMock(return_value=mock_chain)
         mock_chain.ainvoke = mock_ainvoke
