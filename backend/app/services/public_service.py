@@ -20,6 +20,7 @@ import hashlib
 import logging
 import secrets
 from datetime import datetime, timezone
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -119,6 +120,17 @@ def _compute_research_input_hash(
         (key_challenges_input or "").strip().lower(),
     ])
     return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def _research_cache_expired(prospect: Any, ttl_days: int = 3) -> bool:
+    """Return True if the research cache is absent or older than ttl_days."""
+    if not prospect.research_cache or not prospect.research_cached_at:
+        return True
+    cached_at = prospect.research_cached_at
+    if cached_at.tzinfo is None:
+        cached_at = cached_at.replace(tzinfo=timezone.utc)
+    age_seconds = (datetime.now(timezone.utc) - cached_at).total_seconds()
+    return age_seconds > ttl_days * 24 * 3600
 
 
 async def _ensure_unique_token(db: AsyncSession) -> str:
@@ -427,13 +439,20 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
 
     cached_hash = (prospect.research_cache or {}).get("_input_hash")
     inputs_changed = prospect.research_cache is None or cached_hash != input_hash
+    cache_expired = _research_cache_expired(prospect, ttl_days=3)
 
-    if not inputs_changed:
+    if not inputs_changed and not cache_expired:
         logger.info(
-            "register_prospect: inputs unchanged for prospect_id=%s — reusing cached research",
+            "register_prospect: inputs unchanged and cache fresh for prospect_id=%s — reusing cached research",
             prospect.id,
         )
     else:
+        reason = "inputs changed" if inputs_changed else "cache expired (>3 days)"
+        logger.info(
+            "register_prospect: re-running Agent 1 for prospect_id=%s — %s",
+            prospect.id,
+            reason,
+        )
         prospect.research_started_at = datetime.now(timezone.utc)
         await db.commit()
         prospect_id_for_rerun = prospect.id
@@ -477,10 +496,6 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
                     )
 
         asyncio.create_task(_rerun_agent1())
-        logger.info(
-            "register_prospect: prospect_id=%s — inputs changed, Agent 1 fired in background",
-            prospect.id,
-        )
 
     # Build session token payload
     session_data: dict = {
