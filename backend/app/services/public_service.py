@@ -525,6 +525,8 @@ async def get_research_summary(token: str, session: dict, db: AsyncSession) -> R
         operational_scale=cache.get("operational_scale") or [],
         data_confidence=cache.get("data_confidence", "low"),
         research_notes=cache.get("research_notes", ""),
+        news_insights=cache.get("news_insights", ""),
+        sources=cache.get("sources") or [],
     )
 
 
