@@ -16,6 +16,7 @@ LangGraph orchestrator (Agent 3) runs synchronously at /submit time.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import secrets
 from datetime import datetime, timezone
@@ -93,6 +94,31 @@ async def _get_prospect_by_token(token: str, db: AsyncSession) -> Prospect:
 
 def _generate_short_token() -> str:
     return secrets.token_urlsafe(6)
+
+
+def _compute_research_input_hash(
+    company_name: str,
+    company_website: str | None,
+    infrastructure_location: str | None,
+    tech_stack_description: str | None,
+    current_tools: str | None,
+    key_challenges_input: str | None,
+) -> str:
+    """Return a stable SHA-256 hex digest of the six inputs that drive Agent 1.
+
+    Used to detect whether a returning visitor changed anything that would
+    affect the research output. If the hash matches the cached _input_hash,
+    the existing research result is reused without re-running Agent 1.
+    """
+    canonical = "|".join([
+        (company_name or "").strip().lower(),
+        (company_website or "").strip().lower(),
+        (infrastructure_location or "").strip().lower(),
+        (tech_stack_description or "").strip().lower(),
+        (current_tools or "").strip().lower(),
+        (key_challenges_input or "").strip().lower(),
+    ])
+    return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 async def _ensure_unique_token(db: AsyncSession) -> str:
@@ -377,57 +403,84 @@ async def register_prospect(token: str, body: RegisterRequest, db: AsyncSession)
     prospect.registered_at = datetime.now(timezone.utc)
     await db.commit()
 
-    # Always fire Agent 1 at registration so the research loading screen has something to poll.
-    # Clears any stale cache and re-runs with the latest prospect context (including any
-    # optional fields the prospect filled in: infrastructure_location, tech_stack_description,
-    # current_tools, key_challenges_input).
+    # Fire Agent 1 only if the research inputs have changed since the last run.
+    # We hash the six inputs that feed the research agent and embed the hash in the
+    # cache. If the cache exists and the hash matches, the existing result is correct
+    # and re-running would produce identical output — skip it.
     from app.agents.research_agent import run_research_agent_for_prospect  # noqa: PLC0415
-    prospect.research_started_at = datetime.now(timezone.utc)
-    await db.commit()
-    prospect_id_for_rerun = prospect.id
-    company_name_for_rerun = account.company_name
-    company_website_for_rerun = account.company_website
+
     infra = prospect.infrastructure_location
     tech = prospect.tech_stack_description
     tools = prospect.current_tools
     challenges = prospect.key_challenges_input
+    company_name_for_rerun = account.company_name
+    company_website_for_rerun = account.company_website
 
-    async def _rerun_agent1() -> None:
-        async with AsyncSessionLocal() as fresh_db:
-            p = (await fresh_db.execute(
-                select(Prospect).where(Prospect.id == prospect_id_for_rerun)
-            )).scalar_one_or_none()
-            if p:
-                p.research_cache = None
-                p.research_cached_at = None
-                await fresh_db.commit()
-            try:
-                await run_research_agent_for_prospect(
-                    prospect_id_for_rerun,
-                    company_name_for_rerun,
-                    company_website_for_rerun,
-                    fresh_db,
-                    infrastructure_location=infra,
-                    tech_stack_description=tech,
-                    current_tools=tools,
-                    key_challenges_input=challenges,
-                )
-                logger.info(
-                    "register_prospect: Agent 1 completed for prospect_id=%s",
-                    prospect_id_for_rerun,
-                )
-            except Exception:
-                logger.error(
-                    "register_prospect: Agent 1 failed for prospect_id=%s",
-                    prospect_id_for_rerun,
-                    exc_info=True,
-                )
-
-    asyncio.create_task(_rerun_agent1())
-    logger.info(
-        "register_prospect: prospect_id=%s — Agent 1 fired in background",
-        prospect.id,
+    input_hash = _compute_research_input_hash(
+        company_name=company_name_for_rerun,
+        company_website=company_website_for_rerun,
+        infrastructure_location=infra,
+        tech_stack_description=tech,
+        current_tools=tools,
+        key_challenges_input=challenges,
     )
+
+    cached_hash = (prospect.research_cache or {}).get("_input_hash")
+    inputs_changed = prospect.research_cache is None or cached_hash != input_hash
+
+    if not inputs_changed:
+        logger.info(
+            "register_prospect: inputs unchanged for prospect_id=%s — reusing cached research",
+            prospect.id,
+        )
+    else:
+        prospect.research_started_at = datetime.now(timezone.utc)
+        await db.commit()
+        prospect_id_for_rerun = prospect.id
+
+        async def _rerun_agent1() -> None:
+            async with AsyncSessionLocal() as fresh_db:
+                p = (await fresh_db.execute(
+                    select(Prospect).where(Prospect.id == prospect_id_for_rerun)
+                )).scalar_one_or_none()
+                if p:
+                    p.research_cache = None
+                    p.research_cached_at = None
+                    await fresh_db.commit()
+                try:
+                    await run_research_agent_for_prospect(
+                        prospect_id_for_rerun,
+                        company_name_for_rerun,
+                        company_website_for_rerun,
+                        fresh_db,
+                        infrastructure_location=infra,
+                        tech_stack_description=tech,
+                        current_tools=tools,
+                        key_challenges_input=challenges,
+                    )
+                    # Stamp the hash so future registrations with the same inputs skip re-run
+                    p2 = (await fresh_db.execute(
+                        select(Prospect).where(Prospect.id == prospect_id_for_rerun)
+                    )).scalar_one_or_none()
+                    if p2 and p2.research_cache is not None:
+                        p2.research_cache = {**p2.research_cache, "_input_hash": input_hash}
+                        await fresh_db.commit()
+                    logger.info(
+                        "register_prospect: Agent 1 completed for prospect_id=%s",
+                        prospect_id_for_rerun,
+                    )
+                except Exception:
+                    logger.error(
+                        "register_prospect: Agent 1 failed for prospect_id=%s",
+                        prospect_id_for_rerun,
+                        exc_info=True,
+                    )
+
+        asyncio.create_task(_rerun_agent1())
+        logger.info(
+            "register_prospect: prospect_id=%s — inputs changed, Agent 1 fired in background",
+            prospect.id,
+        )
 
     # Build session token payload
     session_data: dict = {
