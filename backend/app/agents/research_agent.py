@@ -225,7 +225,11 @@ async def _run_research_agent_for_prospect_locked(
 
     if not prospect:
         logger.warning("run_research_agent_for_prospect: prospect %s not found", prospect_id)
-        return _build_minimal_profile(company_name)
+        minimal = _build_minimal_profile(company_name)
+        minimal["observability_outcome"] = _synthesize_observability_outcome(
+            minimal, key_challenges_input, company_name
+        )
+        return minimal
 
     if not _should_refresh(prospect):
         logger.info(
@@ -353,6 +357,15 @@ async def _run_research_agent_for_prospect_locked(
         profile = json.loads(_extract_json_object(raw))
         profile["sources"] = collected_sources
 
+        if profile.get("observability_outcome") is None:
+            profile["observability_outcome"] = _synthesize_observability_outcome(
+                profile, key_challenges_input, company_name
+            )
+            logger.info(
+                "run_research_agent_for_prospect: synthesized observability_outcome for prospect_id=%s",
+                prospect_id,
+            )
+
         prospect.research_cache = profile
         prospect.research_cached_at = datetime.now(timezone.utc)
         await db.commit()
@@ -366,6 +379,9 @@ async def _run_research_agent_for_prospect_locked(
             exc_info=True,
         )
         fallback = _build_minimal_profile(company_name)
+        fallback["observability_outcome"] = _synthesize_observability_outcome(
+            fallback, key_challenges_input, company_name
+        )
         try:
             prospect.research_cache = fallback
             prospect.research_cached_at = datetime.now(timezone.utc)
@@ -388,6 +404,80 @@ def _should_refresh(account: Any) -> bool:
         cached_at = cached_at.replace(tzinfo=timezone.utc)
     age = datetime.now(timezone.utc) - cached_at
     return age.total_seconds() > 7 * 24 * 3600
+
+
+def _synthesize_observability_outcome(
+    profile: dict[str, Any],
+    key_challenges_input: str | None,
+    company_name: str = "this company",
+) -> str:
+    challenges: list[str] = [
+        c for c in (profile.get("key_challenges") or []) if isinstance(c, str)
+    ]
+    stripped_input = (key_challenges_input or "").strip()
+    if stripped_input:
+        challenges = [stripped_input] + [
+            c for c in challenges if c.lower() != stripped_input.lower()
+        ]
+    company = profile.get("company_name") or company_name
+    size = profile.get("company_size", "")
+    raw_builds_ai = profile.get("builds_ai_products", False)
+    builds_ai: bool = (
+        str(raw_builds_ai).lower() == "true"
+        if not isinstance(raw_builds_ai, bool)
+        else raw_builds_ai
+    )
+    cloud: list[str] = [
+        c for c in (profile.get("cloud_providers") or []) if isinstance(c, str)
+    ]
+
+    parts: list[str] = []
+
+    if challenges:
+        top = challenges[0].lower()
+        if "end-to-end" in top or "visibility" in top or "observability" in top:
+            parts.append(
+                f"{company} would benefit most from distributed tracing and unified "
+                f"telemetry to achieve the end-to-end visibility identified as a key challenge."
+            )
+        elif "alert" in top or "fatigue" in top or "noise" in top:
+            parts.append(
+                f"{company} would gain significant value from intelligent alerting and "
+                f"SLO-driven monitoring to reduce alert fatigue."
+            )
+        elif "incident" in top or "mttr" in top:
+            parts.append(
+                f"{company} would benefit from correlated incident observability and "
+                f"automated root-cause analysis to reduce MTTR."
+            )
+        elif "cost" in top or "gpu" in top or "efficiency" in top:
+            parts.append(
+                f"{company} would gain from cost-aware observability and resource "
+                f"utilization dashboards to optimize spend."
+            )
+
+    if builds_ai:
+        parts.append(
+            "Given their AI product footprint, LLM cost and latency visibility "
+            "would deliver additional value."
+        )
+
+    if len(cloud) > 1:
+        parts.append(
+            f"A multi-cloud observability strategy spanning {', '.join(cloud)} "
+            f"would unify signals across their infrastructure."
+        )
+
+    if not parts:
+        infra = ", ".join(cloud) if cloud else "cloud"
+        size_tag = f"({size}) " if size else ""
+        parts.append(
+            f"{company} {size_tag}would benefit from "
+            f"full-stack observability across their {infra} infrastructure, "
+            f"connecting infrastructure metrics, application traces, and logs into a single pane."
+        )
+
+    return " ".join(parts)
 
 
 def _build_minimal_profile(company_name: str) -> dict[str, Any]:

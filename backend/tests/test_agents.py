@@ -177,6 +177,111 @@ class TestResearchAgent:
         assert _extract_json_object('Here is your result:\n{"key": "value"}') == '{"key": "value"}'
 
 
+# ── _synthesize_observability_outcome ────────────────────────────────────────
+
+class TestSynthesizeObservabilityOutcome:
+    """Unit tests for the observability_outcome synthesis fallback."""
+
+    def _synth(self, profile: dict, key_challenges_input: str | None = None, company_name: str = "Acme") -> str:
+        from app.agents.research_agent import _synthesize_observability_outcome
+        return _synthesize_observability_outcome(profile, key_challenges_input, company_name)
+
+    def test_visibility_keyword_match(self):
+        result = self._synth({"key_challenges": ["end-to-end visibility across services"]})
+        assert "distributed tracing" in result
+        assert "Acme" in result
+
+    def test_alert_keyword_match(self):
+        result = self._synth({"key_challenges": ["alert fatigue from too many pages"]})
+        assert "intelligent alerting" in result
+
+    def test_mttr_keyword_match(self):
+        result = self._synth({"key_challenges": ["high MTTR for production incidents"]})
+        assert "root-cause" in result
+
+    def test_cost_keyword_match(self):
+        result = self._synth({"key_challenges": ["GPU cost and efficiency"]})
+        assert "cost-aware" in result
+
+    def test_response_keyword_does_not_match_mttr_branch(self):
+        # "response" was removed from the MTTR branch — should fall through to generic
+        result = self._synth({"key_challenges": ["slow API response time"]})
+        assert "full-stack observability" in result
+
+    def test_ai_products_appended_for_ai_company(self):
+        result = self._synth({"builds_ai_products": True})
+        assert "LLM cost and latency" in result
+
+    def test_ai_string_false_is_not_truthy(self):
+        result = self._synth({"builds_ai_products": "false"})
+        assert "LLM cost and latency" not in result
+
+    def test_ai_string_true_is_truthy(self):
+        result = self._synth({"builds_ai_products": "true"})
+        assert "LLM cost and latency" in result
+
+    def test_multi_cloud_appended_when_two_or_more_providers(self):
+        result = self._synth({"cloud_providers": ["aws", "gcp"]})
+        assert "multi-cloud" in result
+        assert "aws" in result
+        assert "gcp" in result
+
+    def test_single_cloud_does_not_append_multi_cloud_sentence(self):
+        result = self._synth({"cloud_providers": ["aws"]})
+        assert "multi-cloud" not in result
+
+    def test_generic_fallback_when_no_signals(self):
+        result = self._synth({})
+        assert "full-stack observability" in result
+        assert "Acme" in result
+
+    def test_none_items_in_challenges_are_filtered(self):
+        # Should not raise AttributeError
+        result = self._synth({"key_challenges": [None, "alert fatigue"]})
+        assert "intelligent alerting" in result
+
+    def test_null_first_challenge_with_no_key_challenges_input(self):
+        result = self._synth({"key_challenges": [None]})
+        assert result  # generic fallback — no crash
+
+    def test_none_items_in_cloud_providers_are_filtered(self):
+        # Should not raise TypeError in ', '.join
+        result = self._synth({"cloud_providers": ["aws", None, "gcp"]})
+        assert "multi-cloud" in result
+        assert "None" not in result
+
+    def test_company_name_parameter_used_when_profile_omits_it(self):
+        result = self._synth({}, company_name="Datadog")
+        assert "Datadog" in result
+        assert "this company" not in result
+
+    def test_key_challenges_input_prepended_and_case_insensitive_dedup(self):
+        profile = {"key_challenges": ["Alert Fatigue"]}
+        result = self._synth(profile, key_challenges_input="alert fatigue")
+        # dedup should remove the near-duplicate LLM version
+        assert result.count("alert") == result.lower().count("alert") >= 1
+
+    def test_whitespace_only_key_challenges_input_is_ignored(self):
+        profile = {"key_challenges": ["alert fatigue"]}
+        result = self._synth(profile, key_challenges_input="   ")
+        # whitespace-only input should not push out the real challenge
+        assert "intelligent alerting" in result
+
+    def test_always_returns_non_empty_string(self):
+        assert self._synth({})
+        assert self._synth({"key_challenges": []})
+        assert self._synth({"key_challenges": [None]})
+
+    def test_size_tag_in_generic_fallback(self):
+        result = self._synth({"company_size": "startup"})
+        assert "(startup)" in result
+
+    def test_company_name_from_profile_takes_precedence(self):
+        result = self._synth({"company_name": "ProfileCorp"}, company_name="FallbackCorp")
+        assert "ProfileCorp" in result
+        assert "FallbackCorp" not in result
+
+
 # ── question_selection_agent ──────────────────────────────────────────────────
 
 class TestQuestionSelectionAgent:
