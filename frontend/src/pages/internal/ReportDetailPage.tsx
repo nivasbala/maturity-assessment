@@ -3,14 +3,15 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getAssessmentAnswers, getAssessmentReport } from '../../api/internal'
 import { useAuth } from '../../contexts/AuthContext'
 import type { AssessmentAnswers, Report } from '../../types'
+import PdfThemeModal from '../../components/PdfThemeModal'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 import { safe, triggerPdfDownload } from '../../utils/pdfDownload'
 import { ScoreChart } from '../../components/ScoreChart'
 import { InternalReportPdf } from '../../components/pdf/InternalReportPdf'
 
-async function downloadPdf(answers: AssessmentAnswers, report: Report) {
+async function downloadPdf(answers: AssessmentAnswers, report: Report, darkMode: boolean) {
   const { pdf } = await import('@react-pdf/renderer')
-  const blob = await pdf(<InternalReportPdf answers={answers} report={report} />).toBlob()
+  const blob = await pdf(<InternalReportPdf answers={answers} report={report} darkMode={darkMode} />).toBlob()
   await triggerPdfDownload(blob, `${safe(answers.company_name)}-${safe(answers.pillar_name)}-maturity-report.pdf`)
 }
 
@@ -33,6 +34,7 @@ export default function ReportDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
+  const [showPdfModal, setShowPdfModal] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('report')
 
   useEffect(() => {
@@ -99,6 +101,19 @@ export default function ReportDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      {showPdfModal && report && (
+        <PdfThemeModal
+          onDownload={async (dark) => {
+            setDownloading(true)
+            try {
+              await downloadPdf(answers, report, dark)
+            } finally {
+              setDownloading(false)
+            }
+          }}
+          onClose={() => setShowPdfModal(false)}
+        />
+      )}
       <div className="max-w-4xl mx-auto px-6 py-8 space-y-6">
 
         {/* Back + Download */}
@@ -114,14 +129,7 @@ export default function ReportDetailPage() {
           </button>
           {report && (
             <button
-              onClick={async () => {
-                setDownloading(true)
-                try {
-                  await downloadPdf(answers, report)
-                } finally {
-                  setDownloading(false)
-                }
-              }}
+              onClick={() => setShowPdfModal(true)}
               disabled={downloading}
               className={`text-sm px-4 py-2 rounded-lg font-medium transition-colors ${
                 downloading

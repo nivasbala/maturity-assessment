@@ -4,6 +4,7 @@ import { getReport } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ReportPublic } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
+import PdfThemeModal from '../../components/PdfThemeModal'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 import { safe, triggerPdfDownload } from '../../utils/pdfDownload'
 import { ScoreChart } from '../../components/ScoreChart'
@@ -20,9 +21,9 @@ const LOADING_MESSAGES = [
   'Almost there…',
 ]
 
-async function downloadPdf(report: ReportPublic) {
+async function downloadPdf(report: ReportPublic, darkMode: boolean) {
   const { pdf } = await import('@react-pdf/renderer')
-  const blob = await pdf(<ProspectReportPdf report={report} />).toBlob()
+  const blob = await pdf(<ProspectReportPdf report={report} darkMode={darkMode} />).toBlob()
   await triggerPdfDownload(blob, `${safe(report.company_name)}-${safe(report.pillar_name)}-maturity-report.pdf`)
 }
 
@@ -126,6 +127,7 @@ export default function ReportPage() {
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0)
   const [polling, setPolling] = useState(true)
   const [pdfGenerating, setPdfGenerating] = useState(false)
+  const [showPdfModal, setShowPdfModal] = useState(false)
   const [progress, setProgress] = useState(0)
   const [activeTab, setActiveTab] = useState<Tab>('report')
 
@@ -230,11 +232,11 @@ export default function ReportPage() {
 
   const badgeClass = MATURITY_COLORS[report.maturity_label] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
 
-  const handleDownloadPdf = async () => {
+  const handleDownloadPdf = async (darkMode: boolean) => {
     if (!report) return
     setPdfGenerating(true)
     try {
-      await downloadPdf(report)
+      await downloadPdf(report, darkMode)
     } finally {
       setPdfGenerating(false)
     }
@@ -250,6 +252,12 @@ export default function ReportPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+      {showPdfModal && (
+        <PdfThemeModal
+          onDownload={(dark) => { handleDownloadPdf(dark) }}
+          onClose={() => setShowPdfModal(false)}
+        />
+      )}
       <ProspectHeader />
       <div className="flex-1 py-10 px-4">
         <div className="max-w-3xl mx-auto space-y-6">
@@ -487,7 +495,7 @@ export default function ReportPage() {
             </button>
             <div className="flex items-center gap-3">
               <button
-                onClick={handleDownloadPdf}
+                onClick={() => setShowPdfModal(true)}
                 disabled={pdfGenerating}
                 className="text-sm font-medium border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950 disabled:opacity-50 disabled:cursor-not-allowed px-5 py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1"
               >

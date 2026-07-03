@@ -28,71 +28,90 @@ const LEVEL_FG: Record<number, string> = { 1: '#dc2626', 2: '#d97706', 3: '#2563
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
-  page: { fontFamily: 'Helvetica', fontSize: 9, color: '#111827', backgroundColor: '#f9fafb', padding: 36 },
+function buildStyles(dark: boolean) {
+  const bg = dark ? '#111827' : '#f9fafb'
+  const cardBg = dark ? '#1f2937' : '#ffffff'
+  const primaryText = dark ? '#f9fafb' : '#111827'
+  const secondaryText = dark ? '#d1d5db' : '#4b5563'
+  const mutedText = dark ? '#9ca3af' : '#6b7280'
+  const dimText = dark ? '#6b7280' : '#9ca3af'
+  const sectionTitleColor = dark ? '#93c5fd' : '#1e3a5f'
+  const barBg = dark ? '#374151' : '#e5e7eb'
+  const tfBg = dark ? '#374151' : '#f3f4f6'
+  const tfText = dark ? '#d1d5db' : '#374151'
 
-  headerCard: { backgroundColor: '#1e3a5f', borderRadius: 6, padding: 18, marginBottom: 14 },
-  headerPillar: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#ffffff', marginBottom: 4 },
-  headerCompany: { fontSize: 11, color: '#93c5fd' },
-  headerScoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 12, gap: 10 },
-  headerScore: { fontSize: 32, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
-  headerScoreOf: { fontSize: 12, color: '#93c5fd', marginBottom: 6 },
-  maturityBadge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
-  maturityText: { fontSize: 9, fontFamily: 'Helvetica-Bold' },
+  return StyleSheet.create({
+    page: { fontFamily: 'Helvetica', fontSize: 9, color: primaryText, backgroundColor: bg, padding: 36 },
 
-  metaRow: { backgroundColor: '#ffffff', borderRadius: 6, padding: 10, marginBottom: 12, flexDirection: 'row', gap: 12 },
-  metaCell: { flex: 1 },
-  metaLabel: { fontSize: 7, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  metaValue: { fontSize: 9, color: '#111827', fontFamily: 'Helvetica-Bold' },
+    headerCard: { backgroundColor: '#1e3a5f', borderRadius: 6, padding: 18, marginBottom: 14 },
+    headerPillar: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#ffffff', marginBottom: 4 },
+    headerCompany: { fontSize: 11, color: '#93c5fd' },
+    headerScoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 12, gap: 10 },
+    headerScore: { fontSize: 32, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
+    headerScoreOf: { fontSize: 12, color: '#93c5fd', marginBottom: 6 },
+    maturityBadge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
+    maturityText: { fontSize: 9, fontFamily: 'Helvetica-Bold' },
 
-  sectionTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: '#1e3a5f', marginBottom: 8, marginTop: 4 },
-  card: { backgroundColor: '#ffffff', borderRadius: 6, padding: 12, marginBottom: 6 },
+    metaRow: { backgroundColor: cardBg, borderRadius: 6, padding: 10, marginBottom: 12, flexDirection: 'row', gap: 12 },
+    metaCell: { flex: 1 },
+    metaLabel: { fontSize: 7, color: mutedText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+    metaValue: { fontSize: 9, color: primaryText, fontFamily: 'Helvetica-Bold' },
 
-  scoreBarBg: { height: 8, backgroundColor: '#e5e7eb', borderRadius: 4, marginTop: 4, marginBottom: 12 },
-  scoreBarFill: { height: 8, backgroundColor: '#2563eb', borderRadius: 4 },
-  subAreaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
-  subAreaLabel: { width: 140, fontSize: 8, color: '#374151' },
-  subAreaBarBg: { flex: 1, height: 6, backgroundColor: '#e5e7eb', borderRadius: 3 },
-  subAreaBarFill: { height: 6, backgroundColor: '#2563eb', borderRadius: 3 },
-  subAreaScore: { width: 28, fontSize: 8, color: '#6b7280', textAlign: 'right' },
+    sectionTitle: { fontSize: 11, fontFamily: 'Helvetica-Bold', color: sectionTitleColor, marginBottom: 8, marginTop: 4 },
+    card: { backgroundColor: cardBg, borderRadius: 6, padding: 12, marginBottom: 6 },
 
-  strengthRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  strengthCheck: { fontSize: 10, color: '#16a34a' },
-  strengthTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#111827', marginBottom: 2 },
-  strengthDesc: { fontSize: 8, color: '#4b5563', lineHeight: 1.5 },
+    scoreBarBg: { height: 8, backgroundColor: barBg, borderRadius: 4, marginTop: 4, marginBottom: 12 },
+    scoreBarFill: { height: 8, backgroundColor: '#2563eb', borderRadius: 4 },
+    subAreaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+    subAreaLabel: { width: 140, fontSize: 8, color: tfText },
+    subAreaBarBg: { flex: 1, height: 6, backgroundColor: barBg, borderRadius: 3 },
+    subAreaBarFill: { height: 6, backgroundColor: '#2563eb', borderRadius: 3 },
+    subAreaScore: { width: 28, fontSize: 8, color: mutedText, textAlign: 'right' },
 
-  gapTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#111827', marginBottom: 6 },
-  badgeRow: { flexDirection: 'row', gap: 6, marginBottom: 6 },
-  badge: { borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2 },
-  badgeText: { fontSize: 7, fontFamily: 'Helvetica-Bold' },
-  gapGrid: { flexDirection: 'row', gap: 10 },
-  gapCell: { flex: 1 },
-  gapCellLabel: { fontSize: 7, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
-  gapCellValue: { fontSize: 8, color: '#4b5563', lineHeight: 1.5 },
+    strengthRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+    strengthCheck: { fontSize: 10, color: '#16a34a' },
+    strengthTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: primaryText, marginBottom: 2 },
+    strengthDesc: { fontSize: 8, color: secondaryText, lineHeight: 1.5 },
 
-  stepTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: '#111827', marginBottom: 4 },
-  stepDesc: { fontSize: 8, color: '#4b5563', lineHeight: 1.5, marginBottom: 6 },
-  stepBadgeRow: { flexDirection: 'row', gap: 6 },
-  timeframeBadge: { borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: '#f3f4f6' },
-  timeframeText: { fontSize: 7, color: '#374151', fontFamily: 'Helvetica-Bold' },
+    gapTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: primaryText, marginBottom: 6 },
+    badgeRow: { flexDirection: 'row', gap: 6, marginBottom: 6 },
+    badge: { borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2 },
+    badgeText: { fontSize: 7, fontFamily: 'Helvetica-Bold' },
+    gapGrid: { flexDirection: 'row', gap: 10 },
+    gapCell: { flex: 1 },
+    gapCellLabel: { fontSize: 7, color: mutedText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2 },
+    gapCellValue: { fontSize: 8, color: secondaryText, lineHeight: 1.5 },
 
-  answerRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  answerNum: { width: 14, fontSize: 8, color: '#9ca3af', marginTop: 1 },
-  answerQ: { fontSize: 8, color: '#374151', lineHeight: 1.5 },
-  answerA: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: '#111827', marginTop: 2 },
-  levelBadge: { borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2, alignSelf: 'flex-start', marginTop: 1 },
-  levelText: { fontSize: 7, fontFamily: 'Helvetica-Bold' },
+    stepTitle: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: primaryText, marginBottom: 4 },
+    stepDesc: { fontSize: 8, color: secondaryText, lineHeight: 1.5, marginBottom: 6 },
+    stepBadgeRow: { flexDirection: 'row', gap: 6 },
+    timeframeBadge: { borderRadius: 20, paddingHorizontal: 6, paddingVertical: 2, backgroundColor: tfBg },
+    timeframeText: { fontSize: 7, color: tfText, fontFamily: 'Helvetica-Bold' },
 
-  contextLabel: { fontSize: 7, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  contextValue: { fontSize: 9, color: '#374151', lineHeight: 1.5 },
+    answerRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+    answerNum: { width: 14, fontSize: 8, color: dimText, marginTop: 1 },
+    answerQ: { fontSize: 8, color: tfText, lineHeight: 1.5 },
+    answerA: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: primaryText, marginTop: 2 },
+    levelBadge: { borderRadius: 20, paddingHorizontal: 5, paddingVertical: 2, alignSelf: 'flex-start', marginTop: 1 },
+    levelText: { fontSize: 7, fontFamily: 'Helvetica-Bold' },
 
-  footer: { position: 'absolute', bottom: 20, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between' },
-  footerText: { fontSize: 7, color: '#9ca3af' },
-})
+    contextLabel: { fontSize: 7, color: mutedText, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+    contextValue: { fontSize: 9, color: tfText, lineHeight: 1.5 },
+
+    footer: { position: 'absolute', bottom: 20, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between' },
+    footerText: { fontSize: 7, color: dimText },
+
+    _scoreNum: { fontSize: 28, fontFamily: 'Helvetica-Bold', color: sectionTitleColor },
+    _scoreOf: { fontSize: 8, color: mutedText },
+    _axisLabel: { fontSize: 7, color: dimText },
+  })
+}
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
-function Footer({ title }: { title: string }) {
+type Styles = ReturnType<typeof buildStyles>
+
+function Footer({ title, s }: { title: string; s: Styles }) {
   return (
     <View style={s.footer} fixed>
       <Text style={s.footerText}>{title}</Text>
@@ -101,7 +120,7 @@ function Footer({ title }: { title: string }) {
   )
 }
 
-function ScoreSection({ report }: { report: ReportPublic }) {
+function ScoreSection({ report, s }: { report: ReportPublic; s: Styles }) {
   const breakdown = (report.pillar_breakdown ?? {}) as Record<string, number>
   const subAreas = Object.entries(breakdown)
   const hasRadar = subAreas.length >= 3
@@ -109,18 +128,16 @@ function ScoreSection({ report }: { report: ReportPublic }) {
     <View style={s.card} wrap={false}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
         <View>
-          <Text style={{ fontSize: 28, fontFamily: 'Helvetica-Bold', color: '#1e3a5f' }}>
-            {report.pillar_score.toFixed(1)}
-          </Text>
-          <Text style={{ fontSize: 8, color: '#6b7280' }}>out of 4.0</Text>
+          <Text style={s._scoreNum}>{report.pillar_score.toFixed(1)}</Text>
+          <Text style={s._scoreOf}>out of 4.0</Text>
         </View>
         <View style={{ flex: 1 }}>
           <View style={s.scoreBarBg}>
             <View style={[s.scoreBarFill, { width: `${((report.pillar_score - 1) / 3) * 100}%` as unknown as number }]} />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-            <Text style={{ fontSize: 7, color: '#9ca3af' }}>1.0 Initial</Text>
-            <Text style={{ fontSize: 7, color: '#9ca3af' }}>4.0 Optimized</Text>
+            <Text style={s._axisLabel}>1.0 Initial</Text>
+            <Text style={s._axisLabel}>4.0 Optimized</Text>
           </View>
         </View>
       </View>
@@ -146,9 +163,11 @@ function ScoreSection({ report }: { report: ReportPublic }) {
 
 interface Props {
   report: ReportPublic
+  darkMode?: boolean
 }
 
-export function ProspectReportPdf({ report }: Props) {
+export function ProspectReportPdf({ report, darkMode = false }: Props) {
+  const s = buildStyles(darkMode)
   const ml = report.maturity_label
   const footerTitle = `${report.company_name} — ${report.pillar_name} Maturity Report`
 
@@ -198,13 +217,13 @@ export function ProspectReportPdf({ report }: Props) {
 
         <Text style={s.sectionTitle}>Executive Summary</Text>
         <View style={s.card} wrap={false}>
-          <Text style={{ fontSize: 9, color: '#374151', lineHeight: 1.6 }}>{report.executive_summary}</Text>
+          <Text style={[{ fontSize: 9, lineHeight: 1.6 }, s.contextValue]}>{report.executive_summary}</Text>
         </View>
 
         <Text style={s.sectionTitle}>Maturity Score</Text>
-        <ScoreSection report={report} />
+        <ScoreSection report={report} s={s} />
 
-        <Footer title={footerTitle} />
+        <Footer title={footerTitle} s={s} />
       </Page>
 
       {/* Page 2: Strengths + Gap Analysis */}
@@ -256,7 +275,7 @@ export function ProspectReportPdf({ report }: Props) {
             </>
           )}
 
-          <Footer title={footerTitle} />
+          <Footer title={footerTitle} s={s} />
         </Page>
       )}
 
@@ -280,7 +299,7 @@ export function ProspectReportPdf({ report }: Props) {
               </View>
             </View>
           ))}
-          <Footer title={footerTitle} />
+          <Footer title={footerTitle} s={s} />
         </Page>
       )}
 
@@ -304,7 +323,7 @@ export function ProspectReportPdf({ report }: Props) {
               <Text style={[s.answerA, { marginTop: 4 }]}>{row.selected_option_text}</Text>
             </View>
           ))}
-          <Footer title={footerTitle} />
+          <Footer title={footerTitle} s={s} />
         </Page>
       )}
 
@@ -378,7 +397,7 @@ export function ProspectReportPdf({ report }: Props) {
             </View>
           )}
 
-          <Footer title={footerTitle} />
+          <Footer title={footerTitle} s={s} />
         </Page>
       )}
 
@@ -422,7 +441,7 @@ export function ProspectReportPdf({ report }: Props) {
             </View>
           )}
 
-          <Footer title={footerTitle} />
+          <Footer title={footerTitle} s={s} />
         </Page>
       )}
 
