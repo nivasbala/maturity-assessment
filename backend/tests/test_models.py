@@ -21,6 +21,7 @@ from app.models import (
     Assessment,
     AssessmentAnswer,
     Pillar,
+    Prospect,
     Question,
     QuestionPersona,
     Report,
@@ -124,6 +125,13 @@ def test_accounts_suggested_pillars_is_array():
 
 def test_accounts_company_website_nullable():
     assert Account.__table__.columns["company_website"].nullable
+
+
+def test_prospects_suggested_pillars_not_nullable_with_default():
+    col = Prospect.__table__.columns["suggested_pillars"]
+    assert isinstance(col.type, ARRAY)
+    assert not col.nullable
+    assert col.server_default is not None
 
 
 def test_accounts_fk_to_users():

@@ -43,6 +43,6 @@ class Prospect(Base):
     research_started_at = Column(DateTime(timezone=True), nullable=True)
 
     # Suggested pillars from research (array of pillar name strings)
-    suggested_pillars = Column(ARRAY(String), nullable=True)
+    suggested_pillars = Column(ARRAY(String), nullable=False, server_default=text("'{}'::character varying[]"))
 
     account = relationship("Account", back_populates="prospects")
