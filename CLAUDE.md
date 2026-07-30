@@ -158,7 +158,7 @@ Never change the LLM provider in code. Switch providers only by changing `LLM_PR
 
 - Three user roles: Prospect (unauthenticated), Internal User, Admin
 - Five assessment pillars: P1 Full-Stack Observability, P2 AIOps & Intelligent Observability, P3 AI Application Observability (gated), P4 ML & Foundation Model Operations (gated, seeded inactive — activates via admin panel), P5 Security & DevSecOps
-- 50-question bank per pillar; session question count admin-configurable per pillar (default 12); bounds controlled by system_settings (question_count_min default 12 hard floor, question_count_max default 25, both admin-editable via System Settings page)
+- 25-question bank per pillar; session question count admin-configurable per pillar (default 12); bounds controlled by system_settings (question_count_min default 12 hard floor, question_count_max default 25, both admin-editable via System Settings page)
 - Internal/admin users create **Prospect** records under an **Account** (org container) by providing an email. Creating a Prospect generates a unique short URL scoped to that Prospect. Multiple Prospects can exist under one Account — each is independent.
 - The landing/registration page pre-populates and locks the email from the Prospect record. Registration updates the Prospect record (does not create a new one).
 - Prospect context collection at registration: optional infrastructure location, tech stack, current tools, and key challenges — stored on the **prospect** record, passed to Agent 1 as primary input
