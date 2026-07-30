@@ -261,6 +261,8 @@ export interface Report {
     data_confidence: string
     research_notes: string
     news_insights: string
+    observability_outcome: string
+    sources: Array<{ title: string; url: string }>
   } | null
   created_at: string
 }
@@ -394,6 +396,8 @@ export interface ReportPublic {
     data_confidence: string
     research_notes: string
     news_insights: string
+    observability_outcome: string
+    sources: Array<{ title: string; url: string }>
   } | null
   answers: { question_text: string; selected_option_text: string; maturity_level: number }[]
   additional_notes: string | null

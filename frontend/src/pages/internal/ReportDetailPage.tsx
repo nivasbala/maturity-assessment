@@ -24,6 +24,12 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'context', label: 'Registration Context' },
 ]
 
+const CONFIDENCE_STYLES: Record<string, string> = {
+  high: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+  low: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+}
+
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
@@ -37,6 +43,7 @@ export default function ReportDetailPage() {
   const [downloading, setDownloading] = useState(false)
   const [showPdfModal, setShowPdfModal] = useState(false)
   const [activeTab, setActiveTab] = useState<Tab>('report')
+  const [sourcesExpanded, setSourcesExpanded] = useState(false)
 
   useEffect(() => {
     if (!user) { navigate('/login'); return }
@@ -395,6 +402,12 @@ export default function ReportDetailPage() {
                   <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Builds AI Products</p>
                   <p className="text-gray-900 dark:text-gray-100 font-medium">{report.research_data.builds_ai_products ? 'Yes' : 'No'}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Data Confidence</p>
+                  <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${CONFIDENCE_STYLES[report.research_data.data_confidence] ?? CONFIDENCE_STYLES.low}`}>
+                    {report.research_data.data_confidence || '—'}
+                  </span>
+                </div>
               </div>
 
               {report.research_data.products_summary && (
@@ -453,6 +466,47 @@ export default function ReportDetailPage() {
                 <div>
                   <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">News & Context</p>
                   <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{(report.research_data as { news_insights?: string }).news_insights}</p>
+                </div>
+              )}
+
+              {report.research_data.observability_outcome && (
+                <div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Observability Outcome</p>
+                  <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{report.research_data.observability_outcome}</p>
+                </div>
+              )}
+
+              {report.research_data.sources && report.research_data.sources.length > 0 && (
+                <div className="px-1">
+                  <button
+                    type="button"
+                    onClick={() => setSourcesExpanded((v) => !v)}
+                    className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  >
+                    <svg
+                      className={`w-3 h-3 transition-transform ${sourcesExpanded ? 'rotate-180' : ''}`}
+                      fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    {sourcesExpanded ? 'Hide' : 'Show'} sources ({report.research_data.sources.length})
+                  </button>
+                  {sourcesExpanded && (
+                    <ul className="mt-2 space-y-1">
+                      {report.research_data.sources.map((s, i) => (
+                        <li key={i}>
+                          <a
+                            href={s.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline break-all"
+                          >
+                            {s.title || s.url}
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
             </div>

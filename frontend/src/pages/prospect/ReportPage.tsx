@@ -36,7 +36,15 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'context', label: 'Registration Context' },
 ]
 
+const CONFIDENCE_STYLES: Record<string, string> = {
+  high: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+  medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+  low: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
+}
+
 function ResearchSummaryPanel({ data }: { data: NonNullable<ReportPublic['research_data']> }) {
+  const [sourcesExpanded, setSourcesExpanded] = useState(false)
+
   return (
     <div className="space-y-4 text-sm">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -50,7 +58,7 @@ function ResearchSummaryPanel({ data }: { data: NonNullable<ReportPublic['resear
         </div>
         <div>
           <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Data Confidence</p>
-          <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 capitalize">
+          <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${CONFIDENCE_STYLES[data.data_confidence] ?? CONFIDENCE_STYLES.low}`}>
             {data.data_confidence || '—'}
           </span>
         </div>
@@ -112,6 +120,47 @@ function ResearchSummaryPanel({ data }: { data: NonNullable<ReportPublic['resear
         <div>
           <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">News & Context</p>
           <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{data.news_insights}</p>
+        </div>
+      )}
+
+      {data.observability_outcome && (
+        <div>
+          <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-0.5">Observability Outcome</p>
+          <p className="text-gray-700 dark:text-gray-300 leading-relaxed">{data.observability_outcome}</p>
+        </div>
+      )}
+
+      {data.sources && data.sources.length > 0 && (
+        <div className="px-1">
+          <button
+            type="button"
+            onClick={() => setSourcesExpanded((v) => !v)}
+            className="flex items-center gap-1.5 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <svg
+              className={`w-3 h-3 transition-transform ${sourcesExpanded ? 'rotate-180' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+            {sourcesExpanded ? 'Hide' : 'Show'} sources ({data.sources.length})
+          </button>
+          {sourcesExpanded && (
+            <ul className="mt-2 space-y-1">
+              {data.sources.map((s, i) => (
+                <li key={i}>
+                  <a
+                    href={s.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline break-all"
+                  >
+                    {s.title || s.url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </div>
