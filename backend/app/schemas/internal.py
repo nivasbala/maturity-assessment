@@ -230,27 +230,13 @@ class AssessmentAnswersOut(BaseModel):
 
 
 # ── Report ────────────────────────────────────────────────────────────────────
-
-class StrengthItem(BaseModel):
-    title: str
-    description: str
-
-
-class GapItem(BaseModel):
-    gap: str
-    current_state: str
-    target_state: str
-    impact: str
-    effort: str
-
-
-class NextStepItem(BaseModel):
-    title: str
-    description: str
-    priority: str
-    timeframe: str
-
-
+#
+# strengths / gap_analysis / next_steps are LLM-generated JSONB content (see
+# app/agents/report_agent.py). The agent only validates item *counts*, not the
+# shape of each item, so a single malformed item (missing key, wrong type,
+# unexpected null) must not fail response validation. Kept as list[dict] here
+# to match the same permissive typing used by ReportPublicOut below — the two
+# endpoints serve the same underlying report row and must agree on strictness.
 class ReportOut(BaseModel):
     id: UUID
     assessment_id: UUID
@@ -258,9 +244,9 @@ class ReportOut(BaseModel):
     maturity_level: int
     maturity_label: str
     executive_summary: str
-    strengths: list[StrengthItem]
-    gap_analysis: list[GapItem]
-    next_steps: list[NextStepItem]
+    strengths: list[dict]
+    gap_analysis: list[dict]
+    next_steps: list[dict]
     pillar_breakdown: dict
     research_data: dict | None = None
     created_at: datetime

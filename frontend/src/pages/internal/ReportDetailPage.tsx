@@ -31,6 +31,7 @@ export default function ReportDetailPage() {
 
   const [answers, setAnswers] = useState<AssessmentAnswers | null>(null)
   const [report, setReport] = useState<Report | null>(null)
+  const [reportError, setReportError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [downloading, setDownloading] = useState(false)
@@ -43,7 +44,16 @@ export default function ReportDetailPage() {
 
     Promise.all([
       getAssessmentAnswers(id),
-      getAssessmentReport(id).catch(() => null),
+      getAssessmentReport(id)
+        .then((rep) => { setReportError(null); return rep })
+        .catch((err: unknown) => {
+          const status = (err as { response?: { status?: number } })?.response?.status
+          if (status !== 404) {
+            console.error('Failed to load assessment report:', err)
+            setReportError('The report failed to load. Please try again or contact support if this persists.')
+          }
+          return null
+        }),
     ])
       .then(([ans, rep]) => {
         setAnswers(ans)
@@ -326,7 +336,9 @@ export default function ReportDetailPage() {
             </>
           ) : (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
-              <p className="text-sm text-gray-400 dark:text-gray-500">Report not yet generated.</p>
+              <p className={`text-sm ${reportError ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                {reportError ?? 'Report not yet generated.'}
+              </p>
             </div>
           )
         )}

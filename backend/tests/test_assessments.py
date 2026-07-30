@@ -4,7 +4,7 @@ Tests for GET /api/assessments/{id}, /answers, and /report endpoints.
 All tests run without a live database — service calls are mocked.
 """
 import pytest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -12,6 +12,9 @@ from httpx import ASGITransport, AsyncClient
 
 from app.core.database import get_db
 from app.core.deps import require_internal_user
+from app.models.account import Account
+from app.models.assessment import Assessment
+from app.models.report import Report
 from app.models.user import User
 from app.routers.assessments import router as assessments_router
 
@@ -425,3 +428,54 @@ async def test_get_assessment_report_403_wrong_user():
             resp = await client.get(f"/api/assessments/{uuid4()}/report")
 
     assert resp.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# account_service.get_assessment_report — tolerant of malformed LLM output
+#
+# Regression test: ReportOut previously used strict per-item Pydantic models
+# (StrengthItem/GapItem/NextStepItem) with required str fields, while the
+# prospect-facing ReportPublicOut used permissive list[dict]. A single
+# malformed item from Agent 3 (missing key, unexpected null) validated fine
+# on the public endpoint but raised a 500 on this one. ReportOut now uses
+# list[dict] like its public counterpart, so this must not raise.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_assessment_report_service_tolerates_malformed_report_items():
+    from app.services import account_service
+
+    user = make_user()
+    account = Account(id=uuid4(), internal_user_id=user.id, company_name="Stripe")
+
+    report = Report()
+    report.id = uuid4()
+    report.assessment_id = uuid4()
+    report.pillar_score = 2.75
+    report.maturity_level = 2
+    report.maturity_label = "Developing"
+    report.executive_summary = "Summary."
+    # Malformed: missing keys / unexpected null that would fail a strict
+    # per-item Pydantic model but must still pass through as raw dicts.
+    report.strengths = [{"title": "Only a title, no description"}]
+    report.gap_analysis = [{"gap": "Something", "impact": None}]
+    report.next_steps = [{"description": "No title or priority"}]
+    report.pillar_breakdown = {}
+    report.research_data = None
+    report.created_at = "2026-01-02T00:00:00Z"
+
+    assessment = Assessment(id=report.assessment_id, account_id=account.id)
+    assessment.account = account
+    assessment.report = report
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = assessment
+    db = AsyncMock()
+    db.execute.return_value = mock_result
+
+    result = await account_service.get_assessment_report(db, assessment.id, user)
+
+    assert result.strengths == [{"title": "Only a title, no description"}]
+    assert result.gap_analysis == [{"gap": "Something", "impact": None}]
+    assert result.next_steps == [{"description": "No title or priority"}]
