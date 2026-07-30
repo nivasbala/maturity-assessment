@@ -479,3 +479,128 @@ async def test_get_assessment_report_service_tolerates_malformed_report_items():
     assert result.strengths == [{"title": "Only a title, no description"}]
     assert result.gap_analysis == [{"gap": "Something", "impact": None}]
     assert result.next_steps == [{"description": "No title or priority"}]
+
+
+# ---------------------------------------------------------------------------
+# POST /api/assessments/{id}/reset
+#
+# Regression test: this endpoint used to return 204 No Content. Per
+# spec/05-architecture-api.md it must return the reset assessment object, so
+# the internal UI can refresh in place without a second round-trip.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_reset_assessment_returns_200_with_assessment_detail():
+    user = make_user()
+    app = build_app(user)
+    assessment_id = uuid4()
+    account_id = uuid4()
+    mock_out = make_assessment_detail(assessment_id, account_id, user.id)
+    mock_out["status"] = "pending"
+    mock_out["completed_at"] = None
+
+    with patch(
+        "app.routers.assessments.account_service.reset_assessment",
+        new_callable=AsyncMock,
+    ) as mock_fn:
+        mock_fn.return_value = mock_out
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(f"/api/assessments/{assessment_id}/reset")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "pending"
+    assert data["completed_at"] is None
+    assert data["company_name"] == "Stripe"
+
+
+@pytest.mark.asyncio
+async def test_reset_assessment_404_not_found():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    with patch(
+        "app.routers.assessments.account_service.reset_assessment",
+        new_callable=AsyncMock,
+    ) as mock_fn:
+        mock_fn.side_effect = HTTPException(status_code=404, detail="Assessment not found")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(f"/api/assessments/{uuid4()}/reset")
+
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_reset_assessment_403_wrong_user():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    with patch(
+        "app.routers.assessments.account_service.reset_assessment",
+        new_callable=AsyncMock,
+    ) as mock_fn:
+        mock_fn.side_effect = HTTPException(status_code=403, detail="Access denied")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.post(f"/api/assessments/{uuid4()}/reset")
+
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_reset_assessment_401_unauthenticated():
+    app = FastAPI()
+    app.include_router(assessments_router)
+    app.dependency_overrides[get_db] = _no_db
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        resp = await client.post(f"/api/assessments/{uuid4()}/reset")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_service_reset_assessment_returns_assessment_detail_out():
+    from app.models.pillar import Pillar
+    from app.schemas.internal import AssessmentDetailOut
+    from app.services import account_service
+
+    user = make_user()
+    account = Account(id=uuid4(), internal_user_id=user.id, company_name="Stripe")
+    pillar = Pillar(id=uuid4(), name="Full-Stack Observability")
+
+    assessment = Assessment(
+        id=uuid4(),
+        account_id=account.id,
+        pillar_id=pillar.id,
+        short_url_token="AbCdEfGh",
+        prospect_name="Alice",
+        prospect_email="alice@stripe.com",
+        prospect_role="SRE",
+        status="completed",
+        created_at="2026-01-01T00:00:00Z",
+        started_at="2026-01-01T00:00:00Z",
+        completed_at="2026-01-02T00:00:00Z",
+        prospect_additional_notes="Some notes",
+        research_confirmed_at="2026-01-01T01:00:00Z",
+    )
+    assessment.account = account
+    assessment.pillar = pillar
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = assessment
+    db = AsyncMock()
+    db.execute.return_value = mock_result
+
+    result = await account_service.reset_assessment(db, assessment.id, user)
+
+    assert isinstance(result, AssessmentDetailOut)
+    assert result.status == "pending"
+    assert result.completed_at is None
+    assert result.pillar_name == "Full-Stack Observability"
+    assert result.company_name == "Stripe"
+    assert assessment.prospect_additional_notes is None
+    assert assessment.research_confirmed_at is None
+    db.commit.assert_awaited_once()

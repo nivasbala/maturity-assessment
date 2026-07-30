@@ -474,12 +474,12 @@ async def reset_assessment(
     db: AsyncSession,
     assessment_id: UUID,
     current_user: User,
-) -> None:
+) -> AssessmentDetailOut:
     """Reset an assessment to pending — clears all answers, report, and status fields."""
     assessment = (
         await db.execute(
             select(Assessment)
-            .options(selectinload(Assessment.account))
+            .options(selectinload(Assessment.account), selectinload(Assessment.pillar))
             .where(Assessment.id == assessment_id)
         )
     ).scalar_one_or_none()
@@ -508,6 +508,21 @@ async def reset_assessment(
     logger.info(
         "reset_assessment: assessment_id=%s user_id=%s",
         assessment_id, current_user.id,
+    )
+
+    return AssessmentDetailOut(
+        id=assessment.id,
+        account_id=assessment.account_id,
+        pillar_id=assessment.pillar_id,
+        pillar_name=assessment.pillar.name,
+        company_name=assessment.account.company_name,
+        short_url_token=assessment.short_url_token,
+        prospect_name=assessment.prospect_name,
+        prospect_email=assessment.prospect_email,
+        prospect_role=assessment.prospect_role,
+        status=assessment.status,
+        created_at=assessment.created_at,
+        completed_at=assessment.completed_at,
     )
 
 

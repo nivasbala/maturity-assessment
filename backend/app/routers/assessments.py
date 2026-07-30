@@ -1,7 +1,7 @@
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -42,11 +42,10 @@ async def get_assessment_report(
     return await account_service.get_assessment_report(db, assessment_id, current_user)
 
 
-@router.post("/{assessment_id}/reset", status_code=204)
+@router.post("/{assessment_id}/reset", response_model=AssessmentDetailOut)
 async def reset_assessment(
     assessment_id: UUID,
     current_user: User = Depends(require_internal_user),
     db: AsyncSession = Depends(get_db),
-) -> Response:
-    await account_service.reset_assessment(db, assessment_id, current_user)
-    return Response(status_code=204)
+) -> AssessmentDetailOut:
+    return await account_service.reset_assessment(db, assessment_id, current_user)
