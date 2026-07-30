@@ -9,6 +9,7 @@ import type {
   Paginated,
   Pillar,
   Prospect,
+  ProspectAggregate,
   ProspectDetail,
   ProspectWithAccount,
   Report,
@@ -75,6 +76,9 @@ export const createProspect = (accountId: string, data: { email: string; name?: 
 
 export const getProspectDetail = (accountId: string, prospectId: string) =>
   api.get<ProspectDetail>(`/accounts/${accountId}/prospects/${prospectId}`).then((r) => r.data)
+
+export const getProspectAggregate = (accountId: string, prospectId: string) =>
+  api.get<ProspectAggregate>(`/accounts/${accountId}/prospects/${prospectId}/aggregate`).then((r) => r.data)
 
 export const deleteProspect = (accountId: string, prospectId: string) =>
   api.delete(`/accounts/${accountId}/prospects/${prospectId}`)

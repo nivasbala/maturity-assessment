@@ -477,6 +477,212 @@ async def test_get_aggregate_403_wrong_user():
 
 
 # ---------------------------------------------------------------------------
+# GET /api/accounts/{id}/prospects/{prospect_id}/aggregate
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_aggregate_returns_200():
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+    mock_out = {
+        "prospect_id": str(prospect_id),
+        "prospect_name": "Alice",
+        "prospect_email": "alice@acme.com",
+        "completed_count": 2,
+        "assessments": [
+            {
+                "pillar_name": "P1 Full-Stack Observability",
+                "display_order": 1,
+                "pillar_score": 2.5,
+                "maturity_label": "Developing",
+                "prospect_name": "Alice",
+                "prospect_email": "alice@acme.com",
+            },
+            {
+                "pillar_name": "P2 AIOps",
+                "display_order": 2,
+                "pillar_score": 3.1,
+                "maturity_label": "Scaling",
+                "prospect_name": "Alice",
+                "prospect_email": "alice@acme.com",
+            },
+        ],
+    }
+
+    with patch(
+        "app.routers.accounts.account_service.get_prospect_aggregate", new_callable=AsyncMock
+    ) as mock_agg:
+        mock_agg.return_value = mock_out
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/prospects/{prospect_id}/aggregate")
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["completed_count"] == 2
+    assert data["prospect_email"] == "alice@acme.com"
+    assert len(data["assessments"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_aggregate_404_insufficient_assessments():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.get_prospect_aggregate", new_callable=AsyncMock
+    ) as mock_agg:
+        mock_agg.side_effect = HTTPException(
+            status_code=404, detail="Aggregate view requires at least 2 completed assessments"
+        )
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/prospects/{prospect_id}/aggregate")
+
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_aggregate_404_prospect_not_found():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.get_prospect_aggregate", new_callable=AsyncMock
+    ) as mock_agg:
+        mock_agg.side_effect = HTTPException(status_code=404, detail="Prospect not found")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/prospects/{prospect_id}/aggregate")
+
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_aggregate_403_wrong_user():
+    from fastapi import HTTPException
+
+    user = make_user()
+    app = build_app(user)
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    with patch(
+        "app.routers.accounts.account_service.get_prospect_aggregate", new_callable=AsyncMock
+    ) as mock_agg:
+        mock_agg.side_effect = HTTPException(status_code=403, detail="Access denied")
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            resp = await client.get(f"/api/accounts/{account_id}/prospects/{prospect_id}/aggregate")
+
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_get_prospect_aggregate_401_unauthenticated():
+    application = FastAPI()
+    application.include_router(accounts_router)
+    application.dependency_overrides[get_db] = _no_db
+
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    async with AsyncClient(
+        transport=ASGITransport(app=application), base_url="http://test"
+    ) as client:
+        resp = await client.get(f"/api/accounts/{account_id}/prospects/{prospect_id}/aggregate")
+
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_service_get_prospect_aggregate_filters_by_prospect_email():
+    from app.models.account import Account
+    from app.models.assessment import Assessment
+    from app.models.pillar import Pillar
+    from app.models.prospect import Prospect
+    from app.models.report import Report
+    from app.services import account_service
+
+    user = make_user()
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    account = Account(id=account_id, internal_user_id=user.id, company_name="Acme Corp")
+    prospect = Prospect(id=prospect_id, account_id=account_id, email="alice@acme.com", name="Alice")
+
+    pillar1 = Pillar(id=uuid4(), name="P1 Full-Stack Observability", display_order=1)
+    pillar2 = Pillar(id=uuid4(), name="P2 AIOps", display_order=2)
+
+    report1 = Report(pillar_score=2.5, maturity_label="Developing")
+    report2 = Report(pillar_score=3.1, maturity_label="Scaling")
+
+    a1 = Assessment(id=uuid4(), account_id=account_id, pillar_id=pillar1.id, status="completed", prospect_name="Alice", prospect_email="alice@acme.com")
+    a1.report = report1
+    a2 = Assessment(id=uuid4(), account_id=account_id, pillar_id=pillar2.id, status="completed", prospect_name="Alice", prospect_email="alice@acme.com")
+    a2.report = report2
+
+    account_result = MagicMock()
+    account_result.scalar_one_or_none.return_value = account
+    prospect_result = MagicMock()
+    prospect_result.scalar_one_or_none.return_value = prospect
+    assessments_result = MagicMock()
+    assessments_result.scalars.return_value.all.return_value = [a1, a2]
+    pillars_result = MagicMock()
+    pillars_result.scalars.return_value.all.return_value = [pillar1, pillar2]
+
+    db = AsyncMock()
+    db.execute.side_effect = [account_result, prospect_result, assessments_result, pillars_result]
+
+    result = await account_service.get_prospect_aggregate(db, account_id, prospect_id, user)
+
+    assert result.prospect_email == "alice@acme.com"
+    assert result.completed_count == 2
+    assert [r.pillar_name for r in result.assessments] == ["P1 Full-Stack Observability", "P2 AIOps"]
+
+
+@pytest.mark.asyncio
+async def test_service_get_prospect_aggregate_404_when_fewer_than_two():
+    from fastapi import HTTPException
+    from app.models.account import Account
+    from app.models.prospect import Prospect
+    from app.services import account_service
+
+    user = make_user()
+    account_id = uuid4()
+    prospect_id = uuid4()
+
+    account = Account(id=account_id, internal_user_id=user.id, company_name="Acme Corp")
+    prospect = Prospect(id=prospect_id, account_id=account_id, email="alice@acme.com", name="Alice")
+
+    account_result = MagicMock()
+    account_result.scalar_one_or_none.return_value = account
+    prospect_result = MagicMock()
+    prospect_result.scalar_one_or_none.return_value = prospect
+    assessments_result = MagicMock()
+    assessments_result.scalars.return_value.all.return_value = []
+
+    db = AsyncMock()
+    db.execute.side_effect = [account_result, prospect_result, assessments_result]
+
+    with pytest.raises(HTTPException) as exc_info:
+        await account_service.get_prospect_aggregate(db, account_id, prospect_id, user)
+
+    assert exc_info.value.status_code == 404
+
+
+# ---------------------------------------------------------------------------
 # DELETE /api/accounts/{id}
 # ---------------------------------------------------------------------------
 

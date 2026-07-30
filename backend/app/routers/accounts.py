@@ -16,6 +16,7 @@ from app.schemas.internal import (
     AssessmentCreateRequest,
     AssessmentCreatedOut,
     AssessmentListItemOut,
+    ProspectAggregateOut,
     ProspectCreate,
     ProspectDetailOut,
     ProspectOut,
@@ -138,6 +139,16 @@ async def get_prospect_detail(
     db: AsyncSession = Depends(get_db),
 ) -> ProspectDetailOut:
     return await account_service.get_prospect_detail(db, account_id, prospect_id, current_user)
+
+
+@router.get("/{account_id}/prospects/{prospect_id}/aggregate", response_model=ProspectAggregateOut)
+async def get_prospect_aggregate(
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User = Depends(require_internal_user),
+    db: AsyncSession = Depends(get_db),
+) -> ProspectAggregateOut:
+    return await account_service.get_prospect_aggregate(db, account_id, prospect_id, current_user)
 
 
 @router.delete("/{account_id}/prospects/{prospect_id}", status_code=204)

@@ -29,6 +29,7 @@ from app.schemas.internal import (
     AssessmentDetailOut,
     AssessmentListItemOut,
     PillarStatusRow,
+    ProspectAggregateOut,
     ProspectAssessmentRow,
     ProspectCreate,
     ProspectDetailOut,
@@ -854,6 +855,75 @@ async def get_account_aggregate(
     return AccountAggregateOut(
         account_id=account_id,
         company_name=account.company_name,
+        completed_count=len(agg_rows),
+        assessments=agg_rows,
+    )
+
+
+async def get_prospect_aggregate(
+    db: AsyncSession,
+    account_id: UUID,
+    prospect_id: UUID,
+    current_user: User,
+) -> ProspectAggregateOut:
+    account = (await db.execute(select(Account).where(Account.id == account_id))).scalar_one_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+    assert_owns_account(current_user, account)
+
+    prospect = (
+        await db.execute(select(Prospect).where(Prospect.id == prospect_id, Prospect.account_id == account_id))
+    ).scalar_one_or_none()
+    if not prospect:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prospect not found")
+
+    completed = (
+        await db.execute(
+            select(Assessment)
+            .options(selectinload(Assessment.report))
+            .where(
+                Assessment.account_id == account_id,
+                Assessment.prospect_email == prospect.email,
+                Assessment.status == "completed",
+            )
+            .order_by(Assessment.completed_at.desc())
+        )
+    ).scalars().all()
+
+    completed_with_report = [a for a in completed if a.report and a.report.pillar_score is not None]
+
+    if len(completed_with_report) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Aggregate view requires at least 2 completed assessments",
+        )
+
+    pillar_ids = [a.pillar_id for a in completed_with_report]
+    pillars = (
+        await db.execute(select(Pillar).where(Pillar.id.in_(pillar_ids)))
+    ).scalars().all()
+    pillar_map = {p.id: p for p in pillars}
+
+    agg_rows = []
+    for a in completed_with_report:
+        pillar = pillar_map.get(a.pillar_id)
+        agg_rows.append(
+            AggregateAssessmentRow(
+                pillar_name=pillar.name if pillar else str(a.pillar_id),
+                display_order=pillar.display_order if pillar else 0,
+                pillar_score=a.report.pillar_score,
+                maturity_label=a.report.maturity_label or "",
+                prospect_name=a.prospect_name,
+                prospect_email=a.prospect_email,
+            )
+        )
+    agg_rows.sort(key=lambda r: r.display_order)
+
+    logger.info("get_prospect_aggregate: prospect_id=%s completed=%d", prospect_id, len(agg_rows))
+    return ProspectAggregateOut(
+        prospect_id=prospect.id,
+        prospect_name=prospect.name,
+        prospect_email=prospect.email,
         completed_count=len(agg_rows),
         assessments=agg_rows,
     )

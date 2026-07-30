@@ -119,6 +119,23 @@ export interface ProspectDetail extends Prospect {
   assessments: ProspectAssessmentRow[]
 }
 
+export interface AggregateAssessmentRow {
+  pillar_name: string
+  display_order: number
+  pillar_score: number
+  maturity_label: string
+  prospect_name: string | null
+  prospect_email: string | null
+}
+
+export interface ProspectAggregate {
+  prospect_id: string
+  prospect_name: string | null
+  prospect_email: string
+  completed_count: number
+  assessments: AggregateAssessmentRow[]
+}
+
 // ── Internal / Account types ──────────────────────────────────────────────────
 
 export interface AccountListItem {

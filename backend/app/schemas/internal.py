@@ -149,6 +149,14 @@ class AccountAggregateOut(BaseModel):
     assessments: list[AggregateAssessmentRow]
 
 
+class ProspectAggregateOut(BaseModel):
+    prospect_id: UUID
+    prospect_name: str | None
+    prospect_email: str
+    completed_count: int
+    assessments: list[AggregateAssessmentRow]
+
+
 # ── Assessment creation ────────────────────────────────────────────────────────
 
 class AssessmentCreateRequest(BaseModel):
