@@ -1,6 +1,6 @@
 ---
 title: Mission, Outcomes & Verification Contract
-version: 1.7
+version: 1.8
 last_updated: 2026-07-02
 ---
 
@@ -111,8 +111,16 @@ Each criterion must be explicitly tested before the spec is considered implement
 ### 3.7 Report Completeness
 - [ ] Report contains: executive_summary, strengths (2–4), gap_analysis (3–6), next_steps (4–6)
 - [ ] No vendor product names appear in generated report text
-- [ ] Radar chart renders with correct pillar score
-- [ ] PDF download produces a non-empty PDF file
+- [ ] Score chart (radar) renders with correct pillar score
+- [ ] PDF download produces a non-empty PDF file (captures the "Report" tab content only)
+- [ ] ReportPage (prospect-facing) renders four tabs: Report, Questions & Answers, Research Summary, Registration Context — "Report" active by default
+- [ ] Executive Summary, Strengths, Gap Analysis, and Next Steps each render only when non-empty; empty sections are omitted rather than shown blank
+- [ ] When executive_summary and strengths are both still empty, a banner reads: "Report narrative is still being generated. Please refresh in a moment or contact your administrator if this persists."
+- [ ] "Questions & Answers" tab shows Question Text | Selected Answer | Maturity Level badge for every answered question; shows "No answers recorded." if empty
+- [ ] "Research Summary" tab is shown to the prospect (not internal-only) and displays industry, company size, data_confidence badge, products_summary, target_customers (hidden if `"unknown"`), operational_scale, cloud_providers, key_challenges, business_outcomes, news_insights, observability_outcome, and sources (collapsible) — each field conditionally rendered only when present; shows "No research data available." if none
+- [ ] data_confidence badge on the Research Summary tab is color-coded: High=green, Medium=yellow, Low=grey
+- [ ] `builds_ai_products` does NOT appear on the prospect-facing Research Summary tab (internal-only field — see Section 3.8)
+- [ ] "Registration Context" tab shows non-empty prospect-submitted fields (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_additional_notes) as individual cards; shows "No registration context provided." if all empty
 
 ### 3.8 Internal User Dashboard
 - [ ] Account Detail page lists all prospects under the account with email, registration status, and assessment count
@@ -120,7 +128,10 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] 409 error shown if the same email is used twice under the same account
 - [ ] Clicking a prospect navigates to Prospect Detail showing all pillar statuses for that prospect
 - [ ] Aggregate view visible only when 2+ pillar assessments are completed for a single prospect
-- [ ] Raw answers tab shows all pillar.question_count questions with correct selected answer text
+- [ ] Report Detail page renders the same four tabs as the prospect-facing report (Report, Questions & Answers, Research Summary, Registration Context) plus a header card showing prospect name, role, email, and completion date
+- [ ] Report Detail "Report" tab shows "Report not yet generated." if the report has no narrative yet, and an inline error message if the report fails to load (non-404 error)
+- [ ] "Questions & Answers" tab shows all pillar.question_count questions with correct selected answer text
+- [ ] Report Detail's Research Summary tab includes everything the prospect-facing one does, plus `builds_ai_products` (Yes/No) shown only here
 - [ ] Internal user can only see accounts (and their prospects) they created
 
 ### 3.9 Admin CRUD

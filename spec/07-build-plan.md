@@ -1,6 +1,6 @@
 ---
 title: Build Plan — MVP Scope, Git Workflow, Task Breakdown & Roadmap
-version: 1.7
+version: 1.8
 last_updated: 2026-07-02
 ---
 
@@ -376,17 +376,23 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 **Spec files:** `05-architecture-api.md` + `02-domain-model.md`
 
 - Implement SubmittingPage: loading state with 3 rotating descriptive messages shown for the duration of the synchronous `POST /submit` call (submit pipeline: Agent 3 + scoring + report generation; up to 300s timeout); on response, navigates directly to ReportPage with the returned report_id — replaces the previous loading-within-ReportPage design
-- Implement Report Page with all 7 sections from `05-architecture-api.md` Section 3.3
-- Recharts RadarChart showing pillar score
-- Gap analysis table with impact/effort badges
-- Next steps cards grouped by priority
-- Client-side PDF generation (react-to-pdf or jsPDF)
+- Implement Report Page as a four-tab layout (Report, Questions & Answers, Research Summary, Registration Context) per `05-architecture-api.md` Section 3.3 — "Report" tab active by default, footer actions always visible below the tabs
+- "Report" tab: Executive Summary, Score chart (Recharts RadarChart), Strengths, Gap Analysis (impact/effort badges), Next Steps (grouped by priority) — each section conditionally rendered only when non-empty
+- Banner shown above the tabs when executive_summary and strengths are both empty
+- "Questions & Answers" tab: Question Text | Selected Answer | Maturity Level badge table
+- "Research Summary" tab: research profile fields (industry, company_size, data_confidence — color-coded badge, products_summary, target_customers, operational_scale, cloud_providers, key_challenges, business_outcomes, news_insights, observability_outcome, sources); `builds_ai_products` excluded on this prospect-facing tab
+- "Registration Context" tab: prospect-submitted context fields as individual cards, conditionally rendered
+- Client-side PDF generation (react-to-pdf or jsPDF) — captures the "Report" tab only
 - "Take Another Pillar" button returns to pillar selection with completed pillar disabled
 
 **Verification:**
-- [ ] Report displays all 7 sections in correct order
-- [ ] Radar chart renders with correct pillar score
-- [ ] PDF download produces a non-empty, readable PDF
+- [ ] Report Page renders all four tabs; "Report" active by default
+- [ ] Score chart renders with correct pillar score
+- [ ] Empty report sections (Strengths, Gap Analysis, Next Steps) are omitted rather than rendered blank
+- [ ] Narrative-pending banner appears when executive_summary and strengths are both empty
+- [ ] Research Summary tab is visible to the prospect and shows the color-coded data_confidence badge
+- [ ] `builds_ai_products` does not appear on the prospect-facing Research Summary tab
+- [ ] PDF download produces a non-empty, readable PDF of the "Report" tab content
 - [ ] "Take Another Pillar" shows completed pillar as disabled on return
 - [ ] SubmittingPage displays rotating loading messages for the duration of the synchronous submit call and navigates directly to ReportPage on response (test with slow model)
 
@@ -399,10 +405,10 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement all internal user dashboard pages from `05-architecture-api.md` Section 3.4:
   - Account Detail: prospect list table; "Create Prospect" form (email + optional suggested pillars); copy URL action
   - Prospect Detail: pillar status grid (all active pillars) for a single prospect
-  - Report Detail: Report tab + Raw Answers tab
+  - Report Detail: same four tabs as the prospect-facing Report Page (Report, Questions & Answers, Research Summary, Registration Context), plus a header card (prospect name, role, email, completion date); "Report" tab shows "Report not yet generated." or an inline load-failure error as applicable; Research Summary tab additionally shows `builds_ai_products`
 - Implement `GET /api/accounts/{id}/aggregate` endpoint (account-scoped — aggregates across all completed assessments for the account)
 - Aggregate view: radar chart with all completed pillar scores; unlocks at 2+ completions for a prospect
-- Raw answers tab: all question_count questions + selected answer + maturity level
+- "Questions & Answers" tab: all question_count questions + selected answer + maturity level
 
 **Verification:**
 - [ ] Account Detail shows list of prospects with email and registration status
@@ -410,7 +416,9 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - [ ] 409 shown if email already exists under account
 - [ ] Prospect Detail shows pillar status grid for all active pillars
 - [ ] Aggregate view visible only when 2+ assessments completed for a single prospect
-- [ ] Raw answers tab shows all pillar.question_count questions with correct selected answer text
+- [ ] Report Detail renders the same four tabs as the prospect Report Page plus the header card
+- [ ] "Questions & Answers" tab shows all pillar.question_count questions with correct selected answer text
+- [ ] Report Detail's Research Summary tab shows `builds_ai_products`; prospect-facing tab does not
 - [ ] Internal user A cannot see accounts or prospects created by Internal User B
 
 ---
@@ -430,7 +438,7 @@ Run the complete user journey and verify every item in `01-mission-outcomes-veri
 6. Report displayed on screen → PDF downloaded
 7. Prospect clicks "Take Another Pillar" → selects P5 → completes
 8. Internal User opens Acme Corp account → views both pillar statuses
-9. Internal User opens P1 report → views report tab (including Research Context panel) + raw answers tab
+9. Internal User opens P1 report → views Report tab, Questions & Answers tab, and Research Summary tab (including builds_ai_products)
 10. Internal User opens aggregate view (2 pillars complete)
 11. Verify all 15 outcome criteria in Section 2 of `01-mission-outcomes-verification.md`
 12. Verify all verification criteria in Section 3 of `01-mission-outcomes-verification.md`

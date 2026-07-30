@@ -1,6 +1,6 @@
 ---
 title: Architecture & API Design
-version: 1.7
+version: 1.8
 last_updated: 2026-07-02
 ---
 
@@ -1007,17 +1007,46 @@ Pages under the `/assess/:token/*` route prefix must **never** contain a link, b
 
 **Report Page (`/assess/:token/report/:assessmentId`)**
 
-Report sections (rendered in this order):
-1. **Header:** Company name, pillar name, maturity level badge (color-coded by level), score (e.g., "2.7 / 4.0")
-2. **Executive Summary:** LLM-generated narrative paragraphs, rendered as prose
-3. **Radar Chart:** Recharts RadarChart showing pillar score; if pillar_breakdown JSONB contains sub-areas, show each sub-area as a radar axis
-4. **Strengths:** Card grid (2 columns), each card shows title + description with a checkmark icon
-5. **Gap Analysis:** Table with columns: Gap, Current State, Target State, Impact (badge), Effort (badge). Ordered by impact (high first)
-6. **Recommended Next Steps:** Cards grouped by priority. Quick Wins first, then Strategic, then Foundational. Each card shows title, description, timeframe badge
-7. **Footer actions:** "Download PDF" button + "Take Another Pillar Assessment" button
+The page is organized into **four tabs**: Report, Questions & Answers, Research Summary, Registration Context. "Report" is the default active tab. Footer actions ("Download PDF", "Take Another Pillar Assessment", "Back to Pillar Selection") are always visible below the tabs, regardless of which tab is active.
+
+**Header (above the tabs, always visible):** Company name, pillar name, maturity level badge (color-coded by level), score (e.g., "2.7 / 4.0")
+
+If the executive summary and strengths are both still empty (report narrative not yet generated), a banner is shown above the tabs: "Report narrative is still being generated. Please refresh in a moment or contact your administrator if this persists."
+
+**"Report" tab (default active):**
+1. Executive Summary — LLM-generated narrative paragraphs, rendered as prose; shown only if non-empty
+2. Score chart — Recharts RadarChart showing pillar score; if pillar_breakdown JSONB contains sub-areas, show each sub-area as a radar axis
+3. Strengths — card grid (2 columns), each card shows title + description with a checkmark icon; shown only if non-empty
+4. Gap Analysis — table with columns: Gap, Current State, Target State, Impact (badge), Effort (badge). Ordered by impact (high first); shown only if non-empty
+5. Recommended Next Steps — cards grouped by priority. Quick Wins first, then Strategic, then Foundational. Each card shows title, description, timeframe badge; shown only if non-empty
+
+**"Questions & Answers" tab:**
+Table of every answered question for this assessment: Question Text | Selected Answer | Maturity Level badge (L1–L4). Shows "No answers recorded." if empty.
+
+**"Research Summary" tab:**
+Shows the company research profile Agent 1 produced and Agent 3 reasoned from, as a read-only reference alongside the prospect's own report. Fields shown, each conditionally rendered only when present:
+- Industry
+- Company Size
+- Data Confidence badge — color-coded: High = green, Medium = yellow, Low = grey
+- Products/Summary
+- Target Customers (hidden if value is `"unknown"`)
+- Operational Scale
+- Cloud Providers (chip pills)
+- Key Challenges (bullet list)
+- Business Outcomes (bullet list)
+- News & Context (`news_insights`, prose)
+- Observability Recommendations (`observability_outcome`, prose)
+- Sources (collapsible, closed by default): list of {title, url} from `sources[]`
+
+If no research data is available for this report, shows "No research data available."
+
+Note: `builds_ai_products` is intentionally **not** shown on this prospect-facing tab — see the internal Report Detail spec below, where it does appear.
+
+**"Registration Context" tab:**
+Shows whichever of the following prospect-submitted fields are non-empty, one card each: Infrastructure & Deployment (`infrastructure_location`), Tech Stack (`tech_stack_description`), Current Tools (`current_tools`), Key Challenges — Self-reported (`key_challenges_input`), Additional Notes (`prospect_additional_notes`). If all are empty, shows "No registration context provided."
 
 PDF download:
-- Captures the report DOM element client-side
+- Captures the report DOM element client-side (the "Report" tab content — not the other tabs)
 - No backend dependency
 - File name: `{company_name}-{pillar_name}-maturity-report.pdf`
 
@@ -1066,18 +1095,24 @@ P5 Security      | —        | 📋 Not Started | —
 - "Aggregate View" tab: visible only when 2+ assessments completed for this prospect; radar chart of completed pillar scores; summary table: pillar name, score, maturity label
 
 **Report Detail (`/dashboard/assessments/:id`)**
-Two tabs:
+
+Same four tabs as the prospect-facing Report Page — Report, Questions & Answers, Research Summary, Registration Context — plus a header card above the tabs showing prospect name, role, email, and completion date.
 
 "Report" tab:
-- Identical report UI as the prospect-facing report page
-- Read-only for internal user
-- Additional "Research Context" panel (internal-user only, not shown on the prospect-facing report): renders `reports.research_data` — the prospect's research cache as it existed at submission time — so the internal user can see the company profile Agent 3 reasoned from
+- Identical report content to the prospect-facing "Report" tab (Executive Summary, Score chart, Strengths, Gap Analysis, Next Steps), read-only
+- If the report has not yet been generated, shows "Report not yet generated."
+- If the report failed to load (non-404 error), shows an inline error: "The report failed to load. Please try again or contact support if this persists."
 
-"Raw Answers" tab:
+"Questions & Answers" tab:
 - Table: Question Text | Selected Answer | Maturity Level (1–4)
 - One row per question answered (pillar.question_count rows total)
-- Prospect details shown above table: name, email, role, date completed
-- Pillar score and maturity label shown as summary below table
+
+"Research Summary" tab:
+- Same fields as the prospect page's Research Summary tab (industry, company size, data_confidence badge — color-coded High=green/Medium=yellow/Low=grey, products_summary, target_customers, operational_scale, cloud_providers, key_challenges, business_outcomes, news_insights, observability_outcome, sources)
+- Plus **Builds AI Products** (Yes/No, from `builds_ai_products`) — shown here only; intentionally not shown on the prospect-facing tab
+
+"Registration Context" tab:
+- Same content and empty-state behavior as the prospect page's Registration Context tab
 
 ### 3.5 Admin Panel — Page Specifications
 
