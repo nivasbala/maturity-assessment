@@ -95,7 +95,7 @@ Copy `.env.example` to `.env` and fill in the values below.
 | `JWT_SECRET_KEY` | Yes | Min 32-char random string — change before deploy |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | Yes | Seeded admin user |
 | `LLM_PROVIDER` | Yes | `ollama` \| `anthropic` \| `openai` — applies to all agents |
-| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | Ollama only | Defaults to `http://host.docker.internal:11434` / `llama3.1:8b` |
+| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | Ollama only | `.env.example` ships `http://host.docker.internal:11434` / `llama3.1:8b`; if `OLLAMA_MODEL` is unset entirely, code falls back to `llama3.2` |
 | `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Anthropic only | Model defaults to `claude-sonnet-4-6` |
 | `OPENAI_API_KEY` / `OPENAI_MODEL` | OpenAI only | Model defaults to `gpt-4o` |
 | `RESEARCH_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
@@ -163,9 +163,11 @@ Three agents orchestrated by LangGraph:
 
 | Agent | Trigger | Purpose |
 |---|---|---|
-| **Agent 1 — Research** | Prospect creation (non-blocking) | Web research + prospect context → research summary shown before assessment |
+| **Agent 1 — Research** | Prospect registration (non-blocking) | Web research + prospect context → research summary shown before assessment |
 | **Agent 2 — Question Selection** | Pillar selection (background) | Selects the right questions from the bank based on research profile and prospect context; falls back to rule-based if LLM fails |
 | **Agent 3 — Report** | Assessment submission | Scores answers, generates executive summary, strengths, gaps, and next steps |
+
+See [`docs/diagrams/agent-architecture.excalidraw`](docs/diagrams/agent-architecture.excalidraw) for the full agent interaction diagram — triggers, the LangGraph orchestrator's internal nodes, and how all three agents route through `llm_factory.py`. Open it at [excalidraw.com](https://excalidraw.com) (File → Open).
 
 ---
 
@@ -193,7 +195,8 @@ maturity-assessment/
 │       │   ├── admin/       # Admin CRUD pages
 │       │   ├── internal/    # Internal user dashboard and report views
 │       │   └── prospect/    # Prospect assessment flow
-│       └── types/           # TypeScript interfaces
+│       ├── types/           # TypeScript interfaces
+│       └── utils/           # PDF download, report color helpers
 ├── nginx/                   # Nginx reverse proxy config
 ├── spec/                    # Product specs (read-only reference)
 ├── docker-compose.yml
@@ -214,4 +217,4 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-Tests cover API route status codes, auth enforcement, scoring logic, agent prompt construction, and fallback behaviour. Database-dependent tests are marked and skipped in unit test runs.
+Tests cover API route status codes, auth enforcement, scoring logic, agent prompt construction, and fallback behaviour. All tests mock the database and LLM calls at the boundary — none require a live Postgres instance or network access.
