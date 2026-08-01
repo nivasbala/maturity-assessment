@@ -13,6 +13,7 @@ A sales lead qualification tool that assesses prospect maturity through structur
 - [Environment Variables](#environment-variables)
 - [LLM Configuration](#llm-configuration)
 - [User Roles](#user-roles)
+- [User Journeys](#user-journeys)
 - [Assessment Pillars](#assessment-pillars)
 - [Multi-Agent System](#multi-agent-system)
 - [Project Structure](#project-structure)
@@ -140,6 +141,14 @@ QUESTION_SELECTION_AGENT_MODEL=claude-haiku-4-5-20251001
 | **Admin** | Full CRUD on pillars, questions, internal users, and system settings |
 | **Internal User** | Create/view Accounts and Prospects; view reports for their own Prospects |
 | **Prospect** | Complete assessment via unique short URL; view and download their report |
+
+---
+
+## User Journeys
+
+1. **Create an Account** — An internal user logs in and creates an Account for the target company (company name + website).
+2. **Create a Prospect** — Under that Account, the internal user creates a Prospect (name/email), generating a unique short URL to send them.
+3. **Prospect takes the survey** — The prospect opens the link, registers, reviews their research summary, picks a pillar, answers the questions, and gets their maturity report.
 
 ---
 
