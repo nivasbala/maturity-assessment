@@ -37,7 +37,7 @@ class Prospect(Base):
     # Additional notes entered on the research results page (before pillar selection)
     prospect_additional_notes = Column(Text, nullable=True)
 
-    # Research cache (populated by Agent 1 at prospect creation)
+    # Research cache (populated by Agent 1 at prospect registration)
     research_cache = Column(JSONB, nullable=True)
     research_cached_at = Column(DateTime(timezone=True), nullable=True)
     research_started_at = Column(DateTime(timezone=True), nullable=True)

@@ -59,11 +59,10 @@ export default function PillarSelectPage() {
     }
   }, [confirming])
 
-  function isPillarVisible(pillar: AvailablePillar, gatedPillars: AvailablePillar[]): boolean {
+  function isPillarVisible(pillar: AvailablePillar): boolean {
     if (!pillar.is_gated) return true
-    const idx = gatedPillars.indexOf(pillar)
-    if (idx === 0) return p3Gate !== false
-    if (idx === 1) return p4Gate !== false
+    if (pillar.display_order === 3) return p3Gate !== false
+    if (pillar.display_order === 4) return p4Gate !== false
     return true
   }
 
@@ -180,8 +179,7 @@ export default function PillarSelectPage() {
     )
   }
 
-  const gatedPillars = info.available_pillars.filter((p) => p.is_gated)
-  const visiblePillars = info.available_pillars.filter((p) => isPillarVisible(p, gatedPillars))
+  const visiblePillars = info.available_pillars.filter((p) => isPillarVisible(p))
   const suggestedPillars = visiblePillars.filter((p) => info.suggested_pillars.includes(p.id))
   const otherPillars = visiblePillars.filter((p) => !info.suggested_pillars.includes(p.id))
 

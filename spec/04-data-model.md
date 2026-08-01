@@ -93,7 +93,7 @@ CREATE TABLE pillars (
 
 -- Questions: Belong to a pillar.
 -- is_general = TRUE means shown to all personas regardless of question_personas entries.
--- Target: 50 questions per pillar in the bank; 12 selected per session.
+-- Target: 25 questions per pillar in the bank; 12 selected per session.
 -- context_tags: metadata hints passed to Agent 2 for question relevance — see Section 8.
 CREATE TABLE questions (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),

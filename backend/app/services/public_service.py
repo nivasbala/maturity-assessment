@@ -9,7 +9,7 @@ Handles the unauthenticated prospect flow:
   5. POST /submit            — save answers, score, create report (LangGraph orchestrator)
   6. GET /report/{id}        — fetch completed report
 
-Agent 1 fires non-blocking at prospect creation (account_service.create_prospect).
+Agent 1 fires non-blocking at prospect registration (register_prospect below).
 Agent 2 fires non-blocking at /select-pillar; /confirm-research awaits the result.
 LangGraph orchestrator (Agent 3) runs synchronously at /submit time.
 """
@@ -375,6 +375,7 @@ async def get_assessment_info(token: str, db: AsyncSession) -> AssessmentInfoOut
                 description=p.description,
                 is_gated=p.is_gated,
                 gate_question=p.gate_question,
+                display_order=p.display_order,
             )
             for p in pillars
         ],

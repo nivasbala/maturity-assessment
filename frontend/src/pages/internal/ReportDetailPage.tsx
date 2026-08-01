@@ -19,7 +19,7 @@ type Tab = 'report' | 'answers' | 'research' | 'context'
 
 const TABS: { key: Tab; label: string }[] = [
   { key: 'report', label: 'Report' },
-  { key: 'answers', label: 'Raw Answers' },
+  { key: 'answers', label: 'Questions & Answers' },
   { key: 'research', label: 'Research Summary' },
   { key: 'context', label: 'Registration Context' },
 ]

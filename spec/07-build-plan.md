@@ -338,7 +338,7 @@ Tasks are sequential. Do not start a task until the previous task's PR is merged
 - Implement `core/llm_factory.py` exactly as specified in `03-tech-stack-constraints.md` Section 2, including `json_mode` / `model_env_var` params and the three named per-agent wrapper functions
 - Implement Agent 1: research agent (`05-architecture-api.md` Section 1.2)
   - Agent 1 fires at **prospect registration** (`POST /register`) — replace Task 6/7 stub; both web research and prospect-provided context are available in this single fire
-  - Before running, hash the six research inputs and compare to the stored hash (stored inside `research_cache`); skip Agent 1 and reuse the cache if unchanged and within the 7-day TTL
+  - Before running, hash the six research inputs and compare to the stored hash (stored inside `research_cache`); skip Agent 1 and reuse the cache if unchanged and within the 3-day TTL
   - technology_signals NOT in output — prospect context passed directly to Agent 2
   - Output stored in `prospects.research_cache` (not accounts); `prospects.research_started_at` set when Agent 1 begins
   - Output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes, news_insights, observability_outcome, sources

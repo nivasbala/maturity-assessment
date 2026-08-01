@@ -12,6 +12,7 @@ class AvailablePillar(BaseModel):
     description: str
     is_gated: bool
     gate_question: str | None
+    display_order: int
 
 
 class ExistingAssessmentOut(BaseModel):

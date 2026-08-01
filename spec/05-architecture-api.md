@@ -88,7 +88,7 @@ Prospect visits URL → LandingPage shows registration form
                                           │  - observability_outcome       │
                                           │  - sources[]                   │
                                           └────────────────────────────────┘
-                                            JSONB, 7-day TTL per prospect
+                                            JSONB, 3-day TTL per prospect
                                             (skipped early if input hash unchanged)
                     │
                     ▼
@@ -199,7 +199,7 @@ Prospect answers question_count questions → submits
 **Cache behavior:**
 - Fires at prospect **registration** (`POST /register`), when both inputs first become available — not at prospect creation
 - Before running, compute a hash of the six research inputs (`company_name`, `company_website`, `infrastructure_location`, `tech_stack_description`, `current_tools`, `key_challenges_input`) and compare to the stored hash
-- If the hash matches and cache is fresh (< 7 days old), skip Agent 1 and use `prospect.research_cache`
+- If the hash matches and cache is fresh (< 3 days old), skip Agent 1 and use `prospect.research_cache`
 - If the hash differs, or cache is stale or empty, run Agent 1 and update `prospect.research_cache`, `prospect.research_cached_at`, and the stored input hash
 - `prospect.research_started_at` is set when Agent 1 begins
 - If search fails entirely, return a minimal profile from company name alone — do not block report generation

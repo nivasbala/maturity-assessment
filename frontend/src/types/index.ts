@@ -292,6 +292,7 @@ export interface AvailablePillar {
   description: string
   is_gated: boolean
   gate_question: string | null
+  display_order: number
 }
 
 export interface ExistingAssessment {

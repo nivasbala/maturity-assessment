@@ -82,7 +82,7 @@ Each criterion must be explicitly tested before the spec is considered implement
 - [ ] Agent 1 output includes: industry, company_size, products_summary, target_customers, builds_ai_products, cloud_providers, key_challenges, business_outcomes, operational_scale, data_confidence, research_notes, news_insights, observability_outcome, sources
 - [ ] Agent 1 result stored in `prospects.research_cache` after first run
 - [ ] Second pillar assessment for same prospect uses cached research (no second Agent 1 call)
-- [ ] Cache older than 7 days (and input hash changed) triggers Agent 1 re-run
+- [ ] Cache older than 3 days (and input hash changed) triggers Agent 1 re-run
 - [ ] Agent 2 receives TWO inputs: (1) research_cache from prospect; (2) prospect context (infrastructure_location, tech_stack_description, current_tools, key_challenges_input, prospect_additional_notes from assessment)
 - [ ] Agent 2 starts in the **background** immediately after `POST /select-pillar`; not synchronous
 - [ ] Agent 2 output is validated: correct count, all IDs from the provided candidate pool
