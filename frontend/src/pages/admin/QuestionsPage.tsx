@@ -154,8 +154,8 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="flex h-[calc(100vh-56px)]">
+    <div className="h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
+      <div className="flex h-full">
         {/* Left panel — question list */}
         <div className="w-96 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
