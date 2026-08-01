@@ -3,7 +3,10 @@ Agent 1: Research Agent
 
 Runs at /register time (non-blocking background task).
 Uses DuckDuckGo Search to build a structured company profile stored in
-accounts.research_cache (JSONB, 7-day TTL).
+prospects.research_cache (JSONB). The input-hash + 3-day TTL decision of
+whether to re-run lives in public_service.py, which clears the cache before
+calling into this module when a re-run is warranted — by the time
+run_research_agent_for_prospect executes, research_cache is always None.
 
 Two inputs (spec §1.2):
   1. Web-searchable: company_name, company_website
@@ -17,8 +20,8 @@ operational_scale, data_confidence, research_notes per spec v1.6):
   operational_scale, data_confidence, research_notes, news_insights
 
 Cache behavior:
-  - If accounts.research_cached_at is within 7 days, skip and use existing cache.
-  - If cache is stale or NULL, run the search and update the cache.
+  - Callers are responsible for TTL/hash freshness checks and clear
+    research_cache before invoking this module when a re-run is needed.
   - If search or LLM fails, write a minimal profile so downstream steps always
     have something to work with.
 """
@@ -396,14 +399,13 @@ async def _run_research_agent_for_prospect_locked(
 
 
 def _should_refresh(account: Any) -> bool:
-    """Return True if the research cache is absent or older than 7 days."""
-    if not account.research_cache or not account.research_cached_at:
-        return True
-    cached_at = account.research_cached_at
-    if cached_at.tzinfo is None:
-        cached_at = cached_at.replace(tzinfo=timezone.utc)
-    age = datetime.now(timezone.utc) - cached_at
-    return age.total_seconds() > 7 * 24 * 3600
+    """Return True if the research cache is absent.
+
+    TTL/hash freshness is decided by the caller (public_service.py), which
+    clears research_cache before invoking this module when a re-run is
+    warranted — so absence of a cache is the only signal this module needs.
+    """
+    return not account.research_cache or not account.research_cached_at
 
 
 def _synthesize_observability_outcome(

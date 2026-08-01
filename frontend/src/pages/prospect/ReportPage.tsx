@@ -223,7 +223,7 @@ export default function ReportPage() {
             <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
             <button
               onClick={() => navigate(`/assess/${token}/pillars`)}
-              className="text-sm text-brand hover:underline"
+              className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
             >
               Back to pillar selection
             </button>

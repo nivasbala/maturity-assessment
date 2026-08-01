@@ -29,6 +29,7 @@ export default function ResearchSummaryPage() {
 
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const delayRef = useRef(2000)
+  const notesSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!sessionToken) {
@@ -64,23 +65,47 @@ export default function ResearchSummaryPage() {
     }
   }, [token, sessionToken])
 
-  async function handleSelectAssessment() {
-    setSaveError('')
-    const trimmed = additionalNotes.trim()
-    sessionStorage.setItem('prospect_additional_notes', trimmed)
+  useEffect(() => {
+    return () => {
+      if (notesSaveTimerRef.current) clearTimeout(notesSaveTimerRef.current)
+    }
+  }, [])
 
-    if (trimmed) {
-      setSaving(true)
-      try {
-        await saveResearchAdditionalNotes(token!, sessionToken, trimmed)
-      } catch (e) {
-        setSaveError(extractApiError(e, 'Failed to save additional notes. Please try again.'))
-        setSaving(false)
-        return
-      }
+  async function persistNotes(value: string): Promise<boolean> {
+    const trimmed = value.trim()
+    setSaveError('')
+    setSaving(true)
+    try {
+      await saveResearchAdditionalNotes(token!, sessionToken, trimmed)
+      return true
+    } catch (e) {
+      setSaveError(extractApiError(e, 'Failed to save additional notes. Please try again.'))
+      return false
+    } finally {
       setSaving(false)
     }
+  }
 
+  function handleNotesChange(value: string) {
+    setAdditionalNotes(value)
+    sessionStorage.setItem('prospect_additional_notes', value.trim())
+
+    if (notesSaveTimerRef.current) clearTimeout(notesSaveTimerRef.current)
+    notesSaveTimerRef.current = setTimeout(() => {
+      void persistNotes(value)
+    }, 600)
+  }
+
+  async function handleSelectAssessment() {
+    if (notesSaveTimerRef.current) {
+      clearTimeout(notesSaveTimerRef.current)
+      notesSaveTimerRef.current = null
+      const trimmed = additionalNotes.trim()
+      if (trimmed) {
+        const ok = await persistNotes(additionalNotes)
+        if (!ok) return
+      }
+    }
     navigate(`/assess/${token}/pillars`)
   }
 
@@ -102,7 +127,15 @@ export default function ResearchSummaryPage() {
         <div className="max-w-2xl mx-auto">
 
           <button
-            onClick={() => navigate(`/assess/${token}`)}
+            onClick={() => {
+              if (notesSaveTimerRef.current) {
+                clearTimeout(notesSaveTimerRef.current)
+                notesSaveTimerRef.current = null
+                const trimmed = additionalNotes.trim()
+                if (trimmed) void persistNotes(additionalNotes)
+              }
+              navigate(`/assess/${token}`)
+            }}
             className="mb-4 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
           >
             ← Back to Registration
@@ -309,7 +342,7 @@ export default function ResearchSummaryPage() {
               <textarea
                 rows={3}
                 value={additionalNotes}
-                onChange={(e) => setAdditionalNotes(e.target.value)}
+                onChange={(e) => handleNotesChange(e.target.value)}
                 placeholder="e.g. We are primarily on Azure, not AWS. We have 200 engineers and recently acquired a fintech startup."
                 className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent resize-none"
               />

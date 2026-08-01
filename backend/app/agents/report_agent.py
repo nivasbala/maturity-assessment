@@ -23,6 +23,19 @@ from app.core.llm_factory import get_report_agent_llm
 
 logger = logging.getLogger(__name__)
 
+_STRENGTHS_RANGE = (2, 4)
+_GAPS_RANGE = (3, 6)
+_STEPS_RANGE = (4, 6)
+
+# Not exhaustive — a best-effort safety net behind the prompt instruction, not a
+# substitute for it. Observability/APM/AI vendors most likely to leak into output.
+_VENDOR_DENYLIST = (
+    "datadog", "splunk", "new relic", "newrelic", "dynatrace", "appdynamics",
+    "elastic", "elasticsearch", "grafana", "honeycomb", "chronosphere",
+    "solarwinds", "sumo logic", "sumologic", "logz.io", "instana",
+    "lightstep", "cisco appdynamics", "sentry", "pagerduty", "wavefront",
+)
+
 _SYSTEM_PROMPT = """\
 You are a technology maturity expert helping organizations understand their \
 current capabilities and identify improvement opportunities.
@@ -124,6 +137,41 @@ def _format_answers(answers_with_context: list[dict[str, Any]]) -> str:
 from app.core.json_utils import extract_json_object as _extract_json_object
 
 
+def _cardinality_violations(
+    strengths: list[Any], gap_analysis: list[Any], next_steps: list[Any]
+) -> list[str]:
+    violations: list[str] = []
+    lo, hi = _STRENGTHS_RANGE
+    if not (lo <= len(strengths) <= hi):
+        violations.append(f"strengths must have {lo}-{hi} items, got {len(strengths)}")
+    lo, hi = _GAPS_RANGE
+    if not (lo <= len(gap_analysis) <= hi):
+        violations.append(f"gap_analysis must have {lo}-{hi} items, got {len(gap_analysis)}")
+    lo, hi = _STEPS_RANGE
+    if not (lo <= len(next_steps) <= hi):
+        violations.append(f"next_steps must have {lo}-{hi} items, got {len(next_steps)}")
+    return violations
+
+
+def _iter_report_strings(result: dict[str, Any]) -> list[str]:
+    texts = [str(result.get("executive_summary", ""))]
+    for item in result.get("strengths") or []:
+        if isinstance(item, dict):
+            texts.extend(str(v) for v in item.values())
+    for item in result.get("gap_analysis") or []:
+        if isinstance(item, dict):
+            texts.extend(str(v) for v in item.values())
+    for item in result.get("next_steps") or []:
+        if isinstance(item, dict):
+            texts.extend(str(v) for v in item.values())
+    return texts
+
+
+def _find_vendor_mentions(result: dict[str, Any]) -> list[str]:
+    blob = " ".join(_iter_report_strings(result)).lower()
+    return [name for name in _VENDOR_DENYLIST if name in blob]
+
+
 async def run_report_agent(
     company_profile: dict[str, Any],
     answers_with_context: list[dict[str, Any]],
@@ -155,48 +203,72 @@ async def run_report_agent(
     company_context = _format_company_context(company_profile, prospect_additional_notes, prospect_context)
     formatted_answers = _format_answers(answers_with_context)
 
-    prompt = ChatPromptTemplate.from_messages(
-        [
-            ("system", _SYSTEM_PROMPT),
-            (
-                "human",
-                "Company profile:\n{company_context}\n\n"
-                "Assessment answers:\n{formatted_answers}\n\n"
-                "Generate the report JSON now.",
-            ),
-        ]
+    human_template = (
+        "Company profile:\n{company_context}\n\n"
+        "Assessment answers:\n{formatted_answers}\n\n"
+        "Generate the report JSON now."
     )
-    chain = prompt | get_report_agent_llm(json_mode=True) | StrOutputParser()
-    raw = await chain.ainvoke(
-        {
-            "persona": persona,
-            "company_name": company_name,
-            "pillar_name": pillar_name,
-            "score": f"{score:.2f}",
-            "maturity_label": maturity_label,
-            "company_context": company_context,
-            "formatted_answers": formatted_answers,
-        }
-    )
+    llm = get_report_agent_llm(json_mode=True)
+    invoke_vars = {
+        "persona": persona,
+        "company_name": company_name,
+        "pillar_name": pillar_name,
+        "score": f"{score:.2f}",
+        "maturity_label": maturity_label,
+        "company_context": company_context,
+        "formatted_answers": formatted_answers,
+    }
 
-    result = json.loads(_extract_json_object(raw))
+    async def _generate(correction: str | None) -> dict[str, Any]:
+        human_message = human_template if not correction else f"{human_template}\n\n{correction}"
+        prompt = ChatPromptTemplate.from_messages(
+            [("system", _SYSTEM_PROMPT), ("human", human_message)]
+        )
+        raw = await (prompt | llm | StrOutputParser()).ainvoke(invoke_vars)
+        return json.loads(_extract_json_object(raw))
 
-    # Enforce cardinality constraints from spec
+    result = await _generate(None)
     strengths = result.get("strengths") or []
     gap_analysis = result.get("gap_analysis") or []
     next_steps = result.get("next_steps") or []
+    violations = _cardinality_violations(strengths, gap_analysis, next_steps)
+    vendor_hits = _find_vendor_mentions(result)
 
-    if not (2 <= len(strengths) <= 4):
+    if violations or vendor_hits:
         logger.warning(
-            "run_report_agent: strengths count=%d outside 2-4 range", len(strengths)
+            "run_report_agent: retrying — violations=%s vendor_hits=%s",
+            violations, vendor_hits,
         )
-    if not (3 <= len(gap_analysis) <= 6):
-        logger.warning(
-            "run_report_agent: gap_analysis count=%d outside 3-6 range", len(gap_analysis)
+        correction_notes = []
+        if violations:
+            correction_notes.append("Your previous output violated: " + "; ".join(violations) + ".")
+        if vendor_hits:
+            correction_notes.append(
+                "Your previous output mentioned vendor product names ("
+                + ", ".join(vendor_hits)
+                + "). Remove all vendor/product names — describe capabilities and outcomes only."
+            )
+        result = await _generate(" ".join(correction_notes))
+        strengths = result.get("strengths") or []
+        gap_analysis = result.get("gap_analysis") or []
+        next_steps = result.get("next_steps") or []
+        violations = _cardinality_violations(strengths, gap_analysis, next_steps)
+        vendor_hits = _find_vendor_mentions(result)
+
+    # Deterministic safety net: cap over-max counts so the report never exceeds spec bounds.
+    strengths = strengths[: _STRENGTHS_RANGE[1]]
+    gap_analysis = gap_analysis[: _GAPS_RANGE[1]]
+    next_steps = next_steps[: _STEPS_RANGE[1]]
+
+    if violations:
+        logger.error(
+            "run_report_agent: cardinality constraints still violated after retry — %s (pillar=%s)",
+            violations, pillar_name,
         )
-    if not (4 <= len(next_steps) <= 6):
-        logger.warning(
-            "run_report_agent: next_steps count=%d outside 4-6 range", len(next_steps)
+    if vendor_hits:
+        logger.error(
+            "run_report_agent: vendor names still present after retry — %s (pillar=%s)",
+            vendor_hits, pillar_name,
         )
 
     logger.info(

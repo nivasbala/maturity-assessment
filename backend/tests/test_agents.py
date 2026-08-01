@@ -70,30 +70,21 @@ class TestResearchAgent:
         assert result == cached_profile
         mock_llm.assert_not_called()
 
-    def test_stale_cache_should_refresh(self):
-        """_should_refresh returns True for cache older than 7 days."""
-        from app.agents.research_agent import _should_refresh
-
-        mock_account = MagicMock()
-        mock_account.research_cache = {"company_name": "Acme"}
-        mock_account.research_cached_at = datetime.now(timezone.utc) - timedelta(days=8)
-
-        assert _should_refresh(mock_account) is True
-
-    def test_7_day_boundary_refreshes(self):
-        """Cache over 7 days triggers refresh; under 7 days does not."""
+    def test_should_refresh_ignores_cache_age(self):
+        """_should_refresh only checks presence — TTL/hash freshness is decided
+        by the caller (public_service.py), which clears the cache before
+        invoking this module when a re-run is warranted."""
         from app.agents.research_agent import _should_refresh
 
         mock_account = MagicMock()
         mock_account.research_cache = {"company_name": "Acme"}
 
-        # Well under 7 days (6 days): should NOT refresh
+        # Populated cache, however old, is never refreshed by this function.
         mock_account.research_cached_at = datetime.now(timezone.utc) - timedelta(days=6)
         assert _should_refresh(mock_account) is False
 
-        # Over 7 days (8 days): should refresh
         mock_account.research_cached_at = datetime.now(timezone.utc) - timedelta(days=8)
-        assert _should_refresh(mock_account) is True
+        assert _should_refresh(mock_account) is False
 
     @pytest.mark.asyncio
     async def test_null_cache_triggers_research(self):
@@ -108,7 +99,7 @@ class TestResearchAgent:
 
     @pytest.mark.asyncio
     async def test_fresh_cache_not_refreshed(self):
-        """Cache within 7 days should not refresh."""
+        """A populated cache is not refreshed by this function regardless of age."""
         from app.agents.research_agent import _should_refresh
 
         mock_account = MagicMock()
@@ -598,6 +589,145 @@ class TestReportAgent:
                     company_name="Acme",
                 )
 
+    def _valid_report(self, **overrides: Any) -> dict[str, Any]:
+        report = {
+            "executive_summary": "This is a summary.",
+            "strengths": [
+                {"title": "S1", "description": "desc1"},
+                {"title": "S2", "description": "desc2"},
+            ],
+            "gap_analysis": [
+                {"gap": "G1", "current_state": "cs", "target_state": "ts", "impact": "high", "effort": "medium"},
+                {"gap": "G2", "current_state": "cs", "target_state": "ts", "impact": "medium", "effort": "low"},
+                {"gap": "G3", "current_state": "cs", "target_state": "ts", "impact": "low", "effort": "high"},
+            ],
+            "next_steps": [
+                {"title": "N1", "description": "d", "priority": "quick_win", "timeframe": "0-30 days"},
+                {"title": "N2", "description": "d", "priority": "strategic", "timeframe": "1-3 months"},
+                {"title": "N3", "description": "d", "priority": "foundational", "timeframe": "3-6 months"},
+                {"title": "N4", "description": "d", "priority": "strategic", "timeframe": "6+ months"},
+            ],
+        }
+        report.update(overrides)
+        return report
+
+    def _patch_chain(self, mock_cpt: MagicMock, responses: list[dict[str, Any]]) -> AsyncMock:
+        mock_chain = AsyncMock()
+        mock_chain.ainvoke = AsyncMock(side_effect=[json.dumps(r) for r in responses])
+        mock_cpt.from_messages.return_value.__or__ = MagicMock(
+            return_value=MagicMock(__or__=MagicMock(return_value=mock_chain))
+        )
+        return mock_chain
+
+    @pytest.mark.asyncio
+    async def test_run_report_agent_retries_on_cardinality_violation(self):
+        """Out-of-range counts trigger one retry with a corrective prompt."""
+        from app.agents.report_agent import run_report_agent
+
+        bad = self._valid_report(strengths=[{"title": "Only one", "description": "d"}])
+        good = self._valid_report()
+
+        with (
+            patch("app.agents.report_agent.ChatPromptTemplate") as mock_cpt,
+            patch("app.agents.report_agent.StrOutputParser"),
+            patch("app.agents.report_agent.get_report_agent_llm"),
+        ):
+            mock_chain = self._patch_chain(mock_cpt, [bad, good])
+            result = await run_report_agent(
+                company_profile={},
+                answers_with_context=[],
+                pillar_name="P1",
+                score=2.0,
+                maturity_label="Developing",
+                persona="sre_platform_engineer",
+                company_name="Acme",
+            )
+
+        assert mock_chain.ainvoke.call_count == 2
+        assert len(result["strengths"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_run_report_agent_truncates_over_max_after_retry(self):
+        """If the retry still exceeds the max, output is truncated rather than rejected."""
+        from app.agents.report_agent import run_report_agent
+
+        too_many = self._valid_report(
+            next_steps=[
+                {"title": f"N{i}", "description": "d", "priority": "strategic", "timeframe": "1-3 months"}
+                for i in range(8)
+            ]
+        )
+
+        with (
+            patch("app.agents.report_agent.ChatPromptTemplate") as mock_cpt,
+            patch("app.agents.report_agent.StrOutputParser"),
+            patch("app.agents.report_agent.get_report_agent_llm"),
+        ):
+            self._patch_chain(mock_cpt, [too_many, too_many])
+            result = await run_report_agent(
+                company_profile={},
+                answers_with_context=[],
+                pillar_name="P1",
+                score=2.0,
+                maturity_label="Developing",
+                persona="sre_platform_engineer",
+                company_name="Acme",
+            )
+
+        assert len(result["next_steps"]) == 6
+
+    @pytest.mark.asyncio
+    async def test_run_report_agent_retries_on_vendor_mention(self):
+        """A vendor name in the output triggers a retry with a corrective prompt."""
+        from app.agents.report_agent import run_report_agent
+
+        with_vendor = self._valid_report(
+            executive_summary="You should use Datadog for full observability."
+        )
+        clean = self._valid_report()
+
+        with (
+            patch("app.agents.report_agent.ChatPromptTemplate") as mock_cpt,
+            patch("app.agents.report_agent.StrOutputParser"),
+            patch("app.agents.report_agent.get_report_agent_llm"),
+        ):
+            mock_chain = self._patch_chain(mock_cpt, [with_vendor, clean])
+            result = await run_report_agent(
+                company_profile={},
+                answers_with_context=[],
+                pillar_name="P1",
+                score=2.0,
+                maturity_label="Developing",
+                persona="sre_platform_engineer",
+                company_name="Acme",
+            )
+
+        assert mock_chain.ainvoke.call_count == 2
+        assert "datadog" not in result["executive_summary"].lower()
+
+    @pytest.mark.asyncio
+    async def test_run_report_agent_no_retry_when_valid(self):
+        """A valid first response is used as-is, with no retry call."""
+        from app.agents.report_agent import run_report_agent
+
+        with (
+            patch("app.agents.report_agent.ChatPromptTemplate") as mock_cpt,
+            patch("app.agents.report_agent.StrOutputParser"),
+            patch("app.agents.report_agent.get_report_agent_llm"),
+        ):
+            mock_chain = self._patch_chain(mock_cpt, [self._valid_report()])
+            await run_report_agent(
+                company_profile={},
+                answers_with_context=[],
+                pillar_name="P1",
+                score=2.0,
+                maturity_label="Developing",
+                persona="sre_platform_engineer",
+                company_name="Acme",
+            )
+
+        assert mock_chain.ainvoke.call_count == 1
+
 
 # ── orchestrator ──────────────────────────────────────────────────────────────
 
@@ -763,8 +893,9 @@ class TestResearchAgentForProspect:
         assert result["data_confidence"] == "low"
 
     @pytest.mark.asyncio
-    async def test_stale_cache_triggers_refresh(self):
-        """Cache older than 7 days triggers refresh (_should_refresh returns True)."""
+    async def test_populated_cache_never_triggers_refresh_regardless_of_age(self):
+        """_should_refresh only checks presence — the caller (public_service.py)
+        clears the cache before calling in when a refresh is actually needed."""
         from datetime import timedelta
 
         from app.agents.research_agent import _should_refresh
@@ -773,7 +904,7 @@ class TestResearchAgentForProspect:
         mock_prospect.research_cache = {"company_name": "Acme"}
         mock_prospect.research_cached_at = datetime.now(timezone.utc) - timedelta(days=8)
 
-        assert _should_refresh(mock_prospect) is True
+        assert _should_refresh(mock_prospect) is False
 
     @pytest.mark.asyncio
     async def test_null_cache_triggers_refresh(self):
