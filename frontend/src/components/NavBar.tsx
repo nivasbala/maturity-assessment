@@ -16,9 +16,9 @@ export default function NavBar() {
   const isAdmin = user.role === 'admin'
 
   return (
-    <nav className="bg-[#1B2B4B] text-white w-56 min-h-screen flex flex-col shrink-0">
+    <nav className="bg-[#1B2B4B] text-white w-56 h-screen flex flex-col shrink-0">
       {/* Logo */}
-      <div className="px-5 pt-6 pb-5 border-b border-white/10">
+      <div className="shrink-0 px-5 pt-6 pb-5 border-b border-white/10">
         <NavLink
           to="/"
           className="flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -37,7 +37,7 @@ export default function NavBar() {
       </div>
 
       {/* Nav items */}
-      <div className="flex-1 px-3 py-4 space-y-0.5">
+      <div className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-0.5">
         {isAdmin ? (
           <>
             <NavLink to="/admin/users" className={sideNavLinkClass}>
@@ -69,7 +69,7 @@ export default function NavBar() {
       </div>
 
       {/* Footer: user info + dark mode + logout */}
-      <div className="px-4 py-4 border-t border-white/10 space-y-3">
+      <div className="shrink-0 px-4 py-4 border-t border-white/10 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-white/50 uppercase tracking-wider">Theme</span>
           <DarkModeToggle />
