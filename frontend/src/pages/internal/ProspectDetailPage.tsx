@@ -230,7 +230,7 @@ export default function ProspectDetailPage() {
                     {row.assessment_id && row.status === 'completed' ? (
                       <Link
                         to={`/dashboard/assessments/${row.assessment_id}`}
-                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-sm"
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 hover:underline text-sm whitespace-nowrap"
                       >
                         View Report
                       </Link>
