@@ -46,6 +46,10 @@ Browser
 
 All services run via Docker Compose. The backend uses LangGraph to orchestrate the multi-agent pipeline. LLM calls are routed through a single factory (`llm_factory.py`) that supports Ollama, Anthropic, and OpenAI interchangeably.
 
+![System architecture](docs/diagrams/system-architecture.jpg)
+
+Editable source: [`docs/diagrams/system-architecture.excalidraw`](docs/diagrams/system-architecture.excalidraw) (open at [excalidraw.com](https://excalidraw.com) via File → Open).
+
 ---
 
 ## Tech Stack
