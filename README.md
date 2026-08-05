@@ -150,9 +150,25 @@ QUESTION_SELECTION_AGENT_MODEL=claude-haiku-4-5-20251001
 
 ## User Journeys
 
-1. **Create an Account** — An internal user logs in and creates an Account for the target company (company name + website).
-2. **Create a Prospect** — Under that Account, the internal user creates a Prospect (name/email), generating a unique short URL to send them.
-3. **Prospect takes the survey** — The prospect opens the link, registers, reviews their research summary, picks a pillar, answers the questions, and gets their maturity report.
+1. **Internal user logs in and tours the dashboard**
+
+   ![Internal user login and dashboard tour](docs/user-journey/home-tour-login.gif)
+
+2. **Create an Account** — An internal user logs in and creates an Account for the target company (company name + website).
+
+   ![Create an Account](docs/user-journey/account-creation.gif)
+
+3. **Create a Prospect** — Under that Account, the internal user creates a Prospect (name/email), generating a unique short URL to send them.
+
+   ![Create a Prospect](docs/user-journey/create-prospect.gif)
+
+4. **Prospect takes the survey** — The prospect opens the link, registers, reviews their research summary, picks a pillar, and answers the questions.
+
+   ![Prospect assessment Q&A](docs/user-journey/prospect-assessment-qa.gif)
+
+5. **View the maturity report** — Internal user (or the prospect) reviews the generated report across its tabs — Report, Questions & Answers, Research Summary, and Registration Context.
+
+   ![View report](docs/user-journey/view-report.gif)
 
 ---
 
