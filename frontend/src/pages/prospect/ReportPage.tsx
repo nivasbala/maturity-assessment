@@ -319,7 +319,7 @@ export default function ReportPage() {
               <span className={`inline-flex items-center border text-sm font-semibold px-3 py-1 rounded-full ${badgeClass}`}>
                 {report.maturity_label}
               </span>
-              <span className="text-3xl font-bold text-[#1B2B4B] dark:text-gray-100">
+              <span className="font-mono tabular-nums text-3xl font-bold text-[#1B2B4B] dark:text-gray-100">
                 {report.pillar_score.toFixed(1)}
                 <span className="text-base font-normal text-gray-400 dark:text-gray-500 ml-1">/ 4.0</span>
               </span>

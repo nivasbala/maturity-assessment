@@ -20,7 +20,7 @@ export function ScoreChart({ report }: { report: ScoreChartData }) {
         <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
           <PolarGrid stroke="#e5e7eb" />
           <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: '#6b7280' }} />
-          <PolarRadiusAxis domain={[0, 4]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+          <PolarRadiusAxis domain={[0, 4]} tick={{ fontSize: 10, fill: '#9ca3af', fontFamily: '"JetBrains Mono", monospace' }} />
           <Radar name="Score" dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.25} />
         </RadarChart>
       </ResponsiveContainer>
@@ -43,7 +43,7 @@ export function ScoreChart({ report }: { report: ScoreChartData }) {
         </RadialBarChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 pointer-events-none">
-        <span className="text-4xl font-bold text-[#1B2B4B] dark:text-gray-100">
+        <span className="font-mono tabular-nums text-4xl font-bold text-[#1B2B4B] dark:text-gray-100">
           {report.pillar_score.toFixed(1)}
         </span>
         <span className="text-sm text-gray-400 dark:text-gray-500">out of 4.0</span>

@@ -235,7 +235,7 @@ export default function LandingPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       {a.pillar_score !== null && (
-                        <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                        <span className="font-mono tabular-nums text-sm font-semibold text-gray-700 dark:text-gray-300">
                           {a.pillar_score.toFixed(1)} / 4.0
                         </span>
                       )}

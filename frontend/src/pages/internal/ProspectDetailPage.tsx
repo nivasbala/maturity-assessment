@@ -217,7 +217,7 @@ export default function ProspectDetailPage() {
                   <td className="px-4 py-3">
                     <StatusBadge status={row.status} />
                   </td>
-                  <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
+                  <td className="font-mono tabular-nums px-4 py-3 text-gray-600 dark:text-gray-400">
                     {row.pillar_score != null ? row.pillar_score.toFixed(2) : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400">
@@ -284,7 +284,7 @@ export default function ProspectDetailPage() {
                   >
                     <PolarGrid stroke="#e5e7eb" />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: '#6b7280' }} />
-                    <PolarRadiusAxis domain={[0, 4]} tick={{ fontSize: 10, fill: '#9ca3af' }} />
+                    <PolarRadiusAxis domain={[0, 4]} tick={{ fontSize: 10, fill: '#9ca3af', fontFamily: '"JetBrains Mono", monospace' }} />
                     <Radar name="Score" dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.25} />
                   </RadarChart>
                 </ResponsiveContainer>
@@ -301,7 +301,7 @@ export default function ProspectDetailPage() {
                     {aggregate.assessments.map((row) => (
                       <tr key={row.pillar_name} className="border-b border-gray-100 dark:border-gray-700 last:border-0">
                         <td className="px-4 py-3 text-gray-800 dark:text-gray-200 font-medium">{row.pillar_name}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{row.pillar_score.toFixed(2)}</td>
+                        <td className="font-mono tabular-nums px-4 py-3 text-gray-600 dark:text-gray-400">{row.pillar_score.toFixed(2)}</td>
                         <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{row.maturity_label}</td>
                       </tr>
                     ))}

@@ -173,7 +173,7 @@ export default function ReportDetailPage() {
                 <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full border ${maturityClass}`}>
                   {answers.maturity_label}
                 </span>
-                <p className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mt-1">
+                <p className="font-mono tabular-nums text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mt-1">
                   {answers.pillar_score.toFixed(2)}
                   <span className="text-sm font-normal text-gray-400 dark:text-gray-500"> / 4.00</span>
                 </p>

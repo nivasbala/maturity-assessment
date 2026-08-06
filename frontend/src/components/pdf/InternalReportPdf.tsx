@@ -47,7 +47,7 @@ function buildStyles(dark: boolean) {
     headerPillar: { fontSize: 18, fontFamily: 'Helvetica-Bold', color: '#ffffff', marginBottom: 4 },
     headerCompany: { fontSize: 11, color: '#93c5fd' },
     headerScoreRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: 12, gap: 10 },
-    headerScore: { fontSize: 32, fontFamily: 'Helvetica-Bold', color: '#ffffff' },
+    headerScore: { fontSize: 32, fontFamily: 'Courier-Bold', color: '#ffffff' },
     headerScoreOf: { fontSize: 12, color: '#93c5fd', marginBottom: 6 },
     maturityBadge: { borderRadius: 20, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' },
     maturityText: { fontSize: 9, fontFamily: 'Helvetica-Bold' },
@@ -67,7 +67,7 @@ function buildStyles(dark: boolean) {
     subAreaLabel: { width: 140, fontSize: 8, color: tfText },
     subAreaBarBg: { flex: 1, height: 6, backgroundColor: barBg, borderRadius: 3 },
     subAreaBarFill: { height: 6, backgroundColor: '#2563eb', borderRadius: 3 },
-    subAreaScore: { width: 28, fontSize: 8, color: mutedText, textAlign: 'right' },
+    subAreaScore: { width: 28, fontSize: 8, fontFamily: 'Courier', color: mutedText, textAlign: 'right' },
 
     strengthRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
     strengthCheck: { fontSize: 10, color: '#16a34a' },
@@ -102,7 +102,7 @@ function buildStyles(dark: boolean) {
     footer: { position: 'absolute', bottom: 20, left: 36, right: 36, flexDirection: 'row', justifyContent: 'space-between' },
     footerText: { fontSize: 7, color: dimText },
 
-    _scoreNum: { fontSize: 28, fontFamily: 'Helvetica-Bold', color: sectionTitleColor },
+    _scoreNum: { fontSize: 28, fontFamily: 'Courier-Bold', color: sectionTitleColor },
     _scoreOf: { fontSize: 8, color: mutedText },
     _axisLabel: { fontSize: 7, color: dimText },
   })

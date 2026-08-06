@@ -116,6 +116,7 @@ export function PdfRadarChart({ subAreas }: Props) {
               x={CX + 3}
               y={CY - r + 2}
               fontSize={5.5}
+              fontFamily="Courier"
               fill="#9ca3af"
             >
               {level}

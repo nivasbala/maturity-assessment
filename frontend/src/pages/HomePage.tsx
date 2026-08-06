@@ -5,36 +5,103 @@ import DarkModeToggle from '../components/DarkModeToggle'
 
 const PILLARS = [
   {
-    icon: '📡',
+    icon: 'stack-trace',
     title: 'Full-Stack Observability',
     description:
       'Assess your ability to collect, correlate, and act on metrics, logs, and traces across your entire stack.',
   },
   {
-    icon: '🤖',
+    icon: 'anomaly-spike',
     title: 'AIOps & Intelligent Observability',
     description:
       'Evaluate how effectively your team uses AI-driven alerting, anomaly detection, and automated root cause analysis.',
   },
   {
-    icon: '🧠',
+    icon: 'inference-graph',
     title: 'AI System Observability',
     description:
       'Understand your maturity in monitoring and debugging AI-powered applications in production.',
   },
   {
-    icon: '⚗️',
+    icon: 'model-pipeline',
     title: 'ML & Foundation Model Ops',
     description:
       'Gauge your operational readiness for training, fine-tuning, and managing machine learning models at scale.',
   },
   {
-    icon: '🔒',
+    icon: 'shield-scan',
     title: 'Security & DevSecOps',
     description:
       'Benchmark your security observability — threat detection, compliance monitoring, and shift-left practices.',
   },
-]
+] as const
+
+/* ── Pillar icons — each drawn from a real observability artifact, not a generic glyph ── */
+function PillarIcon({ name }: { name: string }) {
+  const common = {
+    width: 24,
+    height: 24,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    'aria-hidden': true as const,
+  }
+  const stroke = { stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+
+  switch (name) {
+    case 'stack-trace':
+      // Three infra layers with a single trace threading down through all of them
+      return (
+        <svg {...common}>
+          <rect x="3" y="3.5" width="18" height="4" rx="1" {...stroke} />
+          <rect x="3" y="10" width="18" height="4" rx="1" {...stroke} />
+          <rect x="3" y="16.5" width="18" height="4" rx="1" {...stroke} />
+          <line x1="7" y1="5.5" x2="7" y2="18.5" {...stroke} strokeDasharray="1.5 2" />
+          <circle cx="7" cy="5.5" r="1.3" fill="currentColor" />
+          <circle cx="7" cy="12" r="1.3" fill="currentColor" />
+          <circle cx="7" cy="18.5" r="1.3" fill="currentColor" />
+        </svg>
+      )
+    case 'anomaly-spike':
+      // A metric line with one deviation circled — the moment AIOps exists to catch
+      return (
+        <svg {...common}>
+          <polyline points="3,16.5 7,15 10,17.5 13,7 16,14.5 21,12" {...stroke} />
+          <circle cx="13" cy="7" r="2.6" {...stroke} />
+        </svg>
+      )
+    case 'inference-graph':
+      // A small inference call graph with one node under inspection
+      return (
+        <svg {...common}>
+          <line x1="12" y1="13" x2="6" y2="18" {...stroke} />
+          <line x1="12" y1="13" x2="18" y2="18" {...stroke} />
+          <line x1="12" y1="13" x2="12" y2="6" {...stroke} />
+          <circle cx="6" cy="18.5" r="1.6" fill="currentColor" />
+          <circle cx="18" cy="18.5" r="1.6" fill="currentColor" />
+          <circle cx="12" cy="6" r="1.6" fill="currentColor" />
+          <circle cx="12" cy="13" r="2.4" {...stroke} />
+        </svg>
+      )
+    case 'model-pipeline':
+      // A training funnel narrowing raw signal down to a served model artifact
+      return (
+        <svg {...common}>
+          <path d="M4,4.5 L20,4.5 L14,15 L10,15 Z" {...stroke} />
+          <rect x="10" y="17" width="4" height="3" rx="0.6" {...stroke} />
+        </svg>
+      )
+    case 'shield-scan':
+      // A shield mid-scan, not just "locked"
+      return (
+        <svg {...common}>
+          <path d="M12,3 L19,6 L19,12 C19,17 15.5,20 12,21 C8.5,20 5,17 5,12 L5,6 Z" {...stroke} />
+          <path d="M8.5,12 L11,14.5 L16,9" {...stroke} />
+        </svg>
+      )
+    default:
+      return null
+  }
+}
 
 const STEPS = [
   {
@@ -145,7 +212,7 @@ function ReportBody() {
             <div key={String(name)}>
               <div className="flex justify-between text-[9px] text-gray-500 dark:text-gray-400 mb-0.5">
                 <span>{String(name)}</span>
-                <span className="font-semibold" style={{ color: String(color) }}>{String(score)}</span>
+                <span className="font-mono font-semibold" style={{ color: String(color) }}>{String(score)}</span>
               </div>
               <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                 <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: String(color) }} />
@@ -216,7 +283,7 @@ function VerticalReportMockup() {
           <span className="text-white text-xs font-bold">Observability Maturity Report</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="bg-amber-400 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+          <span className="bg-amber-400 text-white text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full">
             Overall: 2.8 / 4.0
           </span>
           <span className="text-white/60 text-[10px]">Developing</span>
@@ -275,12 +342,12 @@ function MaturityProgressAnimation() {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-6 gap-3">
         <div className="text-center">
           <div
-            className="text-6xl font-black leading-none transition-all duration-500"
+            className="font-mono text-6xl font-black leading-none transition-all duration-500 tabular-nums"
             style={{ color: current.color }}
           >
             {current.score}
           </div>
-          <div className="text-sm text-gray-400 dark:text-gray-500 mt-1">/ 4.0</div>
+          <div className="font-mono text-sm text-gray-400 dark:text-gray-500 mt-1">/ 4.0</div>
         </div>
         <div
           className="text-xl font-bold transition-colors duration-500"
@@ -509,7 +576,7 @@ export default function HomePage() {
                   <span className={LABEL}>Step 03 · Your Report</span>
                 </div>
                 <p className={HEADING}>Assessment complete</p>
-                <div className="inline-flex self-start text-white text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#f59e0b' }}>
+                <div className="inline-flex self-start text-white text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#f59e0b' }}>
                   Overall: 2.8 / 4.0
                 </div>
                 <div className="flex flex-col gap-1.5 mt-1">
@@ -521,7 +588,7 @@ export default function HomePage() {
                     <div key={String(name)}>
                       <div className="flex justify-between text-[9px] text-gray-400 dark:text-gray-500 mb-0.5">
                         <span className="truncate mr-1">{String(name)}</span>
-                        <span className="font-semibold shrink-0" style={{ color }}>{String(score)}</span>
+                        <span className="font-mono font-semibold shrink-0" style={{ color }}>{String(score)}</span>
                       </div>
                       <div className="h-1.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
@@ -579,7 +646,9 @@ export default function HomePage() {
                 key={p.title}
                 className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-4 hover:shadow-md transition-shadow"
               >
-                <div className="text-xl mb-2">{p.icon}</div>
+                <div className="mb-2 text-brand dark:text-blue-400">
+                  <PillarIcon name={p.icon} />
+                </div>
                 <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
                   {p.title}
                 </h3>
@@ -596,7 +665,9 @@ export default function HomePage() {
                 key={p.title}
                 className="border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 rounded-xl p-4 hover:shadow-md transition-shadow w-full sm:max-w-[calc(33.333%-8px)]"
               >
-                <div className="text-xl mb-2">{p.icon}</div>
+                <div className="mb-2 text-brand dark:text-blue-400">
+                  <PillarIcon name={p.icon} />
+                </div>
                 <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
                   {p.title}
                 </h3>
@@ -605,40 +676,6 @@ export default function HomePage() {
                 </p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── What you'll get ──────────────────────────────────────────────── */}
-      <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
-      <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
-            What you'll get
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10 max-w-lg mx-auto">
-            A comprehensive, AI-generated report tailored to your organisation — ready in minutes.
-          </p>
-          <div className="grid md:grid-cols-2 gap-10 items-stretch">
-            {/* Left: benefits */}
-            <div className="flex flex-col justify-center gap-4">
-              {REPORT_BENEFITS.map((b) => (
-                <div key={b.title} className="flex items-start gap-3">
-                  <div className="text-lg w-7 shrink-0">{b.icon}</div>
-                  <div>
-                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-0.5">
-                      {b.title}
-                    </h3>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
-                      {b.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Right: vertical report mockup */}
-            <VerticalReportMockup />
           </div>
         </div>
       </section>
@@ -681,6 +718,40 @@ export default function HomePage() {
 
             {/* Right: animated progression */}
             <MaturityProgressAnimation />
+          </div>
+        </div>
+      </section>
+
+      {/* ── What you'll get ──────────────────────────────────────────────── */}
+      <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
+      <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
+            What you'll get
+          </h2>
+          <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10 max-w-lg mx-auto">
+            A comprehensive, AI-generated report tailored to your organisation — ready in minutes.
+          </p>
+          <div className="grid md:grid-cols-2 gap-10 items-stretch">
+            {/* Left: benefits */}
+            <div className="flex flex-col justify-center gap-4">
+              {REPORT_BENEFITS.map((b) => (
+                <div key={b.title} className="flex items-start gap-3">
+                  <div className="text-lg w-7 shrink-0">{b.icon}</div>
+                  <div>
+                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-0.5">
+                      {b.title}
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
+                      {b.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right: vertical report mockup */}
+            <VerticalReportMockup />
           </div>
         </div>
       </section>
