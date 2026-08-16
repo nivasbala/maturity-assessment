@@ -160,7 +160,7 @@ export default function AssessmentPage() {
             )}
             <button
               onClick={() => navigate(`/assess/${token}/pillars`)}
-              className="mt-1 text-xs text-brand hover:text-blue-700 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
+              className="mt-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
             >
               ← Back to Pillar Selection
             </button>
@@ -203,10 +203,11 @@ export default function AssessmentPage() {
                       : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
-                  <span className="inline-block w-5 h-5 rounded-full border-2 mr-3 align-middle flex-shrink-0 transition-colors" style={{
-                    borderColor: isSelected ? '#3D6EA8' : '#d1d5db',
-                    backgroundColor: isSelected ? '#3D6EA8' : 'transparent',
-                  }} />
+                  <span
+                    className={`inline-block w-5 h-5 rounded-full border-2 mr-3 align-middle flex-shrink-0 transition-colors ${
+                      isSelected ? 'border-brand bg-brand' : 'border-gray-300 dark:border-gray-500 bg-transparent'
+                    }`}
+                  />
                   {option.text}
                 </button>
               )

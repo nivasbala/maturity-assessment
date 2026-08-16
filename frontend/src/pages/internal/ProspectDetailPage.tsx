@@ -285,7 +285,7 @@ export default function ProspectDetailPage() {
                     <PolarGrid stroke="#e5e7eb" />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: '#6b7280' }} />
                     <PolarRadiusAxis domain={[0, 4]} tick={{ fontSize: 10, fill: '#9ca3af', fontFamily: '"JetBrains Mono", monospace' }} />
-                    <Radar name="Score" dataKey="score" stroke="#3d6ea8" fill="#3d6ea8" fillOpacity={0.25} />
+                    <Radar name="Score" dataKey="score" stroke="rgb(var(--color-brand))" fill="rgb(var(--color-brand))" fillOpacity={0.25} />
                   </RadarChart>
                 </ResponsiveContainer>
 

@@ -1,12 +1,22 @@
 import { useTheme } from '../contexts/ThemeContext'
 
-export default function DarkModeToggle({ className = '' }: { className?: string }) {
+interface Props {
+  className?: string
+  /** 'onDark' (default) — for permanently-dark surfaces like the navy header/sidebar.
+   *  'adaptive' — for surfaces that themselves switch with light/dark mode. */
+  variant?: 'onDark' | 'adaptive'
+}
+
+export default function DarkModeToggle({ className = '', variant = 'onDark' }: Props) {
   const { isDark, toggle } = useTheme()
+  const colorClasses = variant === 'adaptive'
+    ? 'text-gray-500 dark:text-white/80 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-white'
+    : 'text-white/80 hover:bg-white/10 hover:text-white'
   return (
     <button
       onClick={toggle}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className={`w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-white/80 hover:text-white ${className}`}
+      className={`w-8 h-8 flex items-center justify-center rounded-full transition-colors ${colorClasses} ${className}`}
       title={isDark ? 'Light mode' : 'Dark mode'}
     >
       {isDark ? (

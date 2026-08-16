@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getAssessmentAnswers, getAssessmentReport } from '../../api/internal'
 import { useAuth } from '../../contexts/AuthContext'
+import { useTheme, COLOR_THEMES } from '../../contexts/ThemeContext'
 import type { AssessmentAnswers, Report } from '../../types'
 import PdfThemeModal from '../../components/PdfThemeModal'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
@@ -9,9 +10,9 @@ import { safe, triggerPdfDownload } from '../../utils/pdfDownload'
 import { ScoreChart } from '../../components/ScoreChart'
 import { InternalReportPdf } from '../../components/pdf/InternalReportPdf'
 
-async function downloadPdf(answers: AssessmentAnswers, report: Report, darkMode: boolean) {
+async function downloadPdf(answers: AssessmentAnswers, report: Report, darkMode: boolean, brandColor: string) {
   const { pdf } = await import('@react-pdf/renderer')
-  const blob = await pdf(<InternalReportPdf answers={answers} report={report} darkMode={darkMode} />).toBlob()
+  const blob = await pdf(<InternalReportPdf answers={answers} report={report} darkMode={darkMode} brandColor={brandColor} />).toBlob()
   await triggerPdfDownload(blob, `${safe(answers.company_name)}-${safe(answers.pillar_name)}-maturity-report.pdf`)
 }
 
@@ -33,6 +34,8 @@ const CONFIDENCE_STYLES: Record<string, string> = {
 export default function ReportDetailPage() {
   const { id } = useParams<{ id: string }>()
   const { user } = useAuth()
+  const { colorTheme } = useTheme()
+  const brandColor = COLOR_THEMES.find((t) => t.id === colorTheme)?.swatch ?? '#3d6ea8'
   const navigate = useNavigate()
 
   const [answers, setAnswers] = useState<AssessmentAnswers | null>(null)
@@ -123,7 +126,7 @@ export default function ReportDetailPage() {
           onDownload={async (dark) => {
             setDownloading(true)
             try {
-              await downloadPdf(answers, report, dark)
+              await downloadPdf(answers, report, dark, brandColor)
             } finally {
               setDownloading(false)
             }
@@ -160,7 +163,7 @@ export default function ReportDetailPage() {
         </div>
 
         {/* Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="glass-panel rounded-xl p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold text-navy dark:text-gray-100">
@@ -342,7 +345,7 @@ export default function ReportDetailPage() {
               )}
             </>
           ) : (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 text-center">
+            <div className="glass-panel rounded-xl p-6 text-center">
               <p className={`text-sm ${reportError ? 'text-red-600 dark:text-red-400' : 'text-gray-400 dark:text-gray-500'}`}>
                 {reportError ?? 'Report not yet generated.'}
               </p>
@@ -386,7 +389,7 @@ export default function ReportDetailPage() {
         {/* ── Research Summary tab ── */}
         {activeTab === 'research' && (
           report?.research_data ? (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4 text-sm">
+            <div className="glass-panel rounded-xl p-6 space-y-4 text-sm">
               <h2 className="text-base font-semibold text-navy dark:text-gray-100">Research Summary</h2>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">

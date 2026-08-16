@@ -37,11 +37,11 @@ export default function LoginPage() {
         <div className="px-5 pt-6 pb-5 border-b border-white/10">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-              <rect x="2" y="5" width="28" height="18" rx="2" stroke="#5B8FD6" strokeWidth="1.8"/>
-              <polyline points="6,14 10,14 12,8 16,20 19,10 22,14 26,14" stroke="#5B8FD6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="13" y1="23" x2="19" y2="23" stroke="#5B8FD6" strokeWidth="1.8"/>
-              <line x1="16" y1="23" x2="16" y2="28" stroke="#5B8FD6" strokeWidth="1.8"/>
-              <line x1="11" y1="28" x2="21" y2="28" stroke="#5B8FD6" strokeWidth="1.8"/>
+              <rect x="2" y="5" width="28" height="18" rx="2" stroke="rgb(var(--color-brand))" strokeWidth="1.8"/>
+              <polyline points="6,14 10,14 12,8 16,20 19,10 22,14 26,14" stroke="rgb(var(--color-brand))" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+              <line x1="13" y1="23" x2="19" y2="23" stroke="rgb(var(--color-brand))" strokeWidth="1.8"/>
+              <line x1="16" y1="23" x2="16" y2="28" stroke="rgb(var(--color-brand))" strokeWidth="1.8"/>
+              <line x1="11" y1="28" x2="21" y2="28" stroke="rgb(var(--color-brand))" strokeWidth="1.8"/>
             </svg>
             <span className="text-white font-semibold text-xs tracking-tight leading-tight">
               Observability Maturity<br />Assessment
