@@ -227,7 +227,7 @@ Every task must include tests before the PR is opened. Tests live in `backend/te
 | API routes | Status codes, response shape, auth enforcement (401/403), input validation (422) |
 | Agents | Prompt construction, output parsing, fallback on failure |
 | Scoring | All Level 1 → 1.0, all Level 4 → 4.0, mixed inputs, weight application |
-| Frontend components | Not required for MVP — focus backend test coverage |
+| Frontend components | Test front end using playwrite, check for consistency |
 
 ---
 
