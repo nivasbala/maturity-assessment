@@ -381,7 +381,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-ink text-white px-6 py-12 sm:py-14">
+      <section className="bg-ink text-white px-6 py-7 sm:py-8">
         <div className="max-w-5xl mx-auto grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-14 items-center">
           <div>
             <p className="font-mono text-xs uppercase tracking-widest text-signal-clear mb-4">
