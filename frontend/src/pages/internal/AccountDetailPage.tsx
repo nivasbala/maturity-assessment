@@ -33,7 +33,7 @@ function CreateProspectModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+      <div className="glass-panel rounded-lg w-full max-w-md p-6">
         <h2 className="text-xl font-semibold text-navy dark:text-gray-100 mb-1">Create Prospect</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
           Enter the prospect's email to generate their personalised assessment link.
@@ -151,7 +151,7 @@ function DeleteConfirmModal({
 }) {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
+      <div className="glass-panel rounded-lg w-full max-w-md p-6">
         <h2 className="text-xl font-semibold text-navy dark:text-gray-100 mb-2">Delete Account</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Are you sure you want to delete{' '}
@@ -248,7 +248,7 @@ export default function AccountDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400">Loading account…</div>
       </div>
     )
@@ -256,14 +256,14 @@ export default function AccountDetailPage() {
 
   if (error || !account) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-red-600 dark:text-red-400">{error ?? 'Account not found'}</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       <div className="px-6 py-8 max-w-4xl mx-auto">
         <button
           onClick={() => navigate('/dashboard')}
@@ -273,7 +273,7 @@ export default function AccountDetailPage() {
         </button>
 
         {/* Account header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+        <div className="glass-panel rounded-lg p-6 mb-6">
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-2xl font-bold text-navy dark:text-gray-100">{account.company_name}</h1>
@@ -308,7 +308,7 @@ export default function AccountDetailPage() {
         )}
 
         {/* Prospects section */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="glass-panel rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <div>
               <h2 className="text-lg font-semibold text-navy dark:text-gray-100">Prospects</h2>
@@ -337,7 +337,7 @@ export default function AccountDetailPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                <tr className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/10">
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Name</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Status</th>

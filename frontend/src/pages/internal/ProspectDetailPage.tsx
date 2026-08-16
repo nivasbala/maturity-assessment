@@ -117,7 +117,7 @@ export default function ProspectDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-gray-500 dark:text-gray-400">Loading prospect…</div>
       </div>
     )
@@ -125,14 +125,14 @@ export default function ProspectDetailPage() {
 
   if (error || !prospect) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-red-600 dark:text-red-400">{error ?? 'Prospect not found'}</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       <div className="px-6 py-8 max-w-4xl mx-auto">
         <button
           onClick={() => fromProspectsList ? navigate('/prospects') : navigate(`/dashboard/accounts/${id}`)}
@@ -142,7 +142,7 @@ export default function ProspectDetailPage() {
         </button>
 
         {/* Prospect info card */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+        <div className="glass-panel rounded-lg p-6 mb-6">
           <h1 className="text-xl font-bold text-navy dark:text-gray-100 mb-1">
             {prospect.name ?? prospect.email}
           </h1>
@@ -153,7 +153,7 @@ export default function ProspectDetailPage() {
             Created {new Date(prospect.created_at).toLocaleDateString()}
           </p>
 
-          <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-3">
+          <div className="flex items-center gap-2 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded p-3">
             <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 font-mono break-all">
               {prospect.full_url}
             </span>
@@ -190,7 +190,7 @@ export default function ProspectDetailPage() {
         </div>
 
         {activeTab === 'assessments' && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="glass-panel rounded-lg overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
             <h2 className="text-lg font-semibold text-navy dark:text-gray-100">Assessments</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -200,7 +200,7 @@ export default function ProspectDetailPage() {
 
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+              <tr className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/10">
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillar</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Score</th>
@@ -259,7 +259,7 @@ export default function ProspectDetailPage() {
         )}
 
         {activeTab === 'aggregate' && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden p-6">
+          <div className="glass-panel rounded-lg overflow-hidden p-6">
             {completedWithScoreCount < 2 && !aggregateLoading ? (
               <p className="text-sm text-gray-400 dark:text-gray-500">
                 Aggregate view requires at least 2 completed assessments for this prospect.
@@ -285,13 +285,13 @@ export default function ProspectDetailPage() {
                     <PolarGrid stroke="#e5e7eb" />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12, fill: '#6b7280' }} />
                     <PolarRadiusAxis domain={[0, 4]} tick={{ fontSize: 10, fill: '#9ca3af', fontFamily: '"JetBrains Mono", monospace' }} />
-                    <Radar name="Score" dataKey="score" stroke="#2563eb" fill="#2563eb" fillOpacity={0.25} />
+                    <Radar name="Score" dataKey="score" stroke="#3d6ea8" fill="#3d6ea8" fillOpacity={0.25} />
                   </RadarChart>
                 </ResponsiveContainer>
 
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+                    <tr className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/10">
                       <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Pillar</th>
                       <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Score</th>
                       <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Maturity</th>

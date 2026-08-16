@@ -203,7 +203,7 @@ export default function ReportPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex flex-col page-shell">
         <ProspectHeader />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
@@ -254,7 +254,7 @@ export default function ReportPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen page-shell flex flex-col">
       {showPdfModal && (
         <PdfThemeModal
           onDownload={(dark) => { handleDownloadPdf(dark) }}
@@ -266,7 +266,7 @@ export default function ReportPage() {
         <div className="max-w-3xl mx-auto space-y-6">
 
           {/* Header card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+          <div className="glass-panel rounded-xl p-8">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{report.company_name}</p>
             <h1 className="text-2xl font-bold text-navy dark:text-gray-100 mb-4">{report.pillar_name}</h1>
             <div className="flex items-center gap-4">
@@ -311,7 +311,7 @@ export default function ReportPage() {
             <div className="space-y-8">
               {/* Executive Summary */}
               {report.executive_summary && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+                <div className="glass-panel rounded-xl p-8">
                   <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Executive Summary</h2>
                   <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line">
                     {report.executive_summary}
@@ -320,7 +320,7 @@ export default function ReportPage() {
               )}
 
               {/* Score Chart */}
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+              <div className="glass-panel rounded-xl p-8">
                 <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-2">Maturity Score</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                   Score range: 1 (Initial) → 4 (Optimized)
@@ -330,7 +330,7 @@ export default function ReportPage() {
 
               {/* Strengths */}
               {report.strengths.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+                <div className="glass-panel rounded-xl p-8">
                   <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Strengths</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {report.strengths.map((s, i) => (
@@ -350,7 +350,7 @@ export default function ReportPage() {
 
               {/* Gap Analysis */}
               {report.gap_analysis.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+                <div className="glass-panel rounded-xl p-8">
                   <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Gap Analysis</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
@@ -389,7 +389,7 @@ export default function ReportPage() {
 
               {/* Next Steps */}
               {report.next_steps.length > 0 && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
+                <div className="glass-panel rounded-xl p-8">
                   <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Recommended Next Steps</h2>
                   <div className="space-y-4">
                     {report.next_steps.map((ns, i) => (
@@ -421,7 +421,7 @@ export default function ReportPage() {
                 <p className="text-sm text-gray-400 dark:text-gray-500">No answers recorded.</p>
               ) : (
                 report.answers.map((row, i) => (
-                  <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-4">
+                  <div key={i} className="glass-panel rounded-lg p-4 flex items-start gap-4">
                     <span className="shrink-0 font-mono tabular-nums text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-700 dark:text-gray-300">{row.question_text}</p>
@@ -453,31 +453,31 @@ export default function ReportPage() {
             hasContext ? (
               <div className="space-y-4">
                 {report.infrastructure_location && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <div className="glass-panel rounded-xl p-5">
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Infrastructure & Deployment</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{report.infrastructure_location}</p>
                   </div>
                 )}
                 {report.tech_stack_description && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <div className="glass-panel rounded-xl p-5">
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Tech Stack</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{report.tech_stack_description}</p>
                   </div>
                 )}
                 {report.current_tools && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <div className="glass-panel rounded-xl p-5">
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Current Tools</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{report.current_tools}</p>
                   </div>
                 )}
                 {report.key_challenges_input && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <div className="glass-panel rounded-xl p-5">
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Key Challenges (Self-reported)</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{report.key_challenges_input}</p>
                   </div>
                 )}
                 {report.additional_notes && (
-                  <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                  <div className="glass-panel rounded-xl p-5">
                     <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Additional Notes</p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{report.additional_notes}</p>
                   </div>

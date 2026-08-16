@@ -8,7 +8,7 @@ const MATURITY_BG: Record<string, string> = {
   Reactive: '#fef2f2', Developing: '#fffbeb', Defined: '#eff6ff', Optimized: '#f0fdf4',
 }
 const MATURITY_FG: Record<string, string> = {
-  Reactive: '#dc2626', Developing: '#d97706', Defined: '#2563eb', Optimized: '#16a34a',
+  Reactive: '#dc2626', Developing: '#d97706', Defined: '#3d6ea8', Optimized: '#16a34a',
 }
 const IMPACT_BG: Record<string, string> = { high: '#fef2f2', medium: '#fffbeb', low: '#f0fdf4' }
 const IMPACT_FG: Record<string, string> = { high: '#dc2626', medium: '#d97706', low: '#16a34a' }
@@ -18,13 +18,13 @@ const PRIORITY_BG: Record<string, string> = {
   quick_win: '#f0fdf4', strategic: '#eff6ff', foundational: '#faf5ff',
 }
 const PRIORITY_FG: Record<string, string> = {
-  quick_win: '#16a34a', strategic: '#2563eb', foundational: '#7c3aed',
+  quick_win: '#16a34a', strategic: '#3d6ea8', foundational: '#7c3aed',
 }
 const PRIORITY_LABEL: Record<string, string> = {
   quick_win: 'Quick Win', strategic: 'Strategic', foundational: 'Foundational',
 }
 const LEVEL_BG: Record<number, string> = { 1: '#fef2f2', 2: '#fffbeb', 3: '#eff6ff', 4: '#f0fdf4' }
-const LEVEL_FG: Record<number, string> = { 1: '#dc2626', 2: '#d97706', 3: '#2563eb', 4: '#16a34a' }
+const LEVEL_FG: Record<number, string> = { 1: '#dc2626', 2: '#d97706', 3: '#3d6ea8', 4: '#16a34a' }
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
@@ -62,11 +62,11 @@ function buildStyles(dark: boolean) {
     card: { backgroundColor: cardBg, borderRadius: 6, padding: 12, marginBottom: 6 },
 
     scoreBarBg: { height: 8, backgroundColor: barBg, borderRadius: 4, marginTop: 4, marginBottom: 12 },
-    scoreBarFill: { height: 8, backgroundColor: '#2563eb', borderRadius: 4 },
+    scoreBarFill: { height: 8, backgroundColor: '#3d6ea8', borderRadius: 4 },
     subAreaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
     subAreaLabel: { width: 140, fontSize: 8, color: tfText },
     subAreaBarBg: { flex: 1, height: 6, backgroundColor: barBg, borderRadius: 3 },
-    subAreaBarFill: { height: 6, backgroundColor: '#2563eb', borderRadius: 3 },
+    subAreaBarFill: { height: 6, backgroundColor: '#3d6ea8', borderRadius: 3 },
     subAreaScore: { width: 28, fontSize: 8, fontFamily: 'Courier', color: mutedText, textAlign: 'right' },
 
     strengthRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },

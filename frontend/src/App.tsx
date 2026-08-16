@@ -23,7 +23,7 @@ import SettingsPage from './pages/admin/SettingsPage'
 
 function AuthenticatedLayout() {
   return (
-    <div className="h-screen flex overflow-hidden bg-gray-50 dark:bg-gray-900">
+    <div className="h-screen flex overflow-hidden page-shell">
       <NavBar />
       <div className="flex-1 min-w-0 h-screen overflow-y-auto">
         <Outlet />

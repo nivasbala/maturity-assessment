@@ -2,6 +2,117 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Color themes ─────────────────────────────────────────────────────────
+   Each theme is one set of RGB-triplet variables (no light/dark split —
+   the app's light/dark toggle already works by choosing which `dark:`
+   utility applies, not by re-pointing these tokens). Selected via
+   `data-color-theme` on <html>, set by ThemeContext / the Settings page
+   picker. `:root` holds Dark Green, the platform default. */
+:root {
+  --color-brand: 45 106 79;
+  --color-navy: 20 38 29;
+  --color-navy-50: 234 246 239;
+  --color-navy-100: 211 238 221;
+  --color-ink: 15 23 18;
+  --color-silver: 185 204 194;
+  --color-signal-clear: 82 183 136;
+  --color-blue-50: 234 246 239;
+  --color-blue-100: 211 238 221;
+  --color-blue-200: 168 220 190;
+  --color-blue-300: 125 201 159;
+  --color-blue-400: 82 183 136;
+  --color-blue-500: 62 154 110;
+  --color-blue-600: 45 106 79;
+  --color-blue-700: 31 80 57;
+  --color-blue-800: 27 67 50;
+  --color-blue-900: 18 48 31;
+  --color-blue-950: 15 23 18;
+}
+
+[data-color-theme="platinum-blue"] {
+  --color-brand: 61 110 168;
+  --color-navy: 22 35 58;
+  --color-navy-50: 238 243 250;
+  --color-navy-100: 220 231 244;
+  --color-ink: 16 20 26;
+  --color-silver: 185 194 204;
+  --color-signal-clear: 91 143 214;
+  --color-blue-50: 238 243 250;
+  --color-blue-100: 220 231 244;
+  --color-blue-200: 187 208 232;
+  --color-blue-300: 147 180 217;
+  --color-blue-400: 107 152 202;
+  --color-blue-500: 76 128 187;
+  --color-blue-600: 61 110 168;
+  --color-blue-700: 48 90 140;
+  --color-blue-800: 39 72 112;
+  --color-blue-900: 29 55 87;
+  --color-blue-950: 16 20 26;
+}
+
+[data-color-theme="midnight-glass"] {
+  --color-brand: 83 95 199;
+  --color-navy: 27 28 51;
+  --color-navy-50: 238 240 252;
+  --color-navy-100: 223 227 250;
+  --color-ink: 14 15 26;
+  --color-silver: 183 186 217;
+  --color-signal-clear: 139 147 255;
+  --color-blue-50: 238 240 252;
+  --color-blue-100: 223 227 250;
+  --color-blue-200: 192 199 245;
+  --color-blue-300: 157 168 237;
+  --color-blue-400: 124 137 227;
+  --color-blue-500: 102 114 214;
+  --color-blue-600: 83 95 199;
+  --color-blue-700: 66 73 163;
+  --color-blue-800: 52 58 130;
+  --color-blue-900: 40 44 97;
+  --color-blue-950: 14 15 26;
+}
+
+[data-color-theme="frost-steel"] {
+  --color-brand: 47 130 152;
+  --color-navy: 22 35 42;
+  --color-navy-50: 234 246 249;
+  --color-navy-100: 211 236 242;
+  --color-ink: 13 20 23;
+  --color-silver: 183 198 204;
+  --color-signal-clear: 111 208 232;
+  --color-blue-50: 234 246 249;
+  --color-blue-100: 211 236 242;
+  --color-blue-200: 169 216 227;
+  --color-blue-300: 127 195 211;
+  --color-blue-400: 87 173 194;
+  --color-blue-500: 63 152 174;
+  --color-blue-600: 47 130 152;
+  --color-blue-700: 37 103 122;
+  --color-blue-800: 30 80 95;
+  --color-blue-900: 23 61 72;
+  --color-blue-950: 13 20 23;
+}
+
+[data-color-theme="signal"] {
+  --color-brand: 193 122 46;
+  --color-navy: 36 28 16;
+  --color-navy-50: 253 243 231;
+  --color-navy-100: 251 230 204;
+  --color-ink: 26 19 10;
+  --color-silver: 216 199 176;
+  --color-signal-clear: 217 138 61;
+  --color-blue-50: 253 243 231;
+  --color-blue-100: 251 230 204;
+  --color-blue-200: 246 205 154;
+  --color-blue-300: 240 180 104;
+  --color-blue-400: 234 155 55;
+  --color-blue-500: 217 138 61;
+  --color-blue-600: 193 122 46;
+  --color-blue-700: 153 96 34;
+  --color-blue-800: 115 72 24;
+  --color-blue-900: 77 48 15;
+  --color-blue-950: 26 19 10;
+}
+
 body {
   font-family: 'Inter', sans-serif;
   @apply text-gray-900;
@@ -9,4 +120,87 @@ body {
 
 .dark body {
   @apply text-gray-100;
+}
+
+@layer components {
+  /* Page ground — a soft brand-accent / brushed-silver glow over the steel
+     neutral base, instead of a flat grey page background. Colors come from
+     the active color theme (see the `[data-color-theme]` blocks above). */
+  .page-shell {
+    @apply bg-gray-50 dark:bg-ink;
+    background-image:
+      radial-gradient(650px circle at 12% -10%, rgb(var(--color-brand) / 0.06), transparent 60%),
+      radial-gradient(500px circle at 110% 25%, rgb(var(--color-silver) / 0.05), transparent 55%);
+    background-attachment: fixed;
+  }
+  .dark .page-shell {
+    background-image:
+      radial-gradient(900px circle at 12% -10%, rgb(var(--color-signal-clear) / 0.28), transparent 65%),
+      radial-gradient(700px circle at 110% 25%, rgb(var(--color-silver) / 0.16), transparent 60%);
+  }
+
+  /* Specular sheen sweep for primary buttons — applied alongside bg-brand. */
+  .btn-shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(115deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+    transform: skewX(-18deg);
+    transition: left 0.7s ease;
+  }
+  .btn-shine:hover::after {
+    left: 130%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .btn-shine::after {
+      transition: none;
+    }
+  }
+
+  /* Frosted glass card — translucent surface + blur + inset highlight.
+     Adapts per light/dark like the rest of the palette: near-white frost
+     in light mode, barely-there glass over the steel-navy ground in dark
+     mode; its border/shadow tint follows the active color theme. */
+  .glass-panel {
+    position: relative;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.72) 60%);
+    border: 1px solid rgb(var(--color-navy) / 0.10);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    box-shadow: 0 10px 30px -18px rgb(var(--color-navy) / 0.25);
+  }
+  .dark .glass-panel {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05) 60%);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 18px 44px -20px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  }
+
+  /* Same glass treatment, forced dark — for panels embedded in sections that
+     are always dark (e.g. the marketing hero's `bg-ink` band), independent
+     of the app's light/dark theme toggle. */
+  .glass-panel-dark {
+    position: relative;
+    background: linear-gradient(180deg, rgb(var(--color-signal-clear) / 0.14), rgb(var(--color-signal-clear) / 0.05) 60%);
+    border: 1px solid rgb(var(--color-signal-clear) / 0.22);
+    backdrop-filter: blur(14px) saturate(120%);
+    -webkit-backdrop-filter: blur(14px) saturate(120%);
+    box-shadow: 0 18px 44px -20px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgb(var(--color-signal-clear) / 0.14);
+  }
+
+  /* Ambient brand-accent / silver glow for always-dark (`bg-ink`) bands —
+     the marketing hero and footer CTA — independent of the light/dark
+     toggle, but still follows the active color theme. */
+  .ink-glow {
+    position: relative;
+    background-image:
+      radial-gradient(900px circle at 8% -20%, rgb(var(--color-signal-clear) / 0.38), transparent 65%),
+      radial-gradient(700px circle at 105% 40%, rgb(var(--color-silver) / 0.20), transparent 60%);
+  }
 }
