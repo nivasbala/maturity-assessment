@@ -60,7 +60,7 @@ test.describe('SettingsPage', () => {
     await mockSettingsApi(page)
     await gotoSettings(page)
 
-    const maxCard = page.locator('div.rounded-xl.border', { hasText: 'Max Questions Per Session' })
+    const maxCard = page.locator('div.rounded-xl', { hasText: 'Max Questions Per Session' })
     await maxCard.getByRole('button', { name: 'Edit' }).click()
 
     const input = maxCard.locator('input[type="number"]')
@@ -76,7 +76,7 @@ test.describe('SettingsPage', () => {
     await mockSettingsApi(page)
     await gotoSettings(page)
 
-    const minCard = page.locator('div.rounded-xl.border', { hasText: 'Min Questions Per Session' })
+    const minCard = page.locator('div.rounded-xl', { hasText: 'Min Questions Per Session' })
     await minCard.getByRole('button', { name: 'Edit' }).click()
 
     const input = minCard.locator('input[type="number"]')
@@ -92,7 +92,7 @@ test.describe('SettingsPage', () => {
     await mockSettingsApi(page)
     await gotoSettings(page)
 
-    const maxCard = page.locator('div.rounded-xl.border', { hasText: 'Max Questions Per Session' })
+    const maxCard = page.locator('div.rounded-xl', { hasText: 'Max Questions Per Session' })
     await maxCard.getByRole('button', { name: 'Edit' }).click()
     await maxCard.locator('input[type="number"]').fill('99')
     await maxCard.getByRole('button', { name: 'Cancel' }).click()
@@ -112,7 +112,7 @@ test.describe('SettingsPage', () => {
     )
 
     await gotoSettings(page)
-    const maxCard = page.locator('div.rounded-xl.border', { hasText: 'Max Questions Per Session' })
+    const maxCard = page.locator('div.rounded-xl', { hasText: 'Max Questions Per Session' })
     await maxCard.getByRole('button', { name: 'Edit' }).click()
     await maxCard.locator('input[type="number"]').fill('30')
     await maxCard.getByRole('button', { name: 'Save' }).click()
@@ -155,5 +155,40 @@ test.describe('SettingsPage', () => {
       Array.from(document.querySelectorAll('[class*="text-black"]')).map((el) => el.className)
     )
     expect(offenders).toEqual([])
+  })
+
+  test.describe('Appearance / color theme picker', () => {
+    test('defaults to Dark Green when no preference is stored', async ({ page }) => {
+      await seedAuth(page)
+      await mockSettingsApi(page)
+      await gotoSettings(page)
+
+      await expect(page.getByRole('button', { name: 'Dark Green' })).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.locator('html')).toHaveAttribute('data-color-theme', 'dark-green')
+      expect(await page.evaluate(() => localStorage.getItem('colorTheme'))).toBe('dark-green')
+    })
+
+    test('selecting a theme updates the root attribute and persists to localStorage', async ({ page }) => {
+      await seedAuth(page)
+      await mockSettingsApi(page)
+      await gotoSettings(page)
+
+      await page.getByRole('button', { name: 'Midnight Glass' }).click()
+
+      await expect(page.getByRole('button', { name: 'Midnight Glass' })).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.getByRole('button', { name: 'Dark Green' })).toHaveAttribute('aria-pressed', 'false')
+      await expect(page.locator('html')).toHaveAttribute('data-color-theme', 'midnight-glass')
+      expect(await page.evaluate(() => localStorage.getItem('colorTheme'))).toBe('midnight-glass')
+    })
+
+    test('a previously saved theme preference is restored on load', async ({ page }) => {
+      await seedAuth(page)
+      await mockSettingsApi(page)
+      await page.addInitScript(() => localStorage.setItem('colorTheme', 'signal'))
+      await gotoSettings(page)
+
+      await expect(page.getByRole('button', { name: 'Signal' })).toHaveAttribute('aria-pressed', 'true')
+      await expect(page.locator('html')).toHaveAttribute('data-color-theme', 'signal')
+    })
   })
 })

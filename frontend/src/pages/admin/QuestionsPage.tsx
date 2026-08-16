@@ -154,18 +154,18 @@ export default function QuestionsPage() {
   }
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-50 dark:bg-gray-900">
-      <div className="flex h-full">
+    <div className="h-screen overflow-hidden">
+      <div className="flex h-full gap-4 p-4">
         {/* Left panel — question list */}
-        <div className="w-96 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 flex flex-col">
-          <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div className="w-96 shrink-0 glass-panel rounded-lg flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-black/10 dark:border-white/10 flex items-center justify-between">
             <div>
               <a href="/admin/pillars" className="text-xs text-brand hover:underline">← Pillars</a>
               <h2 className="text-sm font-bold text-navy dark:text-gray-100 mt-0.5">Questions</h2>
             </div>
             <button
               onClick={startCreate}
-              className="text-xs bg-brand text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700"
+              className="text-xs bg-brand text-white px-3 py-1.5 rounded-lg font-medium hover:bg-blue-700 btn-shine"
             >
               + New
             </button>
@@ -186,7 +186,7 @@ export default function QuestionsPage() {
               <button
                 key={q.id}
                 onClick={() => startEdit(q)}
-                className={`w-full text-left px-4 py-3 border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${selected?.id === q.id ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-l-brand' : ''}`}
+                className={`w-full text-left px-4 py-3 border-b border-black/5 dark:border-white/10 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${selected?.id === q.id ? 'bg-blue-50 dark:bg-blue-900/20 border-l-2 border-l-brand' : ''}`}
               >
                 <div className="flex items-start gap-2">
                   <span className={`mt-0.5 text-xs px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${q.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>
@@ -207,7 +207,7 @@ export default function QuestionsPage() {
         </div>
 
         {/* Right panel — form */}
-        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+        <div className="flex-1 glass-panel rounded-lg overflow-y-auto">
           {!isEditing && (
             <div className="flex items-center justify-center h-full text-sm text-gray-400 dark:text-gray-500">
               Select a question to edit, or click + New
@@ -277,7 +277,7 @@ export default function QuestionsPage() {
                       {PERSONAS.map(({ value, label }) => {
                         const selected_p = form.personas.find((p) => p.persona === value)
                         return (
-                          <div key={value} className="flex items-center gap-2 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800">
+                          <div key={value} className="flex items-center gap-2 border border-black/10 dark:border-white/10 rounded-lg px-3 py-2 bg-black/5 dark:bg-white/5">
                             <input
                               type="checkbox"
                               checked={!!selected_p}
@@ -340,7 +340,7 @@ export default function QuestionsPage() {
                     <button
                       type="button"
                       onClick={() => addTag(tagInput)}
-                      className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600"
+                      className="px-3 py-1.5 text-sm bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 border border-gray-300 dark:border-gray-600"
                     >
                       Add
                     </button>
@@ -372,7 +372,7 @@ export default function QuestionsPage() {
                   <button
                     onClick={handleSave}
                     disabled={saving || !form.text || form.answer_options.some((o) => !o.text)}
-                    className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed btn-shine"
                   >
                     {saving ? 'Saving…' : (selected ? 'Save Changes' : 'Create Question')}
                   </button>

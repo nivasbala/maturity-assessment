@@ -97,13 +97,13 @@ export default function UsersPage() {
   const totalPages = Math.ceil(total / 25)
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold text-navy dark:text-gray-100">Internal Users</h1>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
+            className="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors btn-shine"
           >
             + New User
           </button>
@@ -115,9 +115,9 @@ export default function UsersPage() {
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="glass-panel rounded-xl overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
+            <thead className="bg-black/5 dark:bg-white/5 border-b border-black/10 dark:border-white/10">
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Name</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 dark:text-gray-300">Email</th>
@@ -196,7 +196,7 @@ export default function UsersPage() {
 
       {showEditModal && editTarget && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="glass-panel rounded-xl w-full max-w-md p-6">
             <h2 className="text-lg font-bold text-navy dark:text-gray-100 mb-4">Edit User</h2>
 
             {editError && (
@@ -235,7 +235,7 @@ export default function UsersPage() {
               <button
                 onClick={handleEditSave}
                 disabled={editSaving || !editForm.name || !editForm.email}
-                className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed btn-shine"
               >
                 {editSaving ? 'Saving…' : 'Save Changes'}
               </button>
@@ -246,7 +246,7 @@ export default function UsersPage() {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="glass-panel rounded-xl w-full max-w-md p-6">
             <h2 className="text-lg font-bold text-navy dark:text-gray-100 mb-4">New Internal User</h2>
 
             {formError && (
@@ -294,7 +294,7 @@ export default function UsersPage() {
               <button
                 onClick={handleCreate}
                 disabled={saving || !form.name || !form.email || !form.password}
-                className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-brand text-white text-sm rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed btn-shine"
               >
                 {saving ? 'Creating…' : 'Create User'}
               </button>

@@ -101,7 +101,7 @@ export default function PillarSelectPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex flex-col page-shell">
         <ProspectHeader />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-red-600 dark:text-red-400">{loadError}</p>
@@ -112,7 +112,7 @@ export default function PillarSelectPage() {
 
   if (!info) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex flex-col page-shell">
         <ProspectHeader />
         <div className="flex-1 flex items-center justify-center">
           <div className="relative w-10 h-10">
@@ -168,7 +168,7 @@ export default function PillarSelectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen page-shell flex flex-col">
       <ProspectHeader />
       <div className="flex-1 py-10 px-4">
         <div className="max-w-2xl mx-auto">

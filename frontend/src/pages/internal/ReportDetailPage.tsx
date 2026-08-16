@@ -72,8 +72,8 @@ export default function ReportDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="w-full max-w-md glass-panel rounded-2xl p-10 text-center">
           <div className="mb-6">
             <h2 className="text-xl font-bold text-navy dark:text-gray-100 mb-1">
               Loading report…
@@ -100,7 +100,7 @@ export default function ReportDetailPage() {
 
   if (error || !answers) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <p className="text-red-600 dark:text-red-400">{error ?? 'Assessment not found.'}</p>
       </div>
     )
@@ -117,7 +117,7 @@ export default function ReportDetailPage() {
   )
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       {showPdfModal && report && (
         <PdfThemeModal
           onDownload={async (dark) => {
@@ -229,7 +229,7 @@ export default function ReportDetailPage() {
                 <h2 className="text-base font-semibold text-navy dark:text-gray-100 mb-3">
                   Executive Summary
                 </h2>
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="glass-panel rounded-xl p-5">
                   <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                     {report.executive_summary}
                   </p>
@@ -241,7 +241,7 @@ export default function ReportDetailPage() {
                 <h2 className="text-base font-semibold text-navy dark:text-gray-100 mb-3">
                   Maturity Score
                 </h2>
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="glass-panel rounded-xl p-5">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                     Score range: 1 (Initial) → 4 (Optimized)
                   </p>
@@ -259,7 +259,7 @@ export default function ReportDetailPage() {
                     {report.strengths.map((s, i) => (
                       <div
                         key={i}
-                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex gap-3"
+                        className="glass-panel rounded-xl p-4 flex gap-3"
                       >
                         <span className="text-green-500 text-lg shrink-0">✓</span>
                         <div>
@@ -282,7 +282,7 @@ export default function ReportDetailPage() {
                     {report.gap_analysis.map((g, i) => (
                       <div
                         key={i}
-                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+                        className="glass-panel rounded-xl p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{g.gap}</p>
@@ -321,7 +321,7 @@ export default function ReportDetailPage() {
                     {report.next_steps.map((n, i) => (
                       <div
                         key={i}
-                        className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4"
+                        className="glass-panel rounded-xl p-4"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{n.title}</p>
@@ -360,7 +360,7 @@ export default function ReportDetailPage() {
                 {(answers.answers ?? []).map((row, i) => (
                   <div
                     key={i}
-                    className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-4"
+                    className="glass-panel rounded-lg p-4 flex items-start gap-4"
                   >
                     <span className="shrink-0 font-mono tabular-nums text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">
                       {i + 1}
@@ -520,31 +520,31 @@ export default function ReportDetailPage() {
           hasContext ? (
             <div className="space-y-4">
               {answers.infrastructure_location && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="glass-panel rounded-xl p-5">
                   <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Infrastructure & Deployment</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{answers.infrastructure_location}</p>
                 </div>
               )}
               {answers.tech_stack_description && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="glass-panel rounded-xl p-5">
                   <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Tech Stack</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{answers.tech_stack_description}</p>
                 </div>
               )}
               {answers.current_tools && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="glass-panel rounded-xl p-5">
                   <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Current Tools</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{answers.current_tools}</p>
                 </div>
               )}
               {answers.key_challenges_input && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="glass-panel rounded-xl p-5">
                   <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Key Challenges (Self-reported)</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{answers.key_challenges_input}</p>
                 </div>
               )}
               {answers.additional_notes && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                <div className="glass-panel rounded-xl p-5">
                   <p className="text-xs text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-1">Additional Notes</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{answers.additional_notes}</p>
                 </div>

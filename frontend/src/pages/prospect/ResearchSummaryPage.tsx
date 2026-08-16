@@ -111,7 +111,7 @@ export default function ResearchSummaryPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex flex-col page-shell">
         <ProspectHeader />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-red-600 dark:text-red-400 font-medium">{error}</p>
@@ -121,7 +121,7 @@ export default function ResearchSummaryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen page-shell flex flex-col">
       <ProspectHeader />
       <div className="flex-1 py-10 px-4">
         <div className="max-w-2xl mx-auto">
@@ -144,7 +144,7 @@ export default function ResearchSummaryPage() {
           <div className="space-y-4">
 
             {/* Company header */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="glass-panel rounded-xl p-6">
               <div className="flex items-start justify-between gap-4 mb-1">
                 <div>
                   <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
@@ -203,7 +203,7 @@ export default function ResearchSummaryPage() {
 
             {/* Key Challenges */}
             {summary?.key_challenges && summary.key_challenges.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="glass-panel rounded-xl p-6">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
                   Key Operational Challenges
                 </h2>
@@ -220,7 +220,7 @@ export default function ResearchSummaryPage() {
 
             {/* Business Outcomes */}
             {summary?.business_outcomes && summary.business_outcomes.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="glass-panel rounded-xl p-6">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
                   Business Outcomes
                 </h2>
@@ -238,7 +238,7 @@ export default function ResearchSummaryPage() {
             {/* Infrastructure */}
             {((summary?.cloud_providers && summary.cloud_providers.length > 0) ||
               (summary?.operational_scale && summary.operational_scale.length > 0)) && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="glass-panel rounded-xl p-6">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
                   Infrastructure Detected
                 </h2>
@@ -278,7 +278,7 @@ export default function ResearchSummaryPage() {
 
             {/* Observability Outcome */}
             {summary?.observability_outcome && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="glass-panel rounded-xl p-6">
                 <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">
                   Observability Outcome
                 </h2>
@@ -331,7 +331,7 @@ export default function ResearchSummaryPage() {
             )}
 
             {/* Additional notes */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="glass-panel rounded-xl p-6">
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
                 Anything to add or correct?{' '}
                 <span className="text-gray-400 dark:text-gray-500 font-normal">(optional)</span>

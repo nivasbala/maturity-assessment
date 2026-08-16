@@ -219,7 +219,7 @@ const REPORT_BENEFITS = [
    instead of a literal red/amber/green traffic light. ── */
 function SignalMeter({ markerPct, markerLabel, caption }: { markerPct?: number; markerLabel?: string; caption: string }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] px-6 py-5">
+    <div className="glass-panel-dark rounded-xl px-6 py-5">
       <p className="font-mono text-[10px] uppercase tracking-widest text-gray-400 mb-3.5">{caption}</p>
       <div className="relative flex h-2.5 rounded-full overflow-hidden mb-3">
         <span className="flex-1 bg-signal-static" />
@@ -258,7 +258,7 @@ const MATURITY_LEVELS = [
   { num: 1, label: 'Initial',    range: '1.0 – 1.9', color: '#8C7B63', pct: 22,  score: '1.4' },
   { num: 2, label: 'Developing', range: '2.0 – 2.9', color: '#D98A3D', pct: 52,  score: '2.5' },
   { num: 3, label: 'Defined',    range: '3.0 – 3.4', color: '#2E8B78', pct: 73,  score: '3.2' },
-  { num: 4, label: 'Optimised',  range: '3.5 – 4.0', color: '#1FA8E0', pct: 93,  score: '3.8' },
+  { num: 4, label: 'Optimised',  range: '3.5 – 4.0', color: '#5B8FD6', pct: 93,  score: '3.8' },
 ]
 
 function MaturityProgressAnimation() {
@@ -361,11 +361,11 @@ export default function HomePage() {
       <header className="bg-ink px-8 h-12 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-            <rect x="2" y="5" width="28" height="18" rx="2" stroke="#3B82F6" strokeWidth="1.8"/>
-            <polyline points="6,14 10,14 12,8 16,20 19,10 22,14 26,14" stroke="#3B82F6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-            <line x1="13" y1="23" x2="19" y2="23" stroke="#3B82F6" strokeWidth="1.8"/>
-            <line x1="16" y1="23" x2="16" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
-            <line x1="11" y1="28" x2="21" y2="28" stroke="#3B82F6" strokeWidth="1.8"/>
+            <rect x="2" y="5" width="28" height="18" rx="2" stroke="#5B8FD6" strokeWidth="1.8"/>
+            <polyline points="6,14 10,14 12,8 16,20 19,10 22,14 26,14" stroke="#5B8FD6" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="13" y1="23" x2="19" y2="23" stroke="#5B8FD6" strokeWidth="1.8"/>
+            <line x1="16" y1="23" x2="16" y2="28" stroke="#5B8FD6" strokeWidth="1.8"/>
+            <line x1="11" y1="28" x2="21" y2="28" stroke="#5B8FD6" strokeWidth="1.8"/>
           </svg>
           <span className="text-white/60 text-xs font-medium tracking-wide">OMA</span>
         </Link>
@@ -373,7 +373,7 @@ export default function HomePage() {
           <DarkModeToggle />
           <button
             onClick={handleCta}
-            className="text-sm bg-brand text-white font-medium px-4 py-1.5 rounded-lg hover:bg-blue-600 transition-colors"
+            className="text-sm bg-brand text-white font-medium px-4 py-1.5 rounded-lg hover:bg-blue-600 transition-colors btn-shine"
           >
             {user ? 'Dashboard' : 'Log in'}
           </button>
@@ -381,30 +381,60 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-ink text-white px-6 py-7 sm:py-8">
-        <div className="max-w-5xl mx-auto grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-14 items-center">
-          <div>
-            <p className="font-mono text-xs uppercase tracking-widest text-signal-clear mb-4">
-              Observability Maturity Assessment
-            </p>
-            <h1 className="font-display text-4xl sm:text-5xl font-semibold leading-[1.08] tracking-tight mb-5 text-balance">
-              Know exactly where you stand.
-              <br />
-              <em className="italic text-signal-clear">Know exactly what&rsquo;s next.</em>
-            </h1>
-            <p className="text-white/60 text-[15px] leading-relaxed mb-7 max-w-md">
-              Benchmark your observability posture across five critical pillars
-              and get a prioritised action plan — in under 10 minutes.
-            </p>
-            <button
-              onClick={handleCta}
-              className="bg-brand hover:bg-blue-600 text-white font-semibold px-7 py-2.5 rounded-lg transition-colors text-sm shadow-lg"
-            >
-              {user ? 'Go to dashboard' : 'Log in to get started'}
-            </button>
+      <section className="bg-ink ink-glow text-white px-6 py-10 sm:py-14">
+        <div className="max-w-5xl mx-auto">
+          <div className="glass-panel-dark rounded-2xl px-7 py-8 sm:px-10 sm:py-10">
+            <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-14 items-center">
+              <div>
+                <p className="font-mono text-xs uppercase tracking-widest text-signal-clear mb-4">
+                  Observability Maturity Assessment
+                </p>
+                <h1 className="font-display text-4xl sm:text-5xl font-semibold leading-[1.08] tracking-tight mb-5 text-balance">
+                  Know exactly where you stand.
+                  <br />
+                  <em className="italic text-signal-clear">Know exactly what&rsquo;s next.</em>
+                </h1>
+                <p className="text-white/60 text-[15px] leading-relaxed mb-7 max-w-md">
+                  Benchmark your observability posture across five critical pillars
+                  and get a prioritised action plan — in under 10 minutes.
+                </p>
+                <button
+                  onClick={handleCta}
+                  className="bg-gradient-to-r from-blue-200 to-brand text-ink font-semibold px-7 py-2.5 rounded-lg transition-colors text-sm shadow-lg btn-shine mb-7"
+                >
+                  {user ? 'Go to dashboard' : 'Log in to get started'}
+                </button>
+
+                <div className="flex flex-wrap gap-2.5">
+                  {PILLARS.slice(0, 3).map((p) => (
+                    <span
+                      key={p.title}
+                      className="inline-flex items-center gap-2 font-mono text-xs text-white/70 border border-white/15 rounded-full pl-3 pr-3.5 py-1.5"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-signal-clear" />
+                      {p.title}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <SignalMeter caption="Your maturity, at a glance" />
+            </div>
           </div>
 
-          <SignalMeter caption="Your maturity, at a glance" />
+          {/* Stat footer bar */}
+          <div className="mt-4 glass-panel-dark rounded-2xl grid grid-cols-3 divide-x divide-white/10 overflow-hidden">
+            {[
+              ['5', 'Assessment pillars'],
+              ['25', 'Questions per pillar'],
+              ['<10 min', 'To complete'],
+            ].map(([value, label]) => (
+              <div key={label} className="px-6 py-5">
+                <div className="font-mono text-2xl font-bold text-white">{value}</div>
+                <p className="text-white/50 text-xs mt-1">{label}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -482,7 +512,7 @@ export default function HomePage() {
             </div>
 
             {/* Right: static filmstrip — no auto-playing carousel to wait through */}
-            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden flex divide-x divide-gray-200 dark:divide-gray-700">
+            <div className="glass-panel rounded-xl overflow-hidden flex divide-x divide-gray-200 dark:divide-gray-700">
               <div className="flex-1 min-w-0 px-4 py-4 flex flex-col gap-2">
                 <span className="font-mono text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Registration</span>
                 <div className="h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 w-4/5" />
@@ -554,7 +584,7 @@ export default function HomePage() {
                 ['1.0 – 1.9', 'Initial',    'Ad-hoc processes, reactive operations, limited visibility.',             '#8C7B63'],
                 ['2.0 – 2.9', 'Developing', 'Foundational tooling in place; gaps in coverage and automation.',       '#D98A3D'],
                 ['3.0 – 3.4', 'Defined',    'Consistent practices, proactive monitoring, team-wide adoption.',       '#2E8B78'],
-                ['3.5 – 4.0', 'Optimised',  'Automated, intelligent, continuously improving at scale.',              '#1FA8E0'],
+                ['3.5 – 4.0', 'Optimised',  'Automated, intelligent, continuously improving at scale.',              '#5B8FD6'],
               ] as const).map(([range, label, desc, color]) => (
                 <div
                   key={label}
@@ -641,7 +671,7 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <section className="bg-ink py-10 px-6 text-center">
+      <section className="bg-ink ink-glow py-10 px-6 text-center">
         <h2 className="font-display text-2xl font-semibold text-white mb-2">
           Ready to assess your maturity?
         </h2>
@@ -651,7 +681,7 @@ export default function HomePage() {
         </p>
         <button
           onClick={handleCta}
-          className="bg-brand hover:bg-blue-600 text-white font-semibold px-7 py-2.5 rounded-lg transition-colors text-sm"
+          className="bg-brand hover:bg-blue-600 text-white font-semibold px-7 py-2.5 rounded-lg transition-colors text-sm btn-shine"
         >
           {user ? 'Go to dashboard' : 'Log in'}
         </button>

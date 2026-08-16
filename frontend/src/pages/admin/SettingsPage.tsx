@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { getSettings, updateSetting } from '../../api/admin'
 import { extractApiError } from '../../api'
 import { useAuth } from '../../contexts/AuthContext'
+import ColorThemePicker from '../../components/ColorThemePicker'
 import type { SystemSetting } from '../../types'
 
 const LABELS: Record<string, string> = {
@@ -72,9 +73,18 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen">
       <div className="max-w-2xl mx-auto px-6 py-8">
         <h1 className="text-xl font-bold text-navy dark:text-gray-100 mb-6">System Settings</h1>
+
+        <div className="glass-panel rounded-xl p-5 mb-6">
+          <p className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-0.5">Appearance</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
+            Applies across the whole app on this browser. This is a personal display
+            preference, saved locally — it doesn't affect other users.
+          </p>
+          <ColorThemePicker />
+        </div>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm border border-red-200 dark:border-red-800">
@@ -85,7 +95,7 @@ export default function SettingsPage() {
 
         <div className="space-y-4">
           {settings.map((s) => (
-            <div key={s.key} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+            <div key={s.key} className="glass-panel rounded-xl p-5">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{LABELS[s.key] ?? s.key}</p>
@@ -116,7 +126,7 @@ export default function SettingsPage() {
                   <button
                     onClick={() => handleSave(s.key)}
                     disabled={saving || !editValue || isNaN(parseInt(editValue, 10)) || (s.key === 'question_count_min' && parseInt(editValue, 10) < 12)}
-                    className="px-3 py-1.5 bg-brand text-white text-xs rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50"
+                    className="px-3 py-1.5 bg-brand text-white text-xs rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 btn-shine"
                   >
                     {saving ? 'Saving…' : 'Save'}
                   </button>

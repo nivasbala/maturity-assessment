@@ -52,10 +52,10 @@ export default function AssessmentPage() {
 
   if (sessionExpired) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex flex-col page-shell">
         <ProspectHeader />
         <div className="flex-1 flex items-center justify-center px-4">
-          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 text-center">
+          <div className="w-full max-w-md glass-panel rounded-xl p-8 text-center">
             <p className="text-gray-700 dark:text-gray-300 font-medium mb-2">Your session has expired.</p>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
               Please return to pillar selection to restart your assessment.
@@ -135,7 +135,7 @@ export default function AssessmentPage() {
   const progress = Math.round(((currentIndex + 1) / totalQuestions) * 100)
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen page-shell flex flex-col">
       <ProspectHeader />
       <div className="flex-1 py-8 px-4">
       <div className="max-w-2xl mx-auto">
@@ -185,7 +185,7 @@ export default function AssessmentPage() {
         </div>
 
         {/* Question card */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-4">
+        <div className="glass-panel rounded-xl p-8 mb-4">
           <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-6 leading-snug">
             {currentQuestion.text}
           </h2>
@@ -204,8 +204,8 @@ export default function AssessmentPage() {
                   }`}
                 >
                   <span className="inline-block w-5 h-5 rounded-full border-2 mr-3 align-middle flex-shrink-0 transition-colors" style={{
-                    borderColor: isSelected ? '#2563EB' : '#d1d5db',
-                    backgroundColor: isSelected ? '#2563EB' : 'transparent',
+                    borderColor: isSelected ? '#3D6EA8' : '#d1d5db',
+                    backgroundColor: isSelected ? '#3D6EA8' : 'transparent',
                   }} />
                   {option.text}
                 </button>

@@ -72,16 +72,16 @@ export function PdfRadarChart({ subAreas }: Props) {
       {/* Data polygon */}
       <Polygon
         points={dataPointsStr}
-        fill="#2563eb"
+        fill="#3d6ea8"
         fillOpacity={0.25}
-        stroke="#2563eb"
+        stroke="#3d6ea8"
         strokeWidth={1.5}
       />
 
       {/* Data points */}
       <G>
         {coords.map(({ x, y }, i) => (
-          <Circle key={i} cx={x} cy={y} r={3} fill="#2563eb" />
+          <Circle key={i} cx={x} cy={y} r={3} fill="#3d6ea8" />
         ))}
       </G>
 

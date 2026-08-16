@@ -183,7 +183,7 @@ export default function LandingPage() {
 
   if (loadError) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex flex-col page-shell">
         <ProspectHeader />
         <div className="flex-1 flex items-center justify-center">
           <p className="text-red-600 dark:text-red-400 font-medium">{loadError}</p>
@@ -194,7 +194,7 @@ export default function LandingPage() {
 
   if (!info) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen flex flex-col page-shell">
         <ProspectHeader />
         <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400">
           Loading assessment…
@@ -204,7 +204,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
+    <div className="min-h-screen page-shell flex flex-col">
       <ProspectHeader />
       <div className="flex-1 flex items-center justify-center py-6 px-4">
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
@@ -260,7 +260,7 @@ export default function LandingPage() {
           </div>
 
           {/* Form column */}
-          <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div className="lg:col-span-3 glass-panel rounded-xl p-6">
 
           {/* Returning visitor — existing assessments */}
           {info.is_registered && info.existing_assessments.length > 0 && (
@@ -453,7 +453,7 @@ export default function LandingPage() {
             <button
               onClick={handleBegin}
               disabled={submitting}
-              className="w-full bg-brand text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
+              className="w-full bg-brand text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2 btn-shine"
             >
               {submitting ? 'Starting…' : 'Begin Assessment →'}
             </button>
@@ -476,7 +476,7 @@ function GateQuestion({
   onChange: (val: boolean) => void
 }) {
   return (
-    <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700">
+    <div className="border border-black/10 dark:border-white/10 rounded-lg p-3 bg-black/5 dark:bg-white/5">
       <p className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">{pillar.gate_question}</p>
       <div className="flex gap-6">
         <label className="flex items-center gap-2 cursor-pointer">
