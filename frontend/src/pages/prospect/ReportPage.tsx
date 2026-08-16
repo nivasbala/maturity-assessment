@@ -11,6 +11,7 @@ import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_L
 import { safe, triggerPdfDownload } from '../../utils/pdfDownload'
 import { ScoreChart } from '../../components/ScoreChart'
 import { ProspectReportPdf } from '../../components/pdf/ProspectReportPdf'
+import { useTheme, COLOR_THEMES } from '../../contexts/ThemeContext'
 
 const LOADING_MESSAGES = [
   'Analyzing your responses…',
@@ -23,9 +24,9 @@ const LOADING_MESSAGES = [
   'Almost there…',
 ]
 
-async function downloadPdf(report: ReportPublic, darkMode: boolean) {
+async function downloadPdf(report: ReportPublic, darkMode: boolean, brandColor: string) {
   const { pdf } = await import('@react-pdf/renderer')
-  const blob = await pdf(<ProspectReportPdf report={report} darkMode={darkMode} />).toBlob()
+  const blob = await pdf(<ProspectReportPdf report={report} darkMode={darkMode} brandColor={brandColor} />).toBlob()
   await triggerPdfDownload(blob, `${safe(report.company_name)}-${safe(report.pillar_name)}-maturity-report.pdf`)
 }
 
@@ -172,6 +173,8 @@ function ResearchSummaryPanel({ data }: { data: NonNullable<ReportPublic['resear
 export default function ReportPage() {
   const { token, assessmentId } = useParams<{ token: string; assessmentId: string }>()
   const navigate = useNavigate()
+  const { colorTheme } = useTheme()
+  const brandColor = COLOR_THEMES.find((t) => t.id === colorTheme)?.swatch ?? '#3d6ea8'
 
   const [report, setReport] = useState<ReportPublic | null>(null)
   const [error, setError] = useState('')
@@ -239,7 +242,7 @@ export default function ReportPage() {
     if (!report) return
     setPdfGenerating(true)
     try {
-      await downloadPdf(report, darkMode)
+      await downloadPdf(report, darkMode, brandColor)
     } finally {
       setPdfGenerating(false)
     }
@@ -439,7 +442,7 @@ export default function ReportPage() {
           {/* ── Research Summary tab ── */}
           {activeTab === 'research' && (
             report.research_data ? (
-              <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+              <div className="glass-panel rounded-xl p-6">
                 <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Research Summary</h2>
                 <ResearchSummaryPanel data={report.research_data} />
               </div>

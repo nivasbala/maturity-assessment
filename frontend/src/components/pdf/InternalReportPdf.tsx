@@ -7,8 +7,8 @@ import { PdfRadarChart } from './PdfRadarChart'
 const MATURITY_BG: Record<string, string> = {
   Reactive: '#fef2f2', Developing: '#fffbeb', Defined: '#eff6ff', Optimized: '#f0fdf4',
 }
-const MATURITY_FG: Record<string, string> = {
-  Reactive: '#dc2626', Developing: '#d97706', Defined: '#3d6ea8', Optimized: '#16a34a',
+function maturityFg(brand: string): Record<string, string> {
+  return { Reactive: '#dc2626', Developing: '#d97706', Defined: brand, Optimized: '#16a34a' }
 }
 const IMPACT_BG: Record<string, string> = { high: '#fef2f2', medium: '#fffbeb', low: '#f0fdf4' }
 const IMPACT_FG: Record<string, string> = { high: '#dc2626', medium: '#d97706', low: '#16a34a' }
@@ -17,18 +17,20 @@ const EFFORT_FG: Record<string, string> = { high: '#dc2626', medium: '#d97706', 
 const PRIORITY_BG: Record<string, string> = {
   quick_win: '#f0fdf4', strategic: '#eff6ff', foundational: '#faf5ff',
 }
-const PRIORITY_FG: Record<string, string> = {
-  quick_win: '#16a34a', strategic: '#3d6ea8', foundational: '#7c3aed',
+function priorityFg(brand: string): Record<string, string> {
+  return { quick_win: '#16a34a', strategic: brand, foundational: '#7c3aed' }
 }
 const PRIORITY_LABEL: Record<string, string> = {
   quick_win: 'Quick Win', strategic: 'Strategic', foundational: 'Foundational',
 }
 const LEVEL_BG: Record<number, string> = { 1: '#fef2f2', 2: '#fffbeb', 3: '#eff6ff', 4: '#f0fdf4' }
-const LEVEL_FG: Record<number, string> = { 1: '#dc2626', 2: '#d97706', 3: '#3d6ea8', 4: '#16a34a' }
+function levelFg(brand: string): Record<number, string> {
+  return { 1: '#dc2626', 2: '#d97706', 3: brand, 4: '#16a34a' }
+}
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
 
-function buildStyles(dark: boolean) {
+function buildStyles(dark: boolean, brand: string) {
   const bg = dark ? '#111827' : '#f9fafb'
   const cardBg = dark ? '#1f2937' : '#ffffff'
   const primaryText = dark ? '#f9fafb' : '#111827'
@@ -62,11 +64,11 @@ function buildStyles(dark: boolean) {
     card: { backgroundColor: cardBg, borderRadius: 6, padding: 12, marginBottom: 6 },
 
     scoreBarBg: { height: 8, backgroundColor: barBg, borderRadius: 4, marginTop: 4, marginBottom: 12 },
-    scoreBarFill: { height: 8, backgroundColor: '#3d6ea8', borderRadius: 4 },
+    scoreBarFill: { height: 8, backgroundColor: brand, borderRadius: 4 },
     subAreaRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
     subAreaLabel: { width: 140, fontSize: 8, color: tfText },
     subAreaBarBg: { flex: 1, height: 6, backgroundColor: barBg, borderRadius: 3 },
-    subAreaBarFill: { height: 6, backgroundColor: '#3d6ea8', borderRadius: 3 },
+    subAreaBarFill: { height: 6, backgroundColor: brand, borderRadius: 3 },
     subAreaScore: { width: 28, fontSize: 8, fontFamily: 'Courier', color: mutedText, textAlign: 'right' },
 
     strengthRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
@@ -121,7 +123,7 @@ function Footer({ title, s }: { title: string; s: Styles }) {
   )
 }
 
-function ScoreSection({ report, s }: { report: Report; s: Styles }) {
+function ScoreSection({ report, s, brand }: { report: Report; s: Styles; brand: string }) {
   const breakdown = (report.pillar_breakdown ?? {}) as Record<string, number>
   const subAreas = Object.entries(breakdown)
   const hasRadar = subAreas.length >= 3
@@ -144,7 +146,7 @@ function ScoreSection({ report, s }: { report: Report; s: Styles }) {
       </View>
       {hasRadar && (
         <View style={{ alignItems: 'center', marginBottom: 8 }}>
-          <PdfRadarChart subAreas={subAreas} />
+          <PdfRadarChart subAreas={subAreas} color={brand} />
         </View>
       )}
       {subAreas.length > 1 && subAreas.map(([name, val]) => (
@@ -166,10 +168,14 @@ interface Props {
   answers: AssessmentAnswers
   report: Report
   darkMode?: boolean
+  brandColor?: string
 }
 
-export function InternalReportPdf({ answers, report, darkMode = false }: Props) {
-  const s = buildStyles(darkMode)
+export function InternalReportPdf({ answers, report, darkMode = false, brandColor = '#3d6ea8' }: Props) {
+  const s = buildStyles(darkMode, brandColor)
+  const maturityFgMap = maturityFg(brandColor)
+  const priorityFgMap = priorityFg(brandColor)
+  const levelFgMap = levelFg(brandColor)
   const ml = answers.maturity_label ?? ''
   const completedDate = answers.completed_at
     ? new Date(answers.completed_at).toLocaleDateString()
@@ -202,7 +208,7 @@ export function InternalReportPdf({ answers, report, darkMode = false }: Props) 
             )}
             {ml ? (
               <View style={[s.maturityBadge, { backgroundColor: MATURITY_BG[ml] ?? '#f3f4f6', marginLeft: 8 }]}>
-                <Text style={[s.maturityText, { color: MATURITY_FG[ml] ?? '#374151' }]}>{ml}</Text>
+                <Text style={[s.maturityText, { color: maturityFgMap[ml] ?? '#374151' }]}>{ml}</Text>
               </View>
             ) : null}
           </View>
@@ -235,7 +241,7 @@ export function InternalReportPdf({ answers, report, darkMode = false }: Props) 
         </View>
 
         <Text style={s.sectionTitle}>Maturity Score</Text>
-        <ScoreSection report={report} s={s} />
+        <ScoreSection report={report} s={s} brand={brandColor} />
 
         <Footer title={footerTitle} s={s} />
       </Page>
@@ -303,7 +309,7 @@ export function InternalReportPdf({ answers, report, darkMode = false }: Props) 
               <Text style={s.stepDesc}>{n.description}</Text>
               <View style={s.stepBadgeRow}>
                 <View style={[s.badge, { backgroundColor: PRIORITY_BG[n.priority] ?? '#f3f4f6' }]}>
-                  <Text style={[s.badgeText, { color: PRIORITY_FG[n.priority] ?? '#374151' }]}>
+                  <Text style={[s.badgeText, { color: priorityFgMap[n.priority] ?? '#374151' }]}>
                     {PRIORITY_LABEL[n.priority] ?? n.priority}
                   </Text>
                 </View>
@@ -326,7 +332,7 @@ export function InternalReportPdf({ answers, report, darkMode = false }: Props) 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                 <Text style={s.answerNum}>{i + 1}</Text>
                 <View style={[s.levelBadge, { backgroundColor: LEVEL_BG[row.maturity_level] ?? '#f3f4f6' }]}>
-                  <Text style={[s.levelText, { color: LEVEL_FG[row.maturity_level] ?? '#374151' }]}>
+                  <Text style={[s.levelText, { color: levelFgMap[row.maturity_level] ?? '#374151' }]}>
                     L{row.maturity_level}
                   </Text>
                 </View>

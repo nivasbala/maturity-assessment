@@ -30,9 +30,10 @@ function truncate(s: string, max: number): string {
 
 interface Props {
   subAreas: [string, number][]
+  color?: string
 }
 
-export function PdfRadarChart({ subAreas }: Props) {
+export function PdfRadarChart({ subAreas, color = '#3d6ea8' }: Props) {
   const n = subAreas.length
   const angles = radarAngles(n)
   const values = subAreas.map(([, v]) => v)
@@ -72,16 +73,16 @@ export function PdfRadarChart({ subAreas }: Props) {
       {/* Data polygon */}
       <Polygon
         points={dataPointsStr}
-        fill="#3d6ea8"
+        fill={color}
         fillOpacity={0.25}
-        stroke="#3d6ea8"
+        stroke={color}
         strokeWidth={1.5}
       />
 
       {/* Data points */}
       <G>
         {coords.map(({ x, y }, i) => (
-          <Circle key={i} cx={x} cy={y} r={3} fill="#3d6ea8" />
+          <Circle key={i} cx={x} cy={y} r={3} fill={color} />
         ))}
       </G>
 
