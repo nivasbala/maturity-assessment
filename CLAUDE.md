@@ -35,6 +35,10 @@ Load **only** the files listed for your current task. Do not load files not list
 
 ## SECTION 2: GIT WORKFLOW
 
+### Ad Hoc "Commit and Push" Requests
+
+When the user asks to "commit and push" outside the per-task branch workflow below (e.g. directly on `main`, or on a branch not tied to a numbered task), do **not** commit and push directly. Instead, ask whether they want to open a PR instead, and proceed based on their answer.
+
 ### Per-Task Workflow (Agent Follows This for Every Task)
 
 1. Ensure you are on `main` and it is up to date (`git pull origin main`)
