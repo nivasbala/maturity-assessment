@@ -131,7 +131,7 @@ export default function PillarsPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-5xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100">Pillars</h1>
+          <h1 className="text-xl font-bold text-navy dark:text-gray-100">Pillars</h1>
           <button
             onClick={openCreate}
             className="bg-brand text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
@@ -225,7 +225,7 @@ export default function PillarsPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-lg font-bold text-[#1B2B4B] dark:text-gray-100 mb-4">{editing ? 'Edit Pillar' : 'New Pillar'}</h2>
+            <h2 className="text-lg font-bold text-navy dark:text-gray-100 mb-4">{editing ? 'Edit Pillar' : 'New Pillar'}</h2>
 
             {formError && (
               <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm rounded border border-red-200 dark:border-red-800">

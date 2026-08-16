@@ -34,7 +34,7 @@ function CreateProspectModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-1">Create Prospect</h2>
+        <h2 className="text-xl font-semibold text-navy dark:text-gray-100 mb-1">Create Prospect</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
           Enter the prospect's email to generate their personalised assessment link.
         </p>
@@ -110,7 +110,7 @@ function ProspectUrlModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-lg p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-1">Prospect Created</h2>
+        <h2 className="text-xl font-semibold text-navy dark:text-gray-100 mb-1">Prospect Created</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Share this link with <strong className="text-gray-700 dark:text-gray-300">{prospect.name ?? prospect.email}</strong> to start their assessment.
         </p>
@@ -152,7 +152,7 @@ function DeleteConfirmModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Delete Account</h2>
+        <h2 className="text-xl font-semibold text-navy dark:text-gray-100 mb-2">Delete Account</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Are you sure you want to delete{' '}
           <span className="font-medium text-gray-800 dark:text-gray-200">{companyName}</span>?
@@ -276,7 +276,7 @@ export default function AccountDetailPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">{account.company_name}</h1>
+              <h1 className="text-2xl font-bold text-navy dark:text-gray-100">{account.company_name}</h1>
               {account.company_website && (
                 <a
                   href={account.company_website}
@@ -311,7 +311,7 @@ export default function AccountDetailPage() {
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100">Prospects</h2>
+              <h2 className="text-lg font-semibold text-navy dark:text-gray-100">Prospects</h2>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 Each prospect gets a unique assessment link.
               </p>

@@ -2,7 +2,7 @@ import DarkModeToggle from './DarkModeToggle'
 
 export default function ProspectHeader() {
   return (
-    <header className="bg-[#1B2B4B] px-8 h-12 flex items-center justify-between shrink-0">
+    <header className="bg-navy px-8 h-12 flex items-center justify-between shrink-0">
       <div className="flex items-center gap-3">
         <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
           <rect x="2" y="5" width="28" height="18" rx="2" stroke="#3B82F6" strokeWidth="1.8"/>

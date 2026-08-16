@@ -143,7 +143,7 @@ export default function ProspectDetailPage() {
 
         {/* Prospect info card */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
-          <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+          <h1 className="text-xl font-bold text-navy dark:text-gray-100 mb-1">
             {prospect.name ?? prospect.email}
           </h1>
           {prospect.name && (
@@ -192,7 +192,7 @@ export default function ProspectDetailPage() {
         {activeTab === 'assessments' && (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100">Assessments</h2>
+            <h2 className="text-lg font-semibold text-navy dark:text-gray-100">Assessments</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
               Status per pillar for this prospect.
             </p>
@@ -271,7 +271,7 @@ export default function ProspectDetailPage() {
             ) : aggregate ? (
               <div className="space-y-6">
                 <div>
-                  <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100">Aggregate View</h2>
+                  <h2 className="text-lg font-semibold text-navy dark:text-gray-100">Aggregate View</h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                     Maturity across all {aggregate.completed_count} completed pillars for this prospect.
                   </p>

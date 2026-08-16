@@ -177,7 +177,7 @@ function HorizontalMockup({ animName, children }: { animName: string; children: 
 
 const SLIDE = 'w-1/4 shrink-0 h-80 px-5 py-5 flex flex-col gap-2 overflow-hidden'
 const LABEL = 'text-[9px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider'
-const HEADING = 'text-[13px] font-bold text-[#1B2B4B] dark:text-gray-100'
+const HEADING = 'text-[13px] font-bold text-navy dark:text-gray-100'
 const SKEL = 'h-2 rounded-full bg-gray-200 dark:bg-gray-700'
 
 /* ── Vertical report mockup (What you'll get) ────────────────────────────── */
@@ -278,7 +278,7 @@ function VerticalReportMockup() {
   return (
     <div className="w-full max-w-[22rem] mx-auto rounded-2xl border border-gray-300 dark:border-gray-600 shadow-lg bg-white dark:bg-gray-900 overflow-hidden flex flex-col h-full max-h-[418px]">
       {/* Sticky header */}
-      <div className="bg-[#1B2B4B] px-4 py-3 shrink-0">
+      <div className="bg-navy px-4 py-3 shrink-0">
         <div className="flex items-center justify-between mb-1">
           <span className="text-white text-xs font-bold">Observability Maturity Report</span>
         </div>
@@ -415,7 +415,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 font-sans">
       {/* ── Nav ──────────────────────────────────────────────────────────── */}
-      <header className="bg-[#1B2B4B] px-8 h-12 flex items-center justify-between">
+      <header className="bg-navy px-8 h-12 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
           <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
             <rect x="2" y="5" width="28" height="18" rx="2" stroke="#3B82F6" strokeWidth="1.8"/>
@@ -438,7 +438,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-[#1B2B4B] text-white pt-8 pb-10 px-6">
+      <section className="bg-navy text-white pt-8 pb-10 px-6">
         <div className="max-w-3xl mx-auto text-center">
           {/* Icon + Main title lockup */}
           <div className="flex items-center justify-center gap-4 mb-3 flex-wrap">
@@ -482,7 +482,7 @@ export default function HomePage() {
       <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
       <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
+          <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             How it works
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10">
@@ -497,7 +497,7 @@ export default function HomePage() {
                     {step.number}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-0.5">
+                    <h3 className="font-semibold text-navy dark:text-gray-100 text-sm mb-0.5">
                       {step.title}
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -632,7 +632,7 @@ export default function HomePage() {
       <div className="bg-white dark:bg-gray-900 pt-8"><SectionDivider /></div>
       <section className="py-10 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
+          <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             Five pillars. One clear picture.
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-8 max-w-lg mx-auto">
@@ -649,7 +649,7 @@ export default function HomePage() {
                 <div className="mb-2 text-brand dark:text-blue-400">
                   <PillarIcon name={p.icon} />
                 </div>
-                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
+                <h3 className="font-semibold text-navy dark:text-gray-100 text-sm mb-1">
                   {p.title}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -668,7 +668,7 @@ export default function HomePage() {
                 <div className="mb-2 text-brand dark:text-blue-400">
                   <PillarIcon name={p.icon} />
                 </div>
-                <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-1">
+                <h3 className="font-semibold text-navy dark:text-gray-100 text-sm mb-1">
                   {p.title}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -684,7 +684,7 @@ export default function HomePage() {
       <div className="bg-white dark:bg-gray-900 pt-8"><SectionDivider /></div>
       <section className="py-10 px-6 bg-white dark:bg-gray-900">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
+          <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             Four maturity levels
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10">
@@ -707,7 +707,7 @@ export default function HomePage() {
                   <div className="w-1.5 self-stretch rounded-full shrink-0" style={{ backgroundColor: color }} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 mb-0.5">
-                      <span className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm">{label}</span>
+                      <span className="font-semibold text-navy dark:text-gray-100 text-sm">{label}</span>
                       <span className="text-gray-400 dark:text-gray-500 text-xs">{range}</span>
                     </div>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">{desc}</p>
@@ -726,7 +726,7 @@ export default function HomePage() {
       <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
       <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 text-center mb-1">
+          <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             What you'll get
           </h2>
           <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-10 max-w-lg mx-auto">
@@ -739,7 +739,7 @@ export default function HomePage() {
                 <div key={b.title} className="flex items-start gap-3">
                   <div className="text-lg w-7 shrink-0">{b.icon}</div>
                   <div>
-                    <h3 className="font-semibold text-[#1B2B4B] dark:text-gray-100 text-sm mb-0.5">
+                    <h3 className="font-semibold text-navy dark:text-gray-100 text-sm mb-0.5">
                       {b.title}
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">
@@ -757,8 +757,8 @@ export default function HomePage() {
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <div className="bg-[#1B2B4B] pt-8"><SectionDivider /></div>
-      <section className="bg-[#1B2B4B] py-10 px-6 text-center">
+      <div className="bg-navy pt-8"><SectionDivider /></div>
+      <section className="bg-navy py-10 px-6 text-center">
         <h2 className="text-2xl font-bold text-white mb-2">
           Ready to assess your maturity?
         </h2>

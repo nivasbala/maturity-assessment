@@ -43,7 +43,7 @@ export function ScoreChart({ report }: { report: ScoreChartData }) {
         </RadialBarChart>
       </ResponsiveContainer>
       <div className="absolute inset-0 flex flex-col items-center justify-end pb-4 pointer-events-none">
-        <span className="font-mono tabular-nums text-4xl font-bold text-[#1B2B4B] dark:text-gray-100">
+        <span className="font-mono tabular-nums text-4xl font-bold text-navy dark:text-gray-100">
           {report.pillar_score.toFixed(1)}
         </span>
         <span className="text-sm text-gray-400 dark:text-gray-500">out of 4.0</span>

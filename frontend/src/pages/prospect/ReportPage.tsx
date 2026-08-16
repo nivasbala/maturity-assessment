@@ -5,6 +5,7 @@ import { extractApiError } from '../../api'
 import type { ReportPublic } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
 import AgentLoadingScreen from '../../components/AgentLoadingScreen'
+import { AGENT_TIMING } from '../../utils/agentTiming'
 import PdfThemeModal from '../../components/PdfThemeModal'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 import { safe, triggerPdfDownload } from '../../utils/pdfDownload'
@@ -225,7 +226,7 @@ export default function ReportPage() {
         title="Generating your report…"
         progressLabel="Generating your report"
         messages={LOADING_MESSAGES}
-        estimatedTime="15–45 seconds"
+        estimatedTime={AGENT_TIMING.report}
         backLabel="← Back to Pillar Selection"
         onBack={() => navigate(`/assess/${token}/pillars`)}
       />
@@ -267,12 +268,12 @@ export default function ReportPage() {
           {/* Header card */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">{report.company_name}</p>
-            <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-4">{report.pillar_name}</h1>
+            <h1 className="text-2xl font-bold text-navy dark:text-gray-100 mb-4">{report.pillar_name}</h1>
             <div className="flex items-center gap-4">
               <span className={`inline-flex items-center border text-sm font-semibold px-3 py-1 rounded-full ${badgeClass}`}>
                 {report.maturity_label}
               </span>
-              <span className="font-mono tabular-nums text-3xl font-bold text-[#1B2B4B] dark:text-gray-100">
+              <span className="font-mono tabular-nums text-3xl font-bold text-navy dark:text-gray-100">
                 {report.pillar_score.toFixed(1)}
                 <span className="text-base font-normal text-gray-400 dark:text-gray-500 ml-1">/ 4.0</span>
               </span>
@@ -311,7 +312,7 @@ export default function ReportPage() {
               {/* Executive Summary */}
               {report.executive_summary && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
-                  <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Executive Summary</h2>
+                  <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Executive Summary</h2>
                   <div className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed whitespace-pre-line">
                     {report.executive_summary}
                   </div>
@@ -320,7 +321,7 @@ export default function ReportPage() {
 
               {/* Score Chart */}
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
-                <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-2">Maturity Score</h2>
+                <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-2">Maturity Score</h2>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
                   Score range: 1 (Initial) → 4 (Optimized)
                 </p>
@@ -330,7 +331,7 @@ export default function ReportPage() {
               {/* Strengths */}
               {report.strengths.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
-                  <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Strengths</h2>
+                  <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Strengths</h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {report.strengths.map((s, i) => (
                       <div key={i} className="border border-green-100 dark:border-green-900 bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
@@ -350,7 +351,7 @@ export default function ReportPage() {
               {/* Gap Analysis */}
               {report.gap_analysis.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
-                  <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Gap Analysis</h2>
+                  <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Gap Analysis</h2>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
@@ -389,7 +390,7 @@ export default function ReportPage() {
               {/* Next Steps */}
               {report.next_steps.length > 0 && (
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8">
-                  <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Recommended Next Steps</h2>
+                  <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Recommended Next Steps</h2>
                   <div className="space-y-4">
                     {report.next_steps.map((ns, i) => (
                       <div key={i} className="border border-gray-100 dark:border-gray-700 rounded-lg p-4">
@@ -421,12 +422,12 @@ export default function ReportPage() {
               ) : (
                 report.answers.map((row, i) => (
                   <div key={i} className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-4">
-                    <span className="shrink-0 text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">{i + 1}</span>
+                    <span className="shrink-0 font-mono tabular-nums text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">{i + 1}</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-gray-700 dark:text-gray-300">{row.question_text}</p>
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{row.selected_option_text}</p>
                     </div>
-                    <span className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLORS[row.maturity_level] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
+                    <span className={`shrink-0 font-mono tabular-nums text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLORS[row.maturity_level] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}>
                       L{row.maturity_level}
                     </span>
                   </div>
@@ -439,7 +440,7 @@ export default function ReportPage() {
           {activeTab === 'research' && (
             report.research_data ? (
               <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">Research Summary</h2>
+                <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-4">Research Summary</h2>
                 <ResearchSummaryPanel data={report.research_data} />
               </div>
             ) : (

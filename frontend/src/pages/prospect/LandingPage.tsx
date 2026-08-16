@@ -210,18 +210,18 @@ export default function LandingPage() {
         <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
 
           {/* Thesis column */}
-          <div className="lg:col-span-2 lg:sticky lg:top-6">
+          <div className="lg:col-span-2 lg:sticky lg:top-6 bg-navy-50 dark:bg-navy-900/20 border border-navy-100 dark:border-navy-900/40 rounded-2xl p-6">
             <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
               {info.company_name}
             </p>
-            <h1 className="text-3xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-3 tracking-tight leading-tight">
+            <h1 className="text-3xl font-bold text-navy dark:text-gray-100 mb-3 tracking-tight leading-tight">
               Observability Maturity Assessment
             </h1>
             <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
               Answer a few questions to receive a personalized maturity report with actionable recommendations.
             </p>
 
-            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               The maturity scale
             </p>
             <div className="space-y-2 mb-6">
@@ -241,7 +241,7 @@ export default function LandingPage() {
 
             {info.available_pillars.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   What we&apos;ll assess
                 </p>
                 <ul className="space-y-1.5">
@@ -307,7 +307,7 @@ export default function LandingPage() {
           {info.is_registered && (
             <div className="mb-4 px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
               <p className="text-xs text-amber-700 dark:text-amber-300">
-                Your details are pre-filled below. Update them if needed, then click <strong>Begin Assessment</strong> to start a new pillar.
+                Your details are pre-filled below. Update them if needed, then click <strong>Begin Assessment →</strong> to start a new pillar.
               </p>
             </div>
           )}
@@ -455,7 +455,7 @@ export default function LandingPage() {
               disabled={submitting}
               className="w-full bg-brand text-white font-semibold py-2.5 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2"
             >
-              {submitting ? 'Starting…' : 'Begin Assessment'}
+              {submitting ? 'Starting…' : 'Begin Assessment →'}
             </button>
           </div>
 

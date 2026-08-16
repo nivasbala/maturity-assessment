@@ -3,6 +3,8 @@ import ProspectHeader from './ProspectHeader'
 
 interface AgentLoadingScreenProps {
   eyebrow?: string
+  /** 'brand' (default) is reserved for the company name; 'muted' is for a process-step label like "Question Selection". */
+  eyebrowTone?: 'brand' | 'muted'
   title?: ReactNode
   subtitle?: ReactNode
   progressLabel: string
@@ -25,6 +27,7 @@ interface AgentLoadingScreenProps {
  */
 export default function AgentLoadingScreen({
   eyebrow,
+  eyebrowTone = 'brand',
   title,
   subtitle,
   progressLabel,
@@ -61,12 +64,18 @@ export default function AgentLoadingScreen({
         <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
           <div className="mb-8">
             {eyebrow && (
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
+              <p
+                className={`text-xs font-semibold uppercase tracking-widest mb-1 ${
+                  eyebrowTone === 'brand'
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                }`}
+              >
                 {eyebrow}
               </p>
             )}
             {title && (
-              <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+              <h2 className="text-xl font-bold text-navy dark:text-gray-100 mb-1">
                 {title}
               </h2>
             )}
@@ -101,7 +110,7 @@ export default function AgentLoadingScreen({
               <div className="mb-3">
                 <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
                   <span>{progressLabel}</span>
-                  <span>{progress}%</span>
+                  <span className="font-mono tabular-nums">{progress}%</span>
                 </div>
                 <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div
