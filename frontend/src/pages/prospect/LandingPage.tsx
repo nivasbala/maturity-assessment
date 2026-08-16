@@ -5,6 +5,14 @@ import { extractApiError } from '../../api'
 import type { AssessmentInfo, AvailablePillar } from '../../types'
 import { PERSONAS } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
+import { MATURITY_COLORS } from '../../utils/reportColors'
+
+const MATURITY_LEVELS = [
+  { n: 1, label: 'Reactive', desc: 'Ad-hoc, manual processes. Firefighting is the norm.' },
+  { n: 2, label: 'Developing', desc: 'Some tooling in place, but inconsistent across teams.' },
+  { n: 3, label: 'Defined', desc: 'Standardized practices with broad adoption and automation.' },
+  { n: 4, label: 'Optimized', desc: 'Data-driven, AI-augmented operations with continuous improvement.' },
+]
 
 const INPUT_CLS = 'w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-brand focus:border-transparent'
 const TEXTAREA_CLS = `${INPUT_CLS} resize-none`
@@ -199,20 +207,60 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
       <ProspectHeader />
       <div className="flex-1 flex items-center justify-center py-6 px-4">
-        <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
 
-          {/* Header */}
-          <div className="mb-5">
-            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
+          {/* Thesis column */}
+          <div className="lg:col-span-2 lg:sticky lg:top-6">
+            <p className="text-xs font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
               {info.company_name}
             </p>
-            <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+            <h1 className="text-3xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-3 tracking-tight leading-tight">
               Observability Maturity Assessment
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed">
+            <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-6">
               Answer a few questions to receive a personalized maturity report with actionable recommendations.
             </p>
+
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+              The maturity scale
+            </p>
+            <div className="space-y-2 mb-6">
+              {MATURITY_LEVELS.map((l) => (
+                <div
+                  key={l.n}
+                  className={`flex items-start gap-3 rounded-lg border px-3 py-2 ${MATURITY_COLORS[l.label]}`}
+                >
+                  <span className="font-mono text-xs font-bold tabular-nums shrink-0 mt-0.5">L{l.n}</span>
+                  <div>
+                    <p className="text-xs font-semibold">{l.label}</p>
+                    <p className="text-xs opacity-80 leading-snug">{l.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {info.available_pillars.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  What we&apos;ll assess
+                </p>
+                <ul className="space-y-1.5">
+                  {info.available_pillars.map((p) => (
+                    <li
+                      key={p.id}
+                      className="text-sm text-gray-700 dark:text-gray-300 flex items-baseline gap-2"
+                    >
+                      <span className="w-1 h-1 rounded-full bg-blue-600 dark:bg-blue-400 shrink-0 self-center" />
+                      {p.name}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
+
+          {/* Form column */}
+          <div className="lg:col-span-3 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
 
           {/* Returning visitor — existing assessments */}
           {info.is_registered && info.existing_assessments.length > 0 && (
@@ -411,6 +459,7 @@ export default function LandingPage() {
             </button>
           </div>
 
+          </div>
         </div>
       </div>
     </div>

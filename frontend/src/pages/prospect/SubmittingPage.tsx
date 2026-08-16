@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { submitAssessment } from '../../api/public'
 import { extractApiError } from '../../api'
-import ProspectHeader from '../../components/ProspectHeader'
+import AgentLoadingScreen from '../../components/AgentLoadingScreen'
 
 interface LocationState {
   answers: { question_id: string; answer_option_id: string }[]
@@ -33,22 +33,9 @@ export default function SubmittingPage() {
   const state = location.state as LocationState | null
   const sessionToken = sessionStorage.getItem('session_token') ?? ''
 
-  const [progress, setProgress] = useState(0)
-  const [msgIdx, setMsgIdx] = useState(0)
+  const [done, setDone] = useState(false)
   const [error, setError] = useState('')
   const submitted = useRef(false)
-
-  // Timers run independently — cleanup handles teardown on unmount.
-  // Kept separate from the submit effect so StrictMode's double-invoke
-  // of the submit guard doesn't prevent the timers from starting.
-  useEffect(() => {
-    const progressTimer = setInterval(() => setProgress((p) => (p < 88 ? p + 2 : p)), 700)
-    const msgTimer = setInterval(() => setMsgIdx((i) => (i + 1) % MESSAGES.length), 3000)
-    return () => {
-      clearInterval(progressTimer)
-      clearInterval(msgTimer)
-    }
-  }, [])
 
   useEffect(() => {
     if (!state?.answers || !token || !assessmentId || !sessionToken) {
@@ -60,7 +47,7 @@ export default function SubmittingPage() {
 
     submitAssessment(token, sessionToken, assessmentId, state.answers)
       .then(() => {
-        setProgress(100)
+        setDone(true)
         setTimeout(() => navigate(`/assess/${token}/report/${assessmentId}`), 500)
       })
       .catch((e) => {
@@ -74,88 +61,22 @@ export default function SubmittingPage() {
   const prospectRole = state?.prospectRole ?? ''
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col">
-      <ProspectHeader />
-      <div className="flex-1 flex items-center justify-center px-4">
-        <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
-
-          {/* Company + user info */}
-          <div className="mb-8">
-            {companyName && (
-              <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
-                {companyName}
-              </p>
-            )}
-            {pillarName && (
-              <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
-                {pillarName}
-              </h2>
-            )}
-            {prospectName && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {prospectName}{prospectRole ? ` · ${prospectRole}` : ''}
-              </p>
-            )}
-          </div>
-
-          {error ? (
-            <div className="space-y-4">
-              <p className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-                {error}
-              </p>
-              <button
-                onClick={() => navigate(-1)}
-                className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
-              >
-                ← Go back and try again
-              </button>
-            </div>
-          ) : (
-            <>
-              {/* Circular spinner */}
-              <div className="flex justify-center mb-6">
-                <div className="relative w-14 h-14">
-                  <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
-                  <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
-                </div>
-              </div>
-
-              {/* Progress bar */}
-              <div className="mb-3">
-                <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
-                  <span>Generating your report</span>
-                  <span>{progress}%</span>
-                </div>
-                <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-brand rounded-full transition-all duration-700 ease-out"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-
-              {/* Cycling message badge */}
-              <div className="flex justify-center mt-4">
-                <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
-                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                    {MESSAGES[msgIdx]}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-                This usually takes 15–45 seconds
-              </p>
-              <button
-                onClick={() => navigate(-1)}
-                className="mt-5 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2 transition-colors"
-              >
-                ← Back to Assessment
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+    <AgentLoadingScreen
+      eyebrow={companyName || undefined}
+      title={pillarName || undefined}
+      subtitle={
+        prospectName
+          ? `${prospectName}${prospectRole ? ` · ${prospectRole}` : ''}`
+          : undefined
+      }
+      progressLabel="Generating your report"
+      messages={MESSAGES}
+      estimatedTime="15–45 seconds"
+      backLabel="← Back to Assessment"
+      onBack={() => navigate(-1)}
+      complete={done}
+      error={error || undefined}
+      errorBackLabel="← Go back and try again"
+    />
   )
 }

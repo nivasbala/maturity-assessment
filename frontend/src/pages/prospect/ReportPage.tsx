@@ -4,6 +4,7 @@ import { getReport } from '../../api/public'
 import { extractApiError } from '../../api'
 import type { ReportPublic } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
+import AgentLoadingScreen from '../../components/AgentLoadingScreen'
 import PdfThemeModal from '../../components/PdfThemeModal'
 import { MATURITY_COLORS, IMPACT_COLORS, EFFORT_COLORS, LEVEL_COLORS, PRIORITY_LABELS, PRIORITY_COLORS } from '../../utils/reportColors'
 import { safe, triggerPdfDownload } from '../../utils/pdfDownload'
@@ -173,22 +174,9 @@ export default function ReportPage() {
 
   const [report, setReport] = useState<ReportPublic | null>(null)
   const [error, setError] = useState('')
-  const [loadingMsgIdx, setLoadingMsgIdx] = useState(0)
-  const [polling, setPolling] = useState(true)
   const [pdfGenerating, setPdfGenerating] = useState(false)
   const [showPdfModal, setShowPdfModal] = useState(false)
-  const [progress, setProgress] = useState(0)
   const [activeTab, setActiveTab] = useState<Tab>('report')
-
-  useEffect(() => {
-    if (!polling) return
-    const msgId = setInterval(() => setLoadingMsgIdx((i) => (i + 1) % LOADING_MESSAGES.length), 3000)
-    const progressId = setInterval(() => setProgress((p) => (p < 88 ? p + 2 : p)), 700)
-    return () => {
-      clearInterval(msgId)
-      clearInterval(progressId)
-    }
-  }, [polling])
 
   useEffect(() => {
     if (!token || !assessmentId) return
@@ -199,14 +187,12 @@ export default function ReportPage() {
       try {
         const data = await getReport(token!, assessmentId!)
         setReport(data)
-        setPolling(false)
       } catch (e) {
         if (attempts < MAX) {
           attempts++
           setTimeout(fetchReport, 3000)
         } else {
           setError(extractApiError(e, 'Failed to load report.'))
-          setPolling(false)
         }
       }
     }
@@ -235,47 +221,14 @@ export default function ReportPage() {
 
   if (!report) {
     return (
-      <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
-        <ProspectHeader />
-        <div className="flex-1 flex items-center justify-center px-4">
-          <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
-                Generating your report…
-              </h2>
-            </div>
-            <div className="flex justify-center mb-6">
-              <div className="relative w-14 h-14">
-                <div className="absolute inset-0 rounded-full border-4 border-gray-200 dark:border-gray-600" />
-                <div className="absolute inset-0 rounded-full border-4 border-brand border-t-transparent animate-spin" />
-              </div>
-            </div>
-            <div className="mb-3">
-              <div className="flex justify-between text-xs text-gray-400 dark:text-gray-500 mb-2">
-                <span>Generating your report</span>
-                <span>{progress}%</span>
-              </div>
-              <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-brand rounded-full transition-all duration-700 ease-out"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
-            <div className="flex justify-center mt-4">
-              <div className="inline-flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-full px-4 py-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse shrink-0" />
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  {LOADING_MESSAGES[loadingMsgIdx]}
-                </span>
-              </div>
-            </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-              This usually takes 15–45 seconds
-            </p>
-          </div>
-        </div>
-      </div>
+      <AgentLoadingScreen
+        title="Generating your report…"
+        progressLabel="Generating your report"
+        messages={LOADING_MESSAGES}
+        estimatedTime="15–45 seconds"
+        backLabel="← Back to Pillar Selection"
+        onBack={() => navigate(`/assess/${token}/pillars`)}
+      />
     )
   }
 
