@@ -286,15 +286,6 @@ When a user navigates between pages using the back/forward navigation above, all
 
 Fields to persist: all LandingPage fields, `prospect_additional_notes`, and AssessmentPage question answers (keyed by `question_id`).
 
-### Button and Link Color — Blue Throughout
-
-| Element | Classes |
-|---|---|
-| Primary button | `bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600` |
-| Back / nav link | `text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300` |
-| Ghost button | `border border-blue-600 text-blue-600 hover:bg-blue-50 dark:border-blue-400 dark:text-blue-400 dark:hover:bg-blue-950` |
-| Disabled | `bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400` |
-| Destructive only | `bg-red-600 hover:bg-red-700 text-white dark:bg-red-500 dark:hover:bg-red-600` |
 
 ### Dark Mode — No Black Text
 
