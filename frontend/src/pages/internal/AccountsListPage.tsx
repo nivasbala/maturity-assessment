@@ -49,7 +49,7 @@ function NewAccountModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold text-[#1B2B4B] dark:text-gray-100 mb-4">New Account</h2>
+        <h2 className="text-xl font-semibold text-navy dark:text-gray-100 mb-4">New Account</h2>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded text-sm">
@@ -188,7 +188,7 @@ export default function AccountsListPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100">Accounts</h1>
+            <h1 className="text-2xl font-bold text-navy dark:text-gray-100">Accounts</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{total} account{total !== 1 ? 's' : ''}</p>
           </div>
           <button
@@ -236,7 +236,7 @@ export default function AccountsListPage() {
                     onClick={() => navigate(`/dashboard/accounts/${a.id}`)}
                     className="border-b border-gray-100 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer transition-colors"
                   >
-                    <td className="px-4 py-3 font-medium text-[#1B2B4B] dark:text-gray-100">{a.company_name}</td>
+                    <td className="px-4 py-3 font-medium text-navy dark:text-gray-100">{a.company_name}</td>
                     <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
                       {a.company_website ? (
                         <a

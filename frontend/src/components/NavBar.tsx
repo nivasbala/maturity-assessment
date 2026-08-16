@@ -16,7 +16,7 @@ export default function NavBar() {
   const isAdmin = user.role === 'admin'
 
   return (
-    <nav className="bg-[#1B2B4B] text-white w-56 h-screen flex flex-col shrink-0">
+    <nav className="bg-navy text-white w-56 h-screen flex flex-col shrink-0">
       {/* Logo */}
       <div className="shrink-0 px-5 pt-6 pb-5 border-b border-white/10">
         <NavLink

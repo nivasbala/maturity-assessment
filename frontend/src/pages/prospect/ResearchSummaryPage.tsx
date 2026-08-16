@@ -150,7 +150,7 @@ export default function ResearchSummaryPage() {
                   <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
                     Company Research
                   </p>
-                  <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100">
+                  <h1 className="text-xl font-bold text-navy dark:text-gray-100">
                     {summary?.company_name ?? companyName}
                   </h1>
                 </div>

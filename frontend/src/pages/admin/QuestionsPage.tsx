@@ -161,7 +161,7 @@ export default function QuestionsPage() {
           <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <div>
               <a href="/admin/pillars" className="text-xs text-brand hover:underline">← Pillars</a>
-              <h2 className="text-sm font-bold text-[#1B2B4B] dark:text-gray-100 mt-0.5">Questions</h2>
+              <h2 className="text-sm font-bold text-navy dark:text-gray-100 mt-0.5">Questions</h2>
             </div>
             <button
               onClick={startCreate}
@@ -216,7 +216,7 @@ export default function QuestionsPage() {
 
           {isEditing && (
             <div className="max-w-2xl mx-auto px-6 py-6">
-              <h3 className="text-base font-bold text-[#1B2B4B] dark:text-gray-100 mb-4">
+              <h3 className="text-base font-bold text-navy dark:text-gray-100 mb-4">
                 {selected ? 'Edit Question' : 'New Question'}
               </h3>
 

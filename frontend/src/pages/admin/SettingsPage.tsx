@@ -74,7 +74,7 @@ export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-2xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-6">System Settings</h1>
+        <h1 className="text-xl font-bold text-navy dark:text-gray-100 mb-6">System Settings</h1>
 
         {error && (
           <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg text-sm border border-red-200 dark:border-red-800">
@@ -93,7 +93,7 @@ export default function SettingsPage() {
                 </div>
                 {editing !== s.key && (
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-lg font-bold text-[#1B2B4B] dark:text-gray-100">{s.value}</span>
+                    <span className="text-lg font-bold text-navy dark:text-gray-100">{s.value}</span>
                     <button
                       onClick={() => startEdit(s)}
                       className="text-xs text-brand hover:underline"

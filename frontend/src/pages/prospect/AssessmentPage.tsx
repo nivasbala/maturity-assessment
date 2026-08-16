@@ -171,9 +171,10 @@ export default function AssessmentPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Question {currentIndex + 1} of {totalQuestions}
+              Question <span className="font-mono tabular-nums">{currentIndex + 1}</span> of{' '}
+              <span className="font-mono tabular-nums">{totalQuestions}</span>
             </span>
-            <span className="text-sm text-gray-400 dark:text-gray-500">{progress}%</span>
+            <span className="font-mono tabular-nums text-sm text-gray-400 dark:text-gray-500">{progress}%</span>
           </div>
           <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
             <div
@@ -185,7 +186,7 @@ export default function AssessmentPage() {
 
         {/* Question card */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-8 mb-4">
-          <h2 className="text-lg font-semibold text-[#1B2B4B] dark:text-gray-100 mb-6 leading-snug">
+          <h2 className="text-lg font-semibold text-navy dark:text-gray-100 mb-6 leading-snug">
             {currentQuestion.text}
           </h2>
 
@@ -198,7 +199,7 @@ export default function AssessmentPage() {
                   onClick={() => selectOption(option.id)}
                   className={`w-full text-left border rounded-lg px-4 py-3 text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-1 ${
                     isSelected
-                      ? 'border-brand bg-blue-50 dark:bg-blue-900/20 text-[#1B2B4B] dark:text-gray-100 font-medium'
+                      ? 'border-brand bg-blue-50 dark:bg-blue-900/20 text-navy dark:text-gray-100 font-medium'
                       : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >

@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { submitAssessment } from '../../api/public'
 import { extractApiError } from '../../api'
 import AgentLoadingScreen from '../../components/AgentLoadingScreen'
+import { AGENT_TIMING } from '../../utils/agentTiming'
 
 interface LocationState {
   answers: { question_id: string; answer_option_id: string }[]
@@ -71,7 +72,7 @@ export default function SubmittingPage() {
       }
       progressLabel="Generating your report"
       messages={MESSAGES}
-      estimatedTime="15–45 seconds"
+      estimatedTime={AGENT_TIMING.report}
       backLabel="← Back to Assessment"
       onBack={() => navigate(-1)}
       complete={done}

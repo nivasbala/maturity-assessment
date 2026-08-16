@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { getResearchSummary } from '../../api/public'
 import { extractApiError } from '../../api'
 import AgentLoadingScreen from '../../components/AgentLoadingScreen'
+import { AGENT_TIMING } from '../../utils/agentTiming'
 
 const MESSAGES = [
   'Researching your company…',
@@ -74,7 +75,7 @@ export default function ResearchingPage() {
       title="Analyzing your company profile…"
       progressLabel="Building your profile"
       messages={MESSAGES}
-      estimatedTime="30–60 seconds"
+      estimatedTime={AGENT_TIMING.research}
       backLabel="← Back to Registration"
       onBack={() => navigate(`/assess/${token}`)}
       complete={done}

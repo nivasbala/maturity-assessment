@@ -33,7 +33,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex">
       {/* Left branding panel — matches sidebar width and style */}
-      <div className="w-56 shrink-0 bg-[#1B2B4B] flex flex-col">
+      <div className="w-56 shrink-0 bg-navy flex flex-col">
         <div className="px-5 pt-6 pb-5 border-b border-white/10">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
             <svg width="18" height="18" viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -54,7 +54,7 @@ export default function LoginPage() {
       <div className="flex-1 bg-[#F8FAFC] dark:bg-gray-900 flex items-center justify-center">
       <FloatingThemeToggle />
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">Sign in</h1>
+        <h1 className="text-2xl font-bold text-navy dark:text-gray-100 mb-1">Sign in</h1>
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Observability Maturity Assessment Platform</p>
 
         {error && (

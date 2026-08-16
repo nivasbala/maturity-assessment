@@ -6,6 +6,7 @@ import type { AssessmentInfo, AvailablePillar } from '../../types'
 import { PERSONAS } from '../../types'
 import ProspectHeader from '../../components/ProspectHeader'
 import AgentLoadingScreen from '../../components/AgentLoadingScreen'
+import { AGENT_TIMING } from '../../utils/agentTiming'
 
 const CONFIRMING_MESSAGES = [
   'Selecting questions tailored to your profile…',
@@ -87,10 +88,11 @@ export default function PillarSelectPage() {
     return (
       <AgentLoadingScreen
         eyebrow="Question Selection"
+        eyebrowTone="muted"
         title="Personalizing your questions…"
         progressLabel="Preparing your assessment"
         messages={CONFIRMING_MESSAGES}
-        estimatedTime="10–20 seconds"
+        estimatedTime={AGENT_TIMING.questionSelection}
         backLabel="← Back to Research Summary"
         onBack={() => navigate(`/assess/${token}/research-summary`)}
       />
@@ -138,7 +140,7 @@ export default function PillarSelectPage() {
       >
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100">{pillar.name}</h2>
+            <h2 className="text-base font-semibold text-navy dark:text-gray-100">{pillar.name}</h2>
             {badge && (
               <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shrink-0 ${
                 badge === 'Suggested'
@@ -182,7 +184,7 @@ export default function PillarSelectPage() {
             <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">
               {info.company_name}
             </p>
-            <h1 className="text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+            <h1 className="text-2xl font-bold text-navy dark:text-gray-100 mb-1">
               Select an Assessment Area
             </h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">

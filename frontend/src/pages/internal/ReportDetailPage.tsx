@@ -75,7 +75,7 @@ export default function ReportDetailPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
         <div className="w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm p-10 text-center">
           <div className="mb-6">
-            <h2 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100 mb-1">
+            <h2 className="text-xl font-bold text-navy dark:text-gray-100 mb-1">
               Loading report…
             </h2>
           </div>
@@ -163,7 +163,7 @@ export default function ReportDetailPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <h1 className="text-xl font-bold text-[#1B2B4B] dark:text-gray-100">
+              <h1 className="text-xl font-bold text-navy dark:text-gray-100">
                 {answers.pillar_name}
               </h1>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{answers.company_name}</p>
@@ -173,7 +173,7 @@ export default function ReportDetailPage() {
                 <span className={`inline-block text-sm font-semibold px-3 py-1 rounded-full border ${maturityClass}`}>
                   {answers.maturity_label}
                 </span>
-                <p className="font-mono tabular-nums text-2xl font-bold text-[#1B2B4B] dark:text-gray-100 mt-1">
+                <p className="font-mono tabular-nums text-2xl font-bold text-navy dark:text-gray-100 mt-1">
                   {answers.pillar_score.toFixed(2)}
                   <span className="text-sm font-normal text-gray-400 dark:text-gray-500"> / 4.00</span>
                 </p>
@@ -226,7 +226,7 @@ export default function ReportDetailPage() {
             <>
               {/* Executive Summary */}
               <section>
-                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                <h2 className="text-base font-semibold text-navy dark:text-gray-100 mb-3">
                   Executive Summary
                 </h2>
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
@@ -238,7 +238,7 @@ export default function ReportDetailPage() {
 
               {/* Maturity Score Chart */}
               <section>
-                <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                <h2 className="text-base font-semibold text-navy dark:text-gray-100 mb-3">
                   Maturity Score
                 </h2>
                 <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
@@ -252,7 +252,7 @@ export default function ReportDetailPage() {
               {/* Strengths */}
               {(report.strengths?.length ?? 0) > 0 && (
                 <section>
-                  <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                  <h2 className="text-base font-semibold text-navy dark:text-gray-100 mb-3">
                     Strengths
                   </h2>
                   <div className="space-y-3">
@@ -275,7 +275,7 @@ export default function ReportDetailPage() {
               {/* Gap Analysis */}
               {(report.gap_analysis?.length ?? 0) > 0 && (
                 <section>
-                  <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                  <h2 className="text-base font-semibold text-navy dark:text-gray-100 mb-3">
                     Gap Analysis
                   </h2>
                   <div className="space-y-3">
@@ -314,7 +314,7 @@ export default function ReportDetailPage() {
               {/* Next Steps */}
               {(report.next_steps?.length ?? 0) > 0 && (
                 <section>
-                  <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100 mb-3">
+                  <h2 className="text-base font-semibold text-navy dark:text-gray-100 mb-3">
                     Next Steps
                   </h2>
                   <div className="space-y-3">
@@ -362,7 +362,7 @@ export default function ReportDetailPage() {
                     key={i}
                     className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 flex items-start gap-4"
                   >
-                    <span className="shrink-0 text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">
+                    <span className="shrink-0 font-mono tabular-nums text-xs font-semibold text-gray-400 dark:text-gray-500 w-5 mt-0.5">
                       {i + 1}
                     </span>
                     <div className="flex-1 min-w-0">
@@ -372,7 +372,7 @@ export default function ReportDetailPage() {
                       </p>
                     </div>
                     <span
-                      className={`shrink-0 text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLORS[row.maturity_level] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
+                      className={`shrink-0 font-mono tabular-nums text-xs font-semibold px-2 py-0.5 rounded-full ${LEVEL_COLORS[row.maturity_level] ?? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'}`}
                     >
                       L{row.maturity_level}
                     </span>
@@ -387,7 +387,7 @@ export default function ReportDetailPage() {
         {activeTab === 'research' && (
           report?.research_data ? (
             <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-4 text-sm">
-              <h2 className="text-base font-semibold text-[#1B2B4B] dark:text-gray-100">Research Summary</h2>
+              <h2 className="text-base font-semibold text-navy dark:text-gray-100">Research Summary</h2>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 <div>
