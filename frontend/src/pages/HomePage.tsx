@@ -390,19 +390,12 @@ function MaturityProgressAnimation() {
   )
 }
 
-function SectionDivider() {
-  return (
-    <div className="flex items-center justify-center gap-3">
-      <div className="w-48 h-[2px] rounded-full bg-gradient-to-r from-transparent to-brand/60" />
-      <div className="w-3 h-3 rounded-full bg-brand/70 ring-2 ring-brand/20" />
-      <div className="w-48 h-[2px] rounded-full bg-gradient-to-l from-transparent to-brand/60" />
-    </div>
-  )
-}
+const EXPLORE_TABS = ['How it works', 'Five pillars', 'Maturity levels', 'What you get'] as const
 
 export default function HomePage() {
   const navigate = useNavigate()
   const { user } = useAuth()
+  const [activeTab, setActiveTab] = useState(0)
 
   const handleCta = () => {
     if (user) {
@@ -438,7 +431,7 @@ export default function HomePage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="bg-navy text-white pt-8 pb-10 px-6">
+      <section className="bg-navy text-white pt-0 pb-6 px-6">
         <div className="max-w-3xl mx-auto text-center">
           {/* Icon + Main title lockup */}
           <div className="flex items-center justify-center gap-4 mb-3 flex-wrap">
@@ -478,10 +471,53 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── How it works ─────────────────────────────────────────────────── */}
-      <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
-      <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
+      {/* ── Explore (tabbed walkthrough) ─────────────────────────────────── */}
+      <section className="pt-4 pb-10 px-6 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-5xl mx-auto">
+
+          {/* Tab nav */}
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 mb-5 flex-wrap">
+            <button
+              onClick={() => setActiveTab((i) => Math.max(0, i - 1))}
+              disabled={activeTab === 0}
+              aria-label="Previous section"
+              className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full text-gray-400 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            >
+              ‹
+            </button>
+            {EXPLORE_TABS.map((label, i) => (
+              <button
+                key={label}
+                onClick={() => setActiveTab(i)}
+                aria-current={i === activeTab ? 'step' : undefined}
+                className={`flex items-center gap-1.5 pl-1.5 pr-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                  i === activeTab
+                    ? 'bg-brand text-white'
+                    : 'text-gray-500 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700'
+                }`}
+              >
+                <span
+                  className={`w-5 h-5 shrink-0 rounded-full flex items-center justify-center text-xs font-mono tabular-nums font-bold ${
+                    i === activeTab ? 'bg-white/20' : 'bg-gray-200 dark:bg-gray-700'
+                  }`}
+                >
+                  {i + 1}
+                </span>
+                <span className="hidden sm:inline">{label}</span>
+              </button>
+            ))}
+            <button
+              onClick={() => setActiveTab((i) => Math.min(EXPLORE_TABS.length - 1, i + 1))}
+              disabled={activeTab === EXPLORE_TABS.length - 1}
+              aria-label="Next section"
+              className="w-8 h-8 shrink-0 flex items-center justify-center rounded-full text-gray-400 dark:text-gray-100 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-white disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            >
+              ›
+            </button>
+          </div>
+
+          {activeTab === 0 && (
+          <div>
           <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             How it works
           </h2>
@@ -625,13 +661,11 @@ export default function HomePage() {
               </div>
             </HorizontalMockup>
           </div>
-        </div>
-      </section>
+          </div>
+          )}
 
-      {/* ── Pillars ──────────────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 pt-8"><SectionDivider /></div>
-      <section className="py-10 px-6 bg-white dark:bg-gray-900">
-        <div className="max-w-5xl mx-auto">
+          {activeTab === 1 && (
+          <div>
           <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             Five pillars. One clear picture.
           </h2>
@@ -677,13 +711,11 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
+          </div>
+          )}
 
-      {/* ── Maturity levels ──────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-gray-900 pt-8"><SectionDivider /></div>
-      <section className="py-10 px-6 bg-white dark:bg-gray-900">
-        <div className="max-w-5xl mx-auto">
+          {activeTab === 2 && (
+          <div>
           <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             Four maturity levels
           </h2>
@@ -719,13 +751,11 @@ export default function HomePage() {
             {/* Right: animated progression */}
             <MaturityProgressAnimation />
           </div>
-        </div>
-      </section>
+          </div>
+          )}
 
-      {/* ── What you'll get ──────────────────────────────────────────────── */}
-      <div className="bg-gray-50 dark:bg-gray-800 pt-8"><SectionDivider /></div>
-      <section className="py-10 px-6 bg-gray-50 dark:bg-gray-800">
-        <div className="max-w-5xl mx-auto">
+          {activeTab === 3 && (
+          <div>
           <h2 className="text-2xl font-bold text-navy dark:text-gray-100 text-center mb-1">
             What you'll get
           </h2>
@@ -753,11 +783,13 @@ export default function HomePage() {
             {/* Right: vertical report mockup */}
             <VerticalReportMockup />
           </div>
+          </div>
+          )}
+
         </div>
       </section>
 
       {/* ── CTA ──────────────────────────────────────────────────────────── */}
-      <div className="bg-navy pt-8"><SectionDivider /></div>
       <section className="bg-navy py-10 px-6 text-center">
         <h2 className="text-2xl font-bold text-white mb-2">
           Ready to assess your maturity?
