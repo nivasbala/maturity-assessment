@@ -7,13 +7,13 @@ A sales lead qualification tool that assesses prospect maturity through structur
 ## Table of Contents
 
 - [Overview](#overview)
+- [User Journeys](#user-journeys)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [LLM Configuration](#llm-configuration)
 - [User Roles](#user-roles)
-- [User Journeys](#user-journeys)
 - [Assessment Pillars](#assessment-pillars)
 - [Multi-Agent System](#multi-agent-system)
 - [Project Structure](#project-structure)
@@ -32,6 +32,30 @@ The platform supports three user roles — Prospects, Internal Users, and Admins
 3. Prospect selects a pillar and answers a personalised set of questions.
 4. The LLM pipeline scores answers and generates a full maturity report.
 5. Internal users review the report and raw answers to inform sales conversations.
+
+---
+
+## User Journeys
+
+1. **Internal user logs in and tours the dashboard**
+
+   ![Internal user login and dashboard tour](docs/user-journey/home-tour-login.gif)
+
+2. **Create an Account** — An internal user logs in and creates an Account for the target company (company name + website).
+
+   ![Create an Account](docs/user-journey/account-creation.gif)
+
+3. **Create a Prospect** — Under that Account, the internal user creates a Prospect (name/email), generating a unique short URL to send them.
+
+   ![Create a Prospect](docs/user-journey/create-prospect.gif)
+
+4. **Prospect takes the survey** — The prospect opens the link, registers, reviews their research summary, picks a pillar, and answers the questions.
+
+   ![Prospect assessment Q&A](docs/user-journey/prospect-assessment-qa.gif)
+
+5. **View the maturity report** — Internal user (or the prospect) reviews the generated report across its tabs — Report, Questions & Answers, Research Summary, and Registration Context.
+
+   ![View report](docs/user-journey/view-report.gif)
 
 ---
 
@@ -145,30 +169,6 @@ QUESTION_SELECTION_AGENT_MODEL=claude-haiku-4-5-20251001
 | **Admin** | Full CRUD on pillars, questions, internal users, and system settings |
 | **Internal User** | Create/view Accounts and Prospects; view reports for their own Prospects |
 | **Prospect** | Complete assessment via unique short URL; view and download their report |
-
----
-
-## User Journeys
-
-1. **Internal user logs in and tours the dashboard**
-
-   ![Internal user login and dashboard tour](docs/user-journey/home-tour-login.gif)
-
-2. **Create an Account** — An internal user logs in and creates an Account for the target company (company name + website).
-
-   ![Create an Account](docs/user-journey/account-creation.gif)
-
-3. **Create a Prospect** — Under that Account, the internal user creates a Prospect (name/email), generating a unique short URL to send them.
-
-   ![Create a Prospect](docs/user-journey/create-prospect.gif)
-
-4. **Prospect takes the survey** — The prospect opens the link, registers, reviews their research summary, picks a pillar, and answers the questions.
-
-   ![Prospect assessment Q&A](docs/user-journey/prospect-assessment-qa.gif)
-
-5. **View the maturity report** — Internal user (or the prospect) reviews the generated report across its tabs — Report, Questions & Answers, Research Summary, and Registration Context.
-
-   ![View report](docs/user-journey/view-report.gif)
 
 ---
 
