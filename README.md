@@ -7,13 +7,13 @@ A sales lead qualification tool that assesses prospect maturity through structur
 ## Table of Contents
 
 - [Overview](#overview)
+- [User Roles](#user-roles)
 - [User Journeys](#user-journeys)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
 - [Getting Started](#getting-started)
 - [Environment Variables](#environment-variables)
 - [LLM Configuration](#llm-configuration)
-- [User Roles](#user-roles)
 - [Assessment Pillars](#assessment-pillars)
 - [Multi-Agent System](#multi-agent-system)
 - [Project Structure](#project-structure)
@@ -23,19 +23,23 @@ A sales lead qualification tool that assesses prospect maturity through structur
 
 ## Overview
 
-The platform supports three user roles — Prospects, Internal Users, and Admins — and walks a prospect through a five-pillar observability maturity assessment. After completing the assessment, a multi-agent LLM pipeline generates a structured report with an executive summary, strengths, gaps, and next steps.
+The platform walks a prospect through a five-pillar observability maturity assessment. After completing it, a multi-agent LLM pipeline generates a structured report with an executive summary, strengths, gaps, and next steps that sales teams use to run more informed conversations. See [User Roles](#user-roles) and [User Journeys](#user-journeys) below for who's involved and how the flow plays out end to end.
 
-**Key flows:**
+---
 
-1. Internal user creates a Prospect record under an Account, generating a unique short URL.
-2. Prospect follows the link, registers, and reviews an AI-generated research summary.
-3. Prospect selects a pillar and answers a personalised set of questions.
-4. The LLM pipeline scores answers and generates a full maturity report.
-5. Internal users review the report and raw answers to inform sales conversations.
+## User Roles
+
+| Role | Access | Authentication |
+|---|---|---|
+| **Admin** | Full CRUD on pillars, questions, internal users, and system settings | JWT login |
+| **Internal User** | Create/view Accounts and Prospects; view reports for their own Prospects | JWT login |
+| **Prospect** | Complete assessment via unique short URL; view and download their report | None — access is via the unguessable short URL itself, no account or password |
 
 ---
 
 ## User Journeys
+
+Walking through the roles above in order — Admin sets things up, an Internal User runs the day-to-day flow, and a Prospect completes the assessment:
 
 1. **Internal user logs in and tours the dashboard**
 
@@ -123,20 +127,26 @@ Copy `.env.example` to `.env` and fill in the values below.
 | `DATABASE_URL` | Yes | asyncpg connection string |
 | `JWT_SECRET_KEY` | Yes | Min 32-char random string — change before deploy |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | Yes | Seeded admin user |
-| `LLM_PROVIDER` | Yes | `ollama` \| `anthropic` \| `openai` — applies to all agents |
-| `OLLAMA_BASE_URL` / `OLLAMA_MODEL` | Ollama only | `.env.example` ships `http://host.docker.internal:11434` / `llama3.1:8b`; if `OLLAMA_MODEL` is unset entirely, code falls back to `llama3.2` |
-| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Anthropic only | Model defaults to `claude-sonnet-4-6` |
-| `OPENAI_API_KEY` / `OPENAI_MODEL` | OpenAI only | Model defaults to `gpt-4o` |
-| `RESEARCH_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
-| `QUESTION_SELECTION_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
-| `REPORT_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
 | `BASE_URL` / `CORS_ORIGINS` | Yes | App URL and allowed origins |
+
+LLM-related variables are covered in [LLM Configuration](#llm-configuration) below.
 
 ---
 
 ## LLM Configuration
 
 Switch providers by changing `LLM_PROVIDER` in `.env` and restarting — no code changes required. All provider logic lives in `backend/app/core/llm_factory.py`.
+
+| Variable | Required | Description |
+|---|---|---|
+| `LLM_PROVIDER` | Yes | `ollama` \| `anthropic` \| `openai` — applies to all agents |
+| `OLLAMA_BASE_URL` | Ollama only | `.env.example` ships `http://host.docker.internal:11434` |
+| `OLLAMA_MODEL` | Ollama only | ⚠️ Three different effective values depending on state: `.env.example` ships `llama3.1:8b`; if you comment it out or delete it entirely (not just leave it blank), `llm_factory.py` falls back to a hardcoded `llama3.2` default instead |
+| `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` | Anthropic only | Model defaults to `claude-sonnet-4-6` if unset |
+| `OPENAI_API_KEY` / `OPENAI_MODEL` | OpenAI only | Model defaults to `gpt-4o` if unset |
+| `RESEARCH_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
+| `QUESTION_SELECTION_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
+| `REPORT_AGENT_MODEL` | No | Per-agent model override; falls back to provider default if unset |
 
 ```bash
 # Switch to Anthropic
@@ -159,16 +169,6 @@ REPORT_AGENT_MODEL=claude-opus-4-8
 # Use a faster model for question selection
 QUESTION_SELECTION_AGENT_MODEL=claude-haiku-4-5-20251001
 ```
-
----
-
-## User Roles
-
-| Role | Access |
-|---|---|
-| **Admin** | Full CRUD on pillars, questions, internal users, and system settings |
-| **Internal User** | Create/view Accounts and Prospects; view reports for their own Prospects |
-| **Prospect** | Complete assessment via unique short URL; view and download their report |
 
 ---
 
@@ -196,6 +196,8 @@ Three agents orchestrated by LangGraph:
 | **Agent 2 — Question Selection** | Pillar selection (background) | Selects the right questions from the bank based on research profile and prospect context; falls back to rule-based if LLM fails |
 | **Agent 3 — Report** | Assessment submission | Scores answers, generates executive summary, strengths, gaps, and next steps |
 
+Agent 2 doesn't block pillar selection itself — it starts running in the background as soon as the prospect picks a pillar. The prospect only waits on it at the next step: `POST /confirm-research` (called from the Pillar Select page) awaits Agent 2's result and returns the selected questions, falling back to rule-based selection if the LLM call fails.
+
 See [`docs/diagrams/agent-architecture.excalidraw`](docs/diagrams/agent-architecture.excalidraw) for the full agent interaction diagram — triggers, the LangGraph orchestrator's internal nodes, and how all three agents route through `llm_factory.py`. Open it at [excalidraw.com](https://excalidraw.com) (File → Open).
 
 ---
@@ -216,6 +218,7 @@ maturity-assessment/
 │   ├── alembic/             # Database migrations
 │   └── tests/               # pytest test suite
 ├── frontend/
+│   ├── e2e/                 # Playwright end-to-end specs
 │   └── src/
 │       ├── api/             # All API calls (no inline fetch in components)
 │       ├── components/      # Shared UI components
@@ -236,6 +239,8 @@ maturity-assessment/
 
 ## Running Tests
 
+**Backend (pytest):**
+
 ```bash
 # From the repo root — runs the backend test suite inside the container
 docker compose exec backend pytest
@@ -247,3 +252,12 @@ pytest
 ```
 
 Tests cover API route status codes, auth enforcement, scoring logic, agent prompt construction, and fallback behaviour. All tests mock the database and LLM calls at the boundary — none require a live Postgres instance or network access.
+
+**Frontend (Playwright end-to-end):**
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+Specs live in `frontend/e2e/` and drive the app through a real browser against a running dev server (`npm run dev`, started automatically by the Playwright config) — covering the prospect assessment flow, login, and the admin/internal dashboard pages.
