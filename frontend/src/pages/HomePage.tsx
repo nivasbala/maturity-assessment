@@ -406,7 +406,7 @@ export default function HomePage() {
                 </button>
 
                 <div className="flex flex-wrap gap-2.5">
-                  {PILLARS.slice(0, 3).map((p) => (
+                  {PILLARS.map((p) => (
                     <span
                       key={p.title}
                       className="inline-flex items-center gap-2 font-mono text-xs text-gray-600 dark:text-white/70 border border-gray-200 dark:border-white/15 rounded-full pl-3 pr-3.5 py-1.5"
