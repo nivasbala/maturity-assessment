@@ -43,23 +43,23 @@ Walking through the roles above in order — Admin sets things up, an Internal U
 
 1. **Internal user logs in and tours the dashboard**
 
-   <video src="https://raw.githubusercontent.com/nivasbala/maturity-assessment/main/docs/user-journey/home-tour-login.mp4" autoplay loop muted playsinline controls width="100%"></video>
+   ![Internal user login and dashboard tour](docs/user-journey/home-tour-login.gif)
 
 2. **Create an Account** — An internal user logs in and creates an Account for the target company (company name + website).
 
-   <video src="https://raw.githubusercontent.com/nivasbala/maturity-assessment/main/docs/user-journey/account-creation.mp4" autoplay loop muted playsinline controls width="100%"></video>
+   ![Create an Account](docs/user-journey/account-creation.gif)
 
 3. **Create a Prospect** — Under that Account, the internal user creates a Prospect (name/email), generating a unique short URL to send them.
 
-   <video src="https://raw.githubusercontent.com/nivasbala/maturity-assessment/main/docs/user-journey/create-prospect.mp4" autoplay loop muted playsinline controls width="100%"></video>
+   ![Create a Prospect](docs/user-journey/create-prospect.gif)
 
 4. **Prospect takes the survey** — The prospect opens the link, registers, reviews their research summary, picks a pillar, and answers the questions.
 
-   <video src="https://raw.githubusercontent.com/nivasbala/maturity-assessment/main/docs/user-journey/prospect-assessment-qa.mp4" autoplay loop muted playsinline controls width="100%"></video>
+   ![Prospect assessment Q&A](docs/user-journey/prospect-assessment-qa.gif)
 
 5. **View the maturity report** — Internal user (or the prospect) reviews the generated report across its tabs — Report, Questions & Answers, Research Summary, and Registration Context.
 
-   <video src="https://raw.githubusercontent.com/nivasbala/maturity-assessment/main/docs/user-journey/view-report.mp4" autoplay loop muted playsinline controls width="100%"></video>
+   ![View report](docs/user-journey/view-report.gif)
 
 ---
 
