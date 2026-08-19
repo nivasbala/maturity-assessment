@@ -415,7 +415,7 @@ export default function HomePage() {
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="bg-gray-50 dark:bg-ink ink-glow text-gray-900 dark:text-white px-6 py-10 sm:py-14">
-        <div className="max-w-5xl mx-auto">
+        <div className="max-w-[73.6rem] mx-auto">
           <div className="glass-panel-dark rounded-2xl px-7 py-8 sm:px-10 sm:py-10">
             <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-10 lg:gap-14 items-center">
               <div>
