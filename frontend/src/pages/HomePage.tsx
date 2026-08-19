@@ -214,42 +214,75 @@ const REPORT_BENEFITS = [
   },
 ]
 
-/* ── Signal meter — the maturity-gradient signature element, reused in the hero and the
-   Maturity levels tab. "Noise → clear signal" reads directly off the product's own scale
-   instead of a literal red/amber/green traffic light. ── */
-function SignalMeter({ markerPct, markerLabel, caption }: { markerPct?: number; markerLabel?: string; caption: string }) {
+/* ── Sample maturity profile — the hero's report preview. A fixed, illustrative
+   dataset (not live data) that shows a prospect what their own report will look
+   like: a per-pillar score bar row plus a four-axis radar of the same scores. ── */
+// Fixed, theme-independent hues (not the dynamic --color-brand / --color-signal-clear
+// tokens) — the hero glass panel itself glows with the active theme's accent color in
+// dark mode, so any bar reusing that same accent washes out against its own background.
+const SAMPLE_PROFILE = [
+  { key: 'FSO', label: 'Full-Stack Obs.', score: 3, barClass: 'bg-teal-500 dark:bg-teal-400', textClass: 'text-teal-600 dark:text-teal-300' },
+  { key: 'AIOPS', label: 'AIOps', score: 2, barClass: 'bg-amber-500 dark:bg-amber-400', textClass: 'text-amber-600 dark:text-amber-300' },
+  { key: 'AIAPP', label: 'AI System Obs.', score: 4, barClass: 'bg-blue-500 dark:bg-blue-400', textClass: 'text-blue-600 dark:text-blue-300' },
+  { key: 'SEC', label: 'Security', score: 1, barClass: 'bg-rose-500 dark:bg-rose-400', textClass: 'text-rose-600 dark:text-rose-300' },
+] as const
+
+function SampleMaturityProfile({ caption }: { caption: string }) {
+  const cx = 120
+  const cy = 96
+  const maxR = 66
+  // N / E / S / W axis unit vectors, in FSO → AIOPS → AIAPP → SEC order
+  const axes = [
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: -1, dy: 0 },
+  ]
+  const point = (i: number, r: number) => ({ x: cx + axes[i].dx * r, y: cy + axes[i].dy * r })
+  const ringPath = (r: number) =>
+    axes.map((_, i) => point(i, r)).map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + ' Z'
+  const dataPoints = SAMPLE_PROFILE.map((p, i) => point(i, (p.score / 4) * maxR))
+  const dataPath = dataPoints.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ') + ' Z'
+
   return (
     <div className="glass-panel-dark rounded-xl px-6 py-5">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-3.5">{caption}</p>
-      <div className="relative flex h-2.5 rounded-full overflow-hidden mb-3">
-        <span className="flex-1 bg-signal-static" />
-        <span className="flex-1 bg-signal-amber" />
-        <span className="flex-1 bg-signal-teal" />
-        <span className="flex-1 bg-signal-clear" />
-        {markerPct === undefined && (
-          <div
-            className="absolute -top-[3px] -bottom-[3px] w-[3px] rounded-sm bg-gray-900 dark:bg-white shadow-[0_0_8px_1px_rgba(17,24,39,0.5)] dark:shadow-[0_0_8px_1px_rgba(255,255,255,0.8)] motion-safe:animate-signal-scan motion-reduce:left-[calc(100%-3px)]"
-          />
-        )}
-        {markerPct !== undefined && (
-          <div
-            className="absolute -top-[5px] w-0.5 h-5 rounded-sm bg-current text-signal-amber"
-            style={{ left: `${markerPct}%` }}
-          />
-        )}
+      <p className="font-mono text-[10px] uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-4">{caption}</p>
+
+      {/* Per-pillar score bars */}
+      <div className="grid grid-cols-4 gap-2 mb-4">
+        {SAMPLE_PROFILE.map((p) => (
+          <div key={p.key} className="h-1.5 rounded-full bg-gray-200 dark:bg-white/10 overflow-hidden">
+            <div className={`h-full rounded-full ${p.barClass}`} style={{ width: `${(p.score / 4) * 100}%` }} />
+          </div>
+        ))}
       </div>
-      <div className="grid grid-cols-4 text-[10px] text-gray-500 dark:text-gray-400">
-        <span>Reactive</span>
-        <span>Developing</span>
-        <span>Defined</span>
-        <span className="text-right text-signal-clear font-semibold">Optimized</span>
+      <div className="grid grid-cols-4 gap-2 mb-5 text-center">
+        {SAMPLE_PROFILE.map((p) => (
+          <div key={p.key}>
+            <p className="font-mono text-[10px] font-semibold text-gray-500 dark:text-gray-400">{p.key}</p>
+            <p className={`font-mono text-sm font-bold ${p.textClass}`}>{p.score}</p>
+          </div>
+        ))}
       </div>
-      {markerLabel && (
-        <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-          Example score <span className="font-mono font-semibold text-signal-amber">{markerLabel}</span> lands in{' '}
-          <span className="font-semibold text-signal-amber">Developing</span>
-        </p>
-      )}
+
+      {/* Radar */}
+      <svg viewBox="0 0 240 190" className="w-full h-auto" aria-hidden="true">
+        {[0.5, 1].map((f) => (
+          <path key={f} d={ringPath(maxR * f)} fill="none" className="stroke-gray-300 dark:stroke-white/10" strokeWidth={1} />
+        ))}
+        {axes.map((_, i) => {
+          const p = point(i, maxR)
+          return <line key={i} x1={cx} y1={cy} x2={p.x} y2={p.y} className="stroke-gray-300 dark:stroke-white/10" strokeWidth={1} />
+        })}
+        <path d={dataPath} className="fill-teal-400/20 dark:fill-teal-300/20 stroke-teal-500 dark:stroke-teal-300" strokeWidth={2} strokeLinejoin="round" />
+        {dataPoints.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r={3.5} className="fill-teal-500 dark:fill-teal-300" />
+        ))}
+        <text x={cx} y={cy - maxR - 10} textAnchor="middle" className="fill-gray-500 dark:fill-gray-400 font-mono" style={{ fontSize: 10 }}>FSO</text>
+        <text x={cx + maxR + 10} y={cy + 4} textAnchor="start" className="fill-gray-500 dark:fill-gray-400 font-mono" style={{ fontSize: 10 }}>AIOPS</text>
+        <text x={cx} y={cy + maxR + 18} textAnchor="middle" className="fill-gray-500 dark:fill-gray-400 font-mono" style={{ fontSize: 10 }}>AIAPP</text>
+        <text x={cx - maxR - 10} y={cy + 4} textAnchor="end" className="fill-gray-500 dark:fill-gray-400 font-mono" style={{ fontSize: 10 }}>SEC</text>
+      </svg>
     </div>
   )
 }
@@ -418,7 +451,7 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <SignalMeter caption="Your maturity, at a glance" />
+              <SampleMaturityProfile caption="Your maturity at a glance" />
             </div>
           </div>
 
